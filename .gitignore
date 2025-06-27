@@ -1,0 +1,325 @@
+# Bico Admin - Git忽略文件配置
+
+# ===========================================
+# 操作系统相关
+# ===========================================
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===========================================
+# 编辑器和IDE
+# ===========================================
+
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains IDEs
+.idea/
+*.swp
+*.swo
+*~
+
+# Vim
+*.swp
+*.swo
+*.tmp
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# ===========================================
+# Go 后端相关
+# ===========================================
+
+# 二进制文件
+backend/bin/
+backend/*.exe
+backend/*.exe~
+backend/*.dll
+backend/*.so
+backend/*.dylib
+
+# 测试二进制文件
+backend/*.test
+
+# 输出的二进制文件
+backend/main
+backend/server
+backend/app
+
+# Go 工作空间文件
+backend/go.work
+backend/go.work.sum
+
+# 依赖目录
+backend/vendor/
+
+# Go 模块代理缓存
+backend/go.sum.backup
+
+# 编译器生成的文件
+backend/*.o
+backend/*.a
+backend/*.so
+
+# 调试文件
+backend/debug
+backend/debug.test
+backend/__debug_bin
+
+# 覆盖率文件
+backend/*.out
+backend/coverage.html
+backend/coverage.xml
+
+# 性能分析文件
+backend/*.prof
+backend/cpu.prof
+backend/mem.prof
+
+# Air 热重载工具
+backend/.air.toml
+backend/tmp/
+
+# ===========================================
+# Node.js 前端相关
+# ===========================================
+
+# 依赖目录
+frontend/node_modules/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+
+# 构建输出
+frontend/dist/
+frontend/dist-ssr/
+frontend/build/
+frontend/out/
+
+# 缓存目录
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/.next/
+frontend/.nuxt/
+frontend/.vuepress/dist/
+frontend/.serverless/
+frontend/.fusebox/
+
+# Vite
+frontend/.vite/
+
+# 测试覆盖率
+frontend/coverage/
+frontend/.nyc_output/
+
+# 运行时数据
+frontend/pids/
+frontend/*.pid
+frontend/*.seed
+frontend/*.pid.lock
+
+# 可选的npm缓存目录
+frontend/.npm/
+
+# 可选的eslint缓存
+frontend/.eslintcache
+
+# 可选的REPL历史
+frontend/.node_repl_history
+
+# Yarn完整性文件
+frontend/.yarn-integrity
+
+# dotenv环境变量文件
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Storybook构建输出
+frontend/storybook-static/
+
+# ===========================================
+# 环境配置文件
+# ===========================================
+
+# 环境变量文件（保留示例文件）
+.env
+backend/.env
+frontend/.env
+!backend/.env.example
+!frontend/.env.example
+
+# 配置文件
+config.local.json
+config.production.json
+
+# ===========================================
+# 日志文件
+# ===========================================
+
+# 应用日志
+backend/storage/logs/*.log
+backend/storage/logs/*.log.*
+frontend/logs/*.log
+
+# 系统日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===========================================
+# 数据库相关
+# ===========================================
+
+# SQLite数据库文件
+*.sqlite
+*.sqlite3
+*.db
+
+# 数据库备份文件
+*.sql.backup
+*.dump
+
+# ===========================================
+# 存储和上传文件
+# ===========================================
+
+# 文件上传目录
+backend/storage/uploads/*
+!backend/storage/uploads/.gitkeep
+
+# 临时文件
+backend/storage/temp/*
+!backend/storage/temp/.gitkeep
+
+# 缓存文件
+backend/storage/cache/*
+!backend/storage/cache/.gitkeep
+
+# ===========================================
+# 证书和密钥
+# ===========================================
+
+# SSL证书
+*.pem
+*.key
+*.crt
+*.cert
+
+# SSH密钥
+id_rsa
+id_rsa.pub
+*.ppk
+
+# ===========================================
+# Docker相关
+# ===========================================
+
+# Docker构建上下文
+.dockerignore
+
+# ===========================================
+# 备份和临时文件
+# ===========================================
+
+# 备份文件
+*.backup
+*.bak
+*.tmp
+*.temp
+
+# 压缩文件
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# ===========================================
+# 测试相关
+# ===========================================
+
+# 测试输出
+test-results/
+test-reports/
+coverage/
+
+# E2E测试
+frontend/test-results/
+frontend/playwright-report/
+frontend/playwright/.cache/
+
+# ===========================================
+# 文档生成
+# ===========================================
+
+# API文档生成
+backend/docs/swagger/
+backend/docs/api/
+
+# ===========================================
+# 其他
+# ===========================================
+
+# 锁定文件（根据团队需要决定是否忽略）
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# 本地开发脚本
+scripts/local/
+*.local.sh
+
+# 性能监控
+.monitor/
+
+# 错误报告
+error-reports/
