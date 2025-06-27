@@ -1,6 +1,6 @@
 export const config = {
   // API配置
-  adminApiUrl: import.meta.env.VITE_ADMIN_API_URL || 'http://localhost:8080/admin/api',
+  adminApiUrl: import.meta.env.VITE_ADMIN_API_URL || 'http://localhost:8080',
   apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
   
   // 应用配置

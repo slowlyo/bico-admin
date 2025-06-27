@@ -4,30 +4,38 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
+	"bico-admin/core/config"
 	"bico-admin/core/middleware"
+	coreRouter "bico-admin/core/router"
 	"bico-admin/modules/admin/handler"
 )
 
 // SetupRoutes 设置后台管理路由
 func SetupRoutes(app fiber.Router, db *gorm.DB) {
-	// TODO: 从配置中获取JWT密钥
-	jwtSecret := "your-secret-key"
+	// 获取配置
+	cfg := config.New()
 
-	// 应用认证中间件
-	app.Use(middleware.AuthMiddleware(jwtSecret))
+	// API路由组
+	api := app.Group("/api")
+
+	// 设置认证路由（不需要认证的路由）
+	coreRouter.SetupAuthRoutes(api, db, cfg)
+
+	// 需要认证的路由
+	protected := api.Group("/")
+	protected.Use(middleware.AuthMiddleware(cfg.JWT.Secret))
 
 	// 后台管理处理器
 	dashboardHandler := handler.NewDashboardHandler(db)
 
-	// API路由组
-	api := app.Group("/api")
+	// 后台管理路由（需要认证）
 	{
 		// 仪表板
-		api.Get("/dashboard", dashboardHandler.GetDashboard)
-		api.Get("/dashboard/stats", dashboardHandler.GetStats)
+		protected.Get("/dashboard", dashboardHandler.GetDashboard)
+		protected.Get("/dashboard/stats", dashboardHandler.GetStats)
 
 		// 用户管理
-		users := api.Group("/users")
+		users := protected.Group("/users")
 		{
 			users.Get("/", dashboardHandler.GetUsers)
 			users.Post("/", dashboardHandler.CreateUser)
@@ -37,7 +45,7 @@ func SetupRoutes(app fiber.Router, db *gorm.DB) {
 		}
 
 		// 角色管理
-		roles := api.Group("/roles")
+		roles := protected.Group("/roles")
 		{
 			roles.Get("/", dashboardHandler.GetRoles)
 			roles.Post("/", dashboardHandler.CreateRole)
@@ -47,7 +55,7 @@ func SetupRoutes(app fiber.Router, db *gorm.DB) {
 		}
 
 		// 权限管理
-		permissions := api.Group("/permissions")
+		permissions := protected.Group("/permissions")
 		{
 			permissions.Get("/", dashboardHandler.GetPermissions)
 			permissions.Post("/", dashboardHandler.CreatePermission)

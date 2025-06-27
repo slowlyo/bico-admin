@@ -4,15 +4,18 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@refinedev/core": "^4.47.1",
+    "@ant-design/icons": "^5.5.1",
     "@refinedev/antd": "^5.44.0",
-    "@refinedev/simple-rest": "^5.0.1",
+    "@refinedev/core": "^4.47.1",
     "@refinedev/react-router": "^1.0.0",
+    "@refinedev/simple-rest": "^5.0.1",
+    "antd": "^5.22.0",
+    "axios": "^1.10.0",
+    "i18next": "^25.2.1",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-router": "^7.0.2",
-    "antd": "^5.22.0",
-    "@ant-design/icons": "^5.5.1"
+    "react-i18next": "^15.5.3",
+    "react-router": "^7.0.2"
   },
   "devDependencies": {
     "@types/node": "^18.16.2",

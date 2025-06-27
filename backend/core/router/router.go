@@ -3,13 +3,15 @@ package router
 import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
+
+	"bico-admin/core/config"
 )
 
 // SetupRoutes 设置核心路由
-func SetupRoutes(app *fiber.App, db *gorm.DB) {
+func SetupRoutes(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	// 设置认证相关路由
-	SetupAuthRoutes(app, db)
-	
+	SetupAuthRoutes(app, db, cfg)
+
 	// 设置系统路由
 	SetupSystemRoutes(app, db)
 }
@@ -26,10 +28,10 @@ func SetupSystemRoutes(app *fiber.App, db *gorm.DB) {
 				"status":  "running",
 			})
 		})
-		
+
 		system.Get("/health", func(c *fiber.Ctx) error {
 			return c.JSON(fiber.Map{
-				"status": "ok",
+				"status":   "ok",
 				"database": "connected",
 			})
 		})

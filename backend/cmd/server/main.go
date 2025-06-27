@@ -55,9 +55,9 @@ func main() {
 	admin := app.Group("/admin")
 
 	// 注册路由
-	coreRouter.SetupRoutes(app, db)    // 核心路由（认证等）
-	apiRouter.SetupRoutes(api, db)     // 对外API路由
-	adminRouter.SetupRoutes(admin, db) // 后台管理路由
+	coreRouter.SetupSystemRoutes(app, db) // 核心系统路由（健康检查等）
+	apiRouter.SetupRoutes(api, db, cfg)   // 对外API路由（包含认证）
+	adminRouter.SetupRoutes(admin, db)    // 后台管理路由（包含认证）
 
 	// 健康检查
 	app.Get("/health", func(c *fiber.Ctx) error {

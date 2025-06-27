@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
+	"bico-admin/core/config"
 	"bico-admin/core/middleware"
 	"bico-admin/core/model"
 	"bico-admin/core/service"
@@ -19,10 +20,13 @@ type AuthHandler struct {
 }
 
 // NewAuthHandler 创建认证处理器实例
-func NewAuthHandler(db *gorm.DB) *AuthHandler {
-	// TODO: 从配置中获取JWT密钥和过期时间
-	jwtSecret := "your-secret-key"
-	jwtExpire := 24 * time.Hour
+func NewAuthHandler(db *gorm.DB, cfg *config.Config) *AuthHandler {
+	// 从配置中获取JWT密钥和过期时间
+	jwtSecret := cfg.JWT.Secret
+	jwtExpire, err := time.ParseDuration(cfg.JWT.Expire)
+	if err != nil {
+		jwtExpire = 24 * time.Hour // 默认24小时
+	}
 
 	return &AuthHandler{
 		authService: service.NewAuthService(db, jwtSecret, jwtExpire),
@@ -51,27 +55,6 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		"user":  user,
 		"token": token,
 	})
-}
-
-// Register 用户注册
-func (h *AuthHandler) Register(c *fiber.Ctx) error {
-	var req model.UserCreateRequest
-	if err := c.BodyParser(&req); err != nil {
-		return response.BadRequest(c, "Invalid request body")
-	}
-
-	// 验证请求参数
-	if errors := validator.Validate(req); len(errors) > 0 {
-		return response.ValidationError(c, errors)
-	}
-
-	// 执行注册
-	user, err := h.authService.Register(req)
-	if err != nil {
-		return response.BadRequest(c, err.Error())
-	}
-
-	return response.SuccessWithMessage(c, "User registered successfully", user)
 }
 
 // Logout 用户登出

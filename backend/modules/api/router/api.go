@@ -4,18 +4,19 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
+	"bico-admin/core/config"
 	"bico-admin/core/middleware"
 	coreRouter "bico-admin/core/router"
 	"bico-admin/modules/api/handler"
 )
 
 // SetupRoutes 设置对外API路由
-func SetupRoutes(app fiber.Router, db *gorm.DB) {
+func SetupRoutes(app fiber.Router, db *gorm.DB, cfg *config.Config) {
 	// 设置核心认证路由（不需要认证的路由）
-	coreRouter.SetupAuthRoutes(app, db)
+	coreRouter.SetupAuthRoutes(app, db, cfg)
 
-	// TODO: 从配置中获取JWT密钥
-	jwtSecret := "your-secret-key"
+	// 从配置中获取JWT密钥
+	jwtSecret := cfg.JWT.Secret
 
 	// 需要认证的路由
 	protected := app.Group("/")
