@@ -4,6 +4,62 @@
 
 Bico Admin是一个专门为AI辅助开发优化的全栈管理后台框架，提供清晰的代码结构、完善的文档和智能化的开发体验。
 
+---
+
+## 🚨 AI开发者必读
+
+> **⚠️ 重要提示**：AI开发者在协助开发前，请务必先查看 `docs/` 目录下的文档！
+>
+> 🎯 **快速导航**：
+> - 📖 **架构理解**：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+> - 📋 **API规范**：[docs/API_DESIGN.md](docs/API_DESIGN.md)
+> - 🔧 **开发指南**：[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+> - ❓ **常见问题**：[docs/FAQ.md](docs/FAQ.md)
+
+---
+
+## 📚 AI开发者指南
+
+> **重要提示：AI开发者请优先查看 `docs/` 目录下的详细文档**
+
+为了更好地理解和使用本项目，AI开发者应该首先查看以下文档：
+
+### 🎯 核心文档
+- **[项目架构](docs/ARCHITECTURE.md)** - 了解整体架构设计和模块划分
+- **[API设计规范](docs/API_DESIGN.md)** - 掌握API接口设计标准和响应格式
+- **[开发指南](docs/DEVELOPMENT.md)** - 快速上手开发流程和最佳实践
+
+### 📖 专项文档
+- **[后端开发](docs/backend/README.md)** - Go Fiber + GORM 后端开发详解
+- **[前端开发](docs/frontend/README.md)** - Refine + React 前端开发指南
+- **[部署指南](docs/DEPLOYMENT.md)** - 生产环境部署配置
+- **[常见问题](docs/FAQ.md)** - 开发过程中的常见问题解答
+
+### 🔧 工具文档
+- **[Git工作流](docs/GIT_GUIDE.md)** - 代码提交和分支管理规范
+
+**建议AI开发者的阅读顺序：**
+1. 先阅读 `docs/ARCHITECTURE.md` 了解整体架构
+2. 查看 `docs/API_DESIGN.md` 理解API设计规范
+3. 根据开发需求查看对应的后端或前端文档
+4. 遇到问题时参考 `docs/FAQ.md`
+
+---
+
+## 🤖 AI助手快速入门
+
+如果你是AI助手，在协助开发时请遵循以下步骤：
+
+1. **📖 首先查看文档**：使用 `codebase-retrieval` 工具查询 `docs/` 目录下的相关文档
+2. **🏗️ 理解架构**：重点关注项目的模块化设计和目录结构
+3. **📋 遵循规范**：严格按照 `docs/API_DESIGN.md` 中的API设计规范
+4. **🔍 代码分析**：在修改代码前，先使用检索工具了解相关代码结构
+5. **✅ 测试验证**：修改后建议编写或运行相关测试
+
+**重要提醒**：本项目采用模块化设计，`core/` 目录为框架核心，`modules/` 目录为业务模块，请在正确的目录中进行开发。
+
+---
+
 ## ✨ 特性
 
 - 🤖 **AI友好设计** - 清晰的代码结构和完善的注释，便于AI理解和协助开发
@@ -126,11 +182,14 @@ bico-admin/
 │   ├── package.json
 │   ├── vite.config.ts
 │   └── tsconfig.json
-├── docs/                  # 项目文档
-│   ├── api/              # API文档
-│   ├── development/      # 开发指南
-│   ├── deployment/       # 部署指南
-│   └── framework/        # 框架更新指南
+├── docs/                  # 项目文档 📚 AI开发者必读
+│   ├── ARCHITECTURE.md   # 架构设计文档 🏗️ 优先阅读
+│   ├── API_DESIGN.md     # API设计规范 📋 开发必遵循
+│   ├── DEVELOPMENT.md    # 开发指南 🔧 快速上手
+│   ├── DEPLOYMENT.md     # 部署指南
+│   ├── FAQ.md           # 常见问题 ❓ 遇到问题先查看
+│   ├── backend/         # 后端开发文档
+│   └── frontend/        # 前端开发文档
 ├── .gitignore
 ├── README.md
 └── LICENSE
@@ -188,6 +247,8 @@ func (s *CRUDService[T]) List(params ListParams) (*ListResult[T], error)
 ```
 
 ## 🚀 快速开始
+
+> **AI开发者提示**：在开始开发前，请先阅读 `docs/DEVELOPMENT.md` 了解详细的开发流程和规范。
 
 ### 环境要求
 
@@ -397,6 +458,26 @@ func (s *ContentService) GetContentList(params business.ListParams) (*business.L
 - [GORM](https://gorm.io/) - 优秀的Go ORM
 - [Refine](https://refine.dev/) - 强大的React框架
 - [Ant Design](https://ant.design/) - 企业级UI设计语言
+
+## 🤖 AI开发者注意事项
+
+### 重要提醒
+1. **优先查看文档**：在进行任何开发工作前，请先查看 `docs/` 目录下的相关文档
+2. **遵循架构设计**：严格按照模块化架构进行开发，不要混淆 `core/` 和 `modules/` 的职责
+3. **API规范**：所有API开发必须遵循 `docs/API_DESIGN.md` 中的设计规范
+4. **代码检索**：使用 `codebase-retrieval` 工具深入了解现有代码结构后再进行修改
+
+### 常用开发模式
+- **新增功能**：在 `modules/admin/` 或 `modules/api/` 中添加业务逻辑
+- **通用方法**：在 `business/` 目录中封装可复用的业务方法
+- **API接口**：遵循RESTful设计，使用统一的响应格式
+- **前端组件**：基于Refine框架和Ant Design组件库开发
+
+### 文档更新
+当添加新功能时，请同步更新相关文档：
+- API变更 → 更新 `docs/API_DESIGN.md`
+- 架构变更 → 更新 `docs/ARCHITECTURE.md`
+- 新增配置 → 更新 `docs/DEVELOPMENT.md`
 
 ## 📞 联系方式
 
