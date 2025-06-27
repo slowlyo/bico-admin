@@ -4,8 +4,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
-	"bico-admin/api/service"
 	"bico-admin/core/middleware"
+	"bico-admin/modules/api/service"
 	"bico-admin/pkg/response"
 )
 

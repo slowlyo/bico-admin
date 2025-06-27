@@ -127,6 +127,10 @@ docker-down: ## 停止Docker服务
 docker-logs: ## 查看Docker日志
 	docker-compose logs -f
 
+docker-restart: ## 重启Docker服务
+	@echo "$(YELLOW)重启Docker服务...$(RESET)"
+	docker-compose restart
+
 # 日志查看
 logs: ## 查看服务日志
 	@echo "$(GREEN)查看服务日志...$(RESET)"

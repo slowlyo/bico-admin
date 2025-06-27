@@ -11,9 +11,9 @@ import (
 
 	"bico-admin/core/config"
 	"bico-admin/core/middleware"
-	adminRouter "bico-admin/admin/router"
-	apiRouter "bico-admin/api/router"
 	coreRouter "bico-admin/core/router"
+	adminRouter "bico-admin/modules/admin/router"
+	apiRouter "bico-admin/modules/api/router"
 )
 
 func main() {
@@ -55,14 +55,14 @@ func main() {
 	admin := app.Group("/admin")
 
 	// 注册路由
-	coreRouter.SetupRoutes(app, db)      // 核心路由（认证等）
-	apiRouter.SetupRoutes(api, db)       // 对外API路由
-	adminRouter.SetupRoutes(admin, db)   // 后台管理路由
+	coreRouter.SetupRoutes(app, db)    // 核心路由（认证等）
+	apiRouter.SetupRoutes(api, db)     // 对外API路由
+	adminRouter.SetupRoutes(admin, db) // 后台管理路由
 
 	// 健康检查
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
-			"status": "ok",
+			"status":  "ok",
 			"message": "Bico Admin is running",
 		})
 	})

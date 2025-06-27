@@ -4,9 +4,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
-	"bico-admin/api/handler"
 	"bico-admin/core/middleware"
 	coreRouter "bico-admin/core/router"
+	"bico-admin/modules/api/handler"
 )
 
 // SetupRoutes 设置对外API路由
@@ -23,7 +23,7 @@ func SetupRoutes(app fiber.Router, db *gorm.DB) {
 
 	// API处理器
 	appHandler := handler.NewAppHandler(db)
-	
+
 	// 应用相关接口
 	appGroup := protected.Group("/app")
 	{

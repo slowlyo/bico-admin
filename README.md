@@ -69,39 +69,40 @@ bico-admin/
 │   │       ├── auth.go
 │   │       ├── system.go
 │   │       └── middleware.go
-│   ├── admin/              # 后台管理模块（用户自定义业务）
-│   │   ├── handler/        # 后台管理处理器
-│   │   │   ├── dashboard.go
-│   │   │   ├── content.go
-│   │   │   └── settings.go
-│   │   ├── service/        # 后台管理业务服务
-│   │   │   ├── dashboard.go
-│   │   │   ├── content.go
-│   │   │   └── analytics.go
-│   │   ├── model/          # 后台管理数据模型
-│   │   │   ├── content.go
-│   │   │   ├── category.go
-│   │   │   └── settings.go
-│   │   ├── repository/     # 后台管理数据访问
-│   │   │   ├── content.go
-│   │   │   └── analytics.go
-│   │   └── router/         # 后台管理路由
-│   │       └── admin.go
-│   ├── api/                # API模块（对外API服务）
-│   │   ├── handler/        # API处理器
-│   │   │   ├── app.go
-│   │   │   ├── user.go
-│   │   │   └── content.go
-│   │   ├── service/        # API业务服务
-│   │   │   ├── app.go
-│   │   │   └── content.go
-│   │   ├── model/          # API数据模型
-│   │   │   ├── app_user.go
-│   │   │   └── api_response.go
-│   │   ├── repository/     # API数据访问
-│   │   │   └── app.go
-│   │   └── router/         # API路由
-│   │       └── api.go
+│   ├── modules/            # 业务模块目录
+│   │   ├── admin/          # 后台管理模块（用户自定义业务）
+│   │   │   ├── handler/    # 后台管理处理器
+│   │   │   │   ├── dashboard.go
+│   │   │   │   ├── content.go
+│   │   │   │   └── settings.go
+│   │   │   ├── service/    # 后台管理业务服务
+│   │   │   │   ├── dashboard.go
+│   │   │   │   ├── content.go
+│   │   │   │   └── analytics.go
+│   │   │   ├── model/      # 后台管理数据模型
+│   │   │   │   ├── content.go
+│   │   │   │   ├── category.go
+│   │   │   │   └── settings.go
+│   │   │   ├── repository/ # 后台管理数据访问
+│   │   │   │   ├── content.go
+│   │   │   │   └── analytics.go
+│   │   │   └── router/     # 后台管理路由
+│   │   │       └── admin.go
+│   │   └── api/            # API模块（对外API服务）
+│   │       ├── handler/    # API处理器
+│   │       │   ├── app.go
+│   │       │   ├── user.go
+│   │       │   └── content.go
+│   │       ├── service/    # API业务服务
+│   │       │   ├── app.go
+│   │       │   └── content.go
+│   │       ├── model/      # API数据模型
+│   │       │   ├── app_user.go
+│   │       │   └── api_response.go
+│   │       ├── repository/ # API数据访问
+│   │       │   └── app.go
+│   │       └── router/     # API路由
+│   │           └── api.go
 │   ├── pkg/                # 公共包（可对外暴露）
 │   │   ├── utils/          # 工具函数
 │   │   ├── validator/      # 数据验证
@@ -125,15 +126,6 @@ bico-admin/
 │   ├── package.json
 │   ├── vite.config.ts
 │   └── tsconfig.json
-├── docker/                # Docker配置
-│   ├── Dockerfile.backend
-│   ├── Dockerfile.frontend
-│   └── docker-compose.yml
-├── scripts/               # 脚本文件
-│   ├── build.sh          # 构建脚本
-│   ├── deploy.sh         # 部署脚本
-│   ├── dev.sh            # 开发环境启动
-│   └── update-core.sh    # 框架核心更新脚本
 ├── docs/                  # 项目文档
 │   ├── api/              # API文档
 │   ├── development/      # 开发指南
@@ -153,12 +145,12 @@ bico-admin/
    - 可以通过脚本整体覆盖更新
    - 提供用户管理、权限控制、认证等基础功能
 
-2. **admin/** - 后台管理模块
+2. **modules/admin/** - 后台管理模块
    - 后台管理相关的业务逻辑
    - 包含内容管理、数据分析、系统设置等功能
    - 独立的业务代码，不受框架更新影响
 
-3. **api/** - 对外API模块
+3. **modules/api/** - 对外API模块
    - 为移动端、PC端、第三方提供API服务
    - 统一的API接口和业务逻辑
    - 支持多端数据访问

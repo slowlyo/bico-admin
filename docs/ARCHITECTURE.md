@@ -59,8 +59,9 @@ backend/
 │   ├── service/        # 业务服务
 │   ├── handler/        # 请求处理
 │   └── router/         # 路由配置
-├── admin/              # 后台管理模块
-├── api/                # 对外API模块
+├── modules/            # 业务模块目录
+│   ├── admin/          # 后台管理模块
+│   └── api/            # 对外API模块
 ├── business/           # 业务封装
 └── pkg/                # 公共包
 ```

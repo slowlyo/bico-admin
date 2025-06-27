@@ -16,18 +16,19 @@ backend/
 │   ├── service/        # 核心业务服务
 │   ├── handler/        # 核心处理器
 │   └── router/         # 核心路由
-├── admin/              # 后台管理模块
-│   ├── handler/        # 后台管理处理器
-│   ├── service/        # 后台管理业务服务
-│   ├── model/          # 后台管理数据模型
-│   ├── repository/     # 后台管理数据访问
-│   └── router/         # 后台管理路由
-├── api/                # 对外API模块
-│   ├── handler/        # API处理器
-│   ├── service/        # API业务服务
-│   ├── model/          # API数据模型
-│   ├── repository/     # API数据访问
-│   └── router/         # API路由
+├── modules/            # 业务模块目录
+│   ├── admin/          # 后台管理模块
+│   │   ├── handler/    # 后台管理处理器
+│   │   ├── service/    # 后台管理业务服务
+│   │   ├── model/      # 后台管理数据模型
+│   │   ├── repository/ # 后台管理数据访问
+│   │   └── router/     # 后台管理路由
+│   └── api/            # 对外API模块
+│       ├── handler/    # API处理器
+│       ├── service/    # API业务服务
+│       ├── model/      # API数据模型
+│       ├── repository/ # API数据访问
+│       └── router/     # API路由
 ├── business/           # 业务方法封装
 │   ├── base.go         # 基础业务方法
 │   ├── crud.go         # CRUD操作封装
