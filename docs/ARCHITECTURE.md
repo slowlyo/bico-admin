@@ -108,10 +108,10 @@ Database (数据存储)
 
 ### 技术栈
 - **框架**: React 18 + TypeScript
-- **UI库**: Refine + Ant Design
-- **状态管理**: React Query
-- **路由**: React Router
-- **构建工具**: Vite
+- **UI库**: UmiJS + Ant Design Pro
+- **状态管理**: UmiJS内置状态管理 + Model
+- **路由**: UmiJS路由系统
+- **构建工具**: UmiJS内置构建工具
 
 ### 组件架构
 ```

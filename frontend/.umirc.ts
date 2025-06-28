@@ -1,35 +1,58 @@
 import { defineConfig } from '@umijs/max';
 
 export default defineConfig({
-  antd: {},
+  antd: {
+    // 配置 antd 的 locale 为中文
+    configProvider: {},
+    // 暗色主题
+    dark: false,
+  },
   access: {},
   model: {},
   initialState: {},
-  request: {},
+  request: {
+    dataField: 'data',
+  },
   layout: {
-    title: '@umijs/max',
+    title: 'Bico Admin',
+    locale: false, // 关闭国际化
   },
   routes: [
     {
       path: '/',
-      redirect: '/home',
+      redirect: '/dashboard',
     },
     {
-      name: '首页',
-      path: '/home',
+      name: '仪表板',
+      path: '/dashboard',
       component: './Home',
+      icon: 'DashboardOutlined',
     },
     {
-      name: '权限演示',
-      path: '/access',
-      component: './Access',
+      name: '用户管理',
+      path: '/users',
+      component: './Users',
+      icon: 'UserOutlined',
+      access: 'canManageUsers',
     },
     {
-      name: ' CRUD 示例',
-      path: '/table',
-      component: './Table',
+      path: '/profile',
+      component: './Profile',
+      hideInMenu: true,
+    },
+    {
+      path: '/login',
+      component: './Login',
+      layout: false,
     },
   ],
   npmClient: 'pnpm',
-});
-
+  hash: true,
+  // 代理配置
+  proxy: {
+    '/admin': {
+      target: 'http://localhost:8080',
+      changeOrigin: true,
+    },
+  },
+})

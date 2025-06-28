@@ -3,10 +3,10 @@
 ## 🎯 技术栈
 
 - **框架**: React 18 + TypeScript
-- **UI库**: [Refine](https://refine.dev/) + [Ant Design](https://ant.design/)
-- **状态管理**: React Query (内置于Refine)
-- **路由**: React Router
-- **构建工具**: Vite
+- **UI库**: [UmiJS](https://umijs.org/) + [Ant Design Pro](https://pro.ant.design/)
+- **状态管理**: UmiJS内置状态管理 + Model
+- **路由**: UmiJS路由系统
+- **构建工具**: UmiJS内置构建工具
 - **包管理**: pnpm
 
 ## 🏗️ 项目结构
@@ -17,12 +17,14 @@ frontend/
 ├── src/                 # 源代码
 │   ├── components/      # 通用组件
 │   ├── pages/          # 页面组件
-│   ├── contexts/       # React上下文
-│   ├── config/         # 配置文件
-│   ├── App.tsx         # 主应用组件
-│   └── main.tsx        # 入口文件
+│   ├── models/         # 数据模型
+│   ├── services/       # API服务
+│   ├── utils/          # 工具函数
+│   ├── constants/      # 常量定义
+│   ├── access.ts       # 权限配置
+│   └── app.ts          # 应用配置
 ├── package.json        # 项目配置
-├── vite.config.ts      # Vite配置
+├── .umirc.ts          # UmiJS配置
 └── tsconfig.json       # TypeScript配置
 ```
 
@@ -83,8 +85,8 @@ const List = () => { ... }
 ```typescript
 // UserList.tsx
 import React from 'react';
-import { List, useTable } from '@refinedev/antd';
-import { Table } from 'antd';
+import { ProTable } from '@ant-design/pro-components';
+import { Button } from 'antd';
 
 interface UserListProps {
   // 定义props类型
@@ -129,44 +131,48 @@ export interface UserCreateRequest {
 }
 ```
 
-## 🔧 Refine 使用指南
+## 🔧 UmiJS 使用指南
 
-### 1. 数据提供者配置
+### 1. 应用配置
 ```typescript
-// App.tsx
-import { Refine } from '@refinedev/core';
-import { dataProvider } from '@refinedev/simple-rest';
-import config from './config';
+// .umirc.ts
+import { defineConfig } from '@umijs/max';
 
-function App() {
-  return (
-    <Refine
-      dataProvider={dataProvider(config.adminApiUrl)}
-      resources={[
-        {
-          name: 'users',
-          list: '/users',
-          create: '/users/create',
-          edit: '/users/edit/:id',
-          show: '/users/show/:id',
-          meta: {
-            canDelete: true,
-          },
-        },
-      ]}
-    >
-      {/* 应用内容 */}
-    </Refine>
-  );
-}
+export default defineConfig({
+  antd: {},
+  access: {},
+  model: {},
+  initialState: {},
+  request: {},
+  layout: {
+    title: 'Bico Admin',
+  },
+  routes: [
+    {
+      path: '/',
+      redirect: '/dashboard',
+    },
+    {
+      name: '仪表板',
+      path: '/dashboard',
+      component: './Dashboard',
+    },
+    {
+      name: '用户管理',
+      path: '/users',
+      component: './Users',
+    },
+  ],
+  npmClient: 'pnpm',
+});
 ```
 
 ### 2. 列表页面开发
 ```typescript
-// pages/users/list.tsx
+// pages/Users/index.tsx
 import React from 'react';
-import { List, useTable, EditButton, ShowButton, DeleteButton } from '@refinedev/antd';
-import { Table, Space } from 'antd';
+import { ProTable, PageContainer } from '@ant-design/pro-components';
+import { Button, Space } from 'antd';
 
 export const UserList = () => {
   const { tableProps } = useTable();
@@ -203,9 +209,9 @@ export const UserList = () => {
 
 ### 3. 表单页面开发
 ```typescript
-// pages/users/create.tsx
+// pages/Users/components/CreateForm.tsx
 import React from 'react';
-import { Create, useForm } from '@refinedev/antd';
+import { ModalForm, ProFormText } from '@ant-design/pro-components';
 import { Form, Input, Select } from 'antd';
 
 export const UserCreate = () => {
@@ -461,50 +467,44 @@ describe('UserList', () => {
 ```typescript
 // test-utils.tsx
 import React from 'react';
-import { Refine } from '@refinedev/core';
-import { MockJSONServer } from '@refinedev/simple-rest';
+import { render } from '@testing-library/react';
+import { ConfigProvider } from 'antd';
+import zhCN from 'antd/locale/zh_CN';
 
 export const TestWrapper: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   return (
-    <Refine
-      dataProvider={MockJSONServer}
-      resources={[
-        {
-          name: 'users',
-        },
-      ]}
-    >
+    <ConfigProvider locale={zhCN}>
       {children}
-    </Refine>
+    </ConfigProvider>
   );
 };
+
+export const customRender = (ui: React.ReactElement, options = {}) =>
+  render(ui, { wrapper: TestWrapper, ...options });
 ```
 
 ## 📦 构建和部署
 
 ### 1. 构建配置
 ```typescript
-// vite.config.ts
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-
+// .umirc.ts 构建相关配置
 export default defineConfig({
-  plugins: [react()],
-  build: {
-    outDir: 'dist',
-    sourcemap: false,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          antd: ['antd'],
-          refine: ['@refinedev/core', '@refinedev/antd'],
-        },
-      },
+  // ... 其他配置
+  define: {
+    REACT_APP_ENV: process.env.REACT_APP_ENV || false,
+  },
+  hash: true,
+  ignoreMomentLocale: true,
+  proxy: {
+    '/api/': {
+      target: 'http://localhost:8080',
+      changeOrigin: true,
+      pathRewrite: { '^': '' },
     },
   },
+  fastRefresh: true,
 });
 ```
 

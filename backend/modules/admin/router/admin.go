@@ -15,14 +15,11 @@ func SetupRoutes(app fiber.Router, db *gorm.DB) {
 	// 获取配置
 	cfg := config.New()
 
-	// API路由组
-	api := app.Group("/api")
+	// 设置认证路由（不需要认证的路由）- 直接在admin路由组下
+	coreRouter.SetupAuthRoutes(app, db, cfg)
 
-	// 设置认证路由（不需要认证的路由）
-	coreRouter.SetupAuthRoutes(api, db, cfg)
-
-	// 需要认证的路由
-	protected := api.Group("/")
+	// 需要认证的路由 - 直接在admin路由组下
+	protected := app.Group("/")
 	protected.Use(middleware.AuthMiddleware(cfg.JWT.Secret))
 
 	// 后台管理处理器
