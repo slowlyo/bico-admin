@@ -1,51 +1,29 @@
 {
-  "name": "bico-admin-frontend",
-  "version": "1.0.0",
   "private": true,
-  "type": "module",
+  "author": "slowlyo <slowlyo_email@qq.com>",
+  "scripts": {
+    "dev": "max dev",
+    "build": "max build",
+    "format": "prettier --cache --write .",
+    "prepare": "husky",
+    "postinstall": "max setup",
+    "setup": "max setup",
+    "start": "npm run dev"
+  },
   "dependencies": {
-    "@ant-design/icons": "^5.5.1",
-    "@refinedev/antd": "^5.44.0",
-    "@refinedev/core": "^4.47.1",
-    "@refinedev/react-router": "^1.0.0",
-    "@refinedev/simple-rest": "^5.0.1",
-    "antd": "^5.22.0",
-    "axios": "^1.10.0",
-    "i18next": "^25.2.1",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "react-i18next": "^15.5.3",
-    "react-router": "^7.0.2"
+    "@ant-design/icons": "^5.0.1",
+    "@ant-design/pro-components": "^2.4.4",
+    "@umijs/max": "^4.4.11",
+    "antd": "^5.4.0"
   },
   "devDependencies": {
-    "@types/node": "^18.16.2",
-    "@types/react": "^18.0.0",
-    "@types/react-dom": "^18.0.0",
-    "@typescript-eslint/eslint-plugin": "^5.57.1",
-    "@typescript-eslint/parser": "^5.57.1",
-    "@vitejs/plugin-react": "^4.0.0",
-    "eslint": "^8.38.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.3.4",
-    "typescript": "^5.4.2",
-    "vite": "^4.3.1"
-  },
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "@types/react": "^18.0.33",
+    "@types/react-dom": "^18.0.11",
+    "husky": "^9",
+    "lint-staged": "^13.2.0",
+    "prettier": "^2.8.7",
+    "prettier-plugin-organize-imports": "^3.2.2",
+    "prettier-plugin-packagejson": "^2.4.3",
+    "typescript": "^5.0.3"
   }
 }
