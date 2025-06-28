@@ -31,6 +31,15 @@ func main() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
+	// 初始化Redis
+	rdb, err := config.InitRedis(cfg)
+	if err != nil {
+		log.Printf("Warning: Failed to connect to Redis: %v", err)
+		log.Println("Cache functionality will be disabled")
+	} else {
+		config.SetRedis(rdb)
+	}
+
 	// 创建Fiber应用
 	app := fiber.New(fiber.Config{
 		AppName: "Bico Admin v1.0.0",

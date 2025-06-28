@@ -18,7 +18,7 @@ type User struct {
 	Status      UserStatus `json:"status" gorm:"default:1"`
 	LastLoginAt *time.Time `json:"last_login_at"`
 	LastLoginIP string     `json:"last_login_ip" gorm:"size:45"`
-	
+
 	// 关联关系
 	Roles []Role `json:"roles" gorm:"many2many:user_roles;"`
 }
@@ -56,6 +56,12 @@ type UserUpdateRequest struct {
 type UserLoginRequest struct {
 	Username string `json:"username" validate:"required"`
 	Password string `json:"password" validate:"required"`
+}
+
+// UserChangePasswordRequest 修改密码请求
+type UserChangePasswordRequest struct {
+	OldPassword string `json:"old_password" validate:"required"`
+	NewPassword string `json:"new_password" validate:"required,min=6"`
 }
 
 // UserResponse 用户响应

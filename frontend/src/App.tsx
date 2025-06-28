@@ -2,6 +2,7 @@ import {
   Refine,
   Authenticated,
 } from "@refinedev/core";
+import { DashboardOutlined } from "@ant-design/icons";
 
 import {
   ErrorComponent,
@@ -28,6 +29,7 @@ import { ColorModeContextProvider } from "./contexts/color-mode";
 import { Header } from "./components/header";
 import { Login } from "./pages/login";
 import { Dashboard } from "./pages/dashboard";
+import { Profile } from "./pages/profile";
 import { authProvider } from "./authProvider";
 import { axiosInstance } from "./utils/request";
 import config from "./config";
@@ -53,7 +55,16 @@ function App() {
             authProvider={authProvider}
             routerProvider={routerBindings}
             i18nProvider={i18nProvider}
-            resources={[]}
+            resources={[
+              {
+                name: "dashboard",
+                list: "/",
+                meta: {
+                  label: "控制台",
+                  icon: <DashboardOutlined />,
+                },
+              },
+            ]}
             options={{
               syncWithLocation: true,
               warnWhenUnsavedChanges: true,
@@ -70,7 +81,20 @@ function App() {
                       >
                         <ThemedLayoutV2
                           Header={Header}
-                          Sider={(props) => <ThemedSiderV2 {...props} fixed />}
+                          Sider={(props) => (
+                            <ThemedSiderV2
+                              {...props}
+                              fixed
+                              render={({ items, dashboard }) => {
+                                return (
+                                  <>
+                                    {dashboard}
+                                    {items}
+                                  </>
+                                );
+                              }}
+                            />
+                          )}
                         >
                           <Outlet />
                         </ThemedLayoutV2>
@@ -78,6 +102,7 @@ function App() {
                     }
                   >
                     <Route index element={<Dashboard />} />
+                    <Route path="/profile" element={<Profile />} />
                     <Route path="*" element={<ErrorComponent />} />
                   </Route>
                   <Route

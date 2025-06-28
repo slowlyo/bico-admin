@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 
+	"bico-admin/core/cache"
 	"bico-admin/pkg/response"
 )
 
@@ -35,6 +36,13 @@ func AuthMiddleware(secret string) fiber.Handler {
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if tokenString == "" {
 			return response.Unauthorized(c, "Missing token")
+		}
+
+		// 检查token是否在黑名单中
+		cacheInstance := cache.GetCache()
+		isBlacklisted, err := cacheInstance.IsTokenBlacklisted(tokenString)
+		if err == nil && isBlacklisted {
+			return response.Unauthorized(c, "Token has been revoked")
 		}
 
 		// 解析token

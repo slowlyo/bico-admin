@@ -16,7 +16,7 @@
 ### 📖 开发文档
 - [后端开发指南](./backend/README.md) - Go 后端开发规范和指南
 - [前端开发指南](./frontend/README.md) - React 前端开发规范和指南
-- [代码规范](./CODING_STANDARDS.md) - 项目代码规范和最佳实践
+- [缓存工具](./CACHE_USAGE.md) - Redis缓存操作工具使用指南
 
 ### 🔧 运维文档
 - [部署指南](./DEPLOYMENT.md) - 生产环境部署说明
@@ -28,6 +28,7 @@
 - [API 测试](./API_TESTING.md) - API 接口测试文档
 
 ### 🔒 安全文档
+- [认证增强](./AUTH_IMPROVEMENTS.md) - 认证逻辑完善和安全功能说明
 - [安全指南](./SECURITY.md) - 安全最佳实践和配置
 - [认证授权](./AUTH.md) - JWT 认证和 RBAC 权限设计
 
@@ -42,10 +43,20 @@
 如果您是第一次使用本项目，建议按以下顺序阅读文档：
 
 1. **[开发指南](./DEVELOPMENT.md)** - 了解如何搭建开发环境
-2. **[Git 使用指南](./GIT_GUIDE.md)** - 学习项目的 Git 工作流程
-3. **[项目架构](./ARCHITECTURE.md)** - 理解系统整体设计
-4. **[后端开发指南](./backend/README.md)** - 开始后端开发
-5. **[前端开发指南](./frontend/README.md)** - 开始前端开发
+2. **[简化架构](./SIMPLIFIED_ARCHITECTURE.md)** - 理解AI友好的架构设计
+3. **[数据库工具](./DATABASE_TOOLS.md)** - 学习通用数据库操作工具
+4. **[API 设计](./API_DESIGN.md)** - 掌握API设计规范
+5. **[后端开发指南](./backend/README.md)** - 开始后端开发
+6. **[前端开发指南](./frontend/README.md)** - 开始前端开发
+
+### AI开发者入门
+如果您是AI开发者，建议优先阅读：
+
+1. **[简化架构](./SIMPLIFIED_ARCHITECTURE.md)** - 了解AI友好的架构设计
+2. **[数据库工具](./DATABASE_TOOLS.md)** - 掌握通用数据库操作工具
+3. **[缓存工具](./CACHE_USAGE.md)** - 学习Redis缓存操作
+4. **[认证增强](./AUTH_IMPROVEMENTS.md)** - 了解认证安全功能
+5. **[API 设计](./API_DESIGN.md)** - 遵循API设计规范
 
 ### 开发者
 如果您已经熟悉项目，可以直接查看相关文档：
