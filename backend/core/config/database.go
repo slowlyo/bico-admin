@@ -64,6 +64,7 @@ func autoMigrate(db *gorm.DB) error {
 		&model.User{},
 		&model.Role{},
 		&model.Permission{},
+		&model.RolePermission{}, // 添加角色权限关联表
 		// 在这里添加其他需要迁移的模型
 	)
 }

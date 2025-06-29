@@ -73,7 +73,7 @@ const RoleDetail: React.FC<RoleDetailProps> = ({ roleId, onClose }) => {
             copyable: true,
           },
           {
-            title: '角色代码',
+            title: '角色标识',
             dataIndex: 'code',
             copyable: true,
           },

@@ -64,16 +64,17 @@ func (h *RolePermissionHandler) GetRolePermissions(c *fiber.Ctx) error {
 		return response.Success(c, allPermissions)
 	}
 
-	// 从数据库查询角色权限
-	var permissionCodes []string
-	err = h.db.Table("permissions p").
-		Select("p.code").
-		Joins("JOIN role_permissions rp ON p.id = rp.permission_id").
-		Where("rp.role_id = ? AND p.status = ?", roleID, model.PermissionStatusActive).
-		Pluck("code", &permissionCodes).Error
-
+	// 从 role_permissions 表查询角色权限代码
+	var rolePermissions []model.RolePermission
+	err = h.db.Where("role_id = ?", roleID).Find(&rolePermissions).Error
 	if err != nil {
 		return response.InternalServerError(c, "Failed to get role permissions")
+	}
+
+	// 提取权限代码
+	var permissionCodes []string
+	for _, rp := range rolePermissions {
+		permissionCodes = append(permissionCodes, rp.PermissionCode)
 	}
 
 	return response.Success(c, permissionCodes)
@@ -132,19 +133,12 @@ func (h *RolePermissionHandler) AssignRolePermissions(c *fiber.Ctx) error {
 		return response.InternalServerError(c, "Failed to clear existing permissions")
 	}
 
-	// 为每个权限代码创建权限记录（如果不存在）并分配给角色
+	// 为每个权限代码创建角色权限关联
 	for _, code := range req.PermissionCodes {
-		// 获取或创建权限记录
-		permissionID, err := h.getOrCreatePermission(tx, code)
-		if err != nil {
-			tx.Rollback()
-			return response.InternalServerError(c, "Failed to create permission: "+code)
-		}
-
-		// 创建角色权限关联
+		// 直接创建角色权限关联，存储权限代码
 		rolePermission := model.RolePermission{
-			RoleID:       uint(roleID),
-			PermissionID: permissionID,
+			RoleID:         uint(roleID),
+			PermissionCode: code,
 		}
 		if err := tx.Create(&rolePermission).Error; err != nil {
 			tx.Rollback()
@@ -181,14 +175,13 @@ func (h *RolePermissionHandler) RemoveRolePermission(c *fiber.Ctx) error {
 		return response.BadRequest(c, "Cannot modify permissions for protected role")
 	}
 
-	// 查找权限记录
-	var perm model.Permission
-	if err := h.db.Where("code = ?", permissionCode).First(&perm).Error; err != nil {
-		return response.NotFound(c, "Permission not found")
+	// 验证权限代码是否有效
+	if permission.GetPermissionByCode(permissionCode) == nil {
+		return response.BadRequest(c, "Invalid permission code")
 	}
 
 	// 删除角色权限关联
-	result := h.db.Where("role_id = ? AND permission_id = ?", roleID, perm.ID).
+	result := h.db.Where("role_id = ? AND permission_code = ?", roleID, permissionCode).
 		Delete(&model.RolePermission{})
 
 	if result.Error != nil {
@@ -202,35 +195,8 @@ func (h *RolePermissionHandler) RemoveRolePermission(c *fiber.Ctx) error {
 	return response.SuccessWithMessage(c, "Permission removed successfully", nil)
 }
 
-// getOrCreatePermission 获取或创建权限记录
-func (h *RolePermissionHandler) getOrCreatePermission(tx *gorm.DB, code string) (uint, error) {
-	// 先尝试查找现有权限
-	var perm model.Permission
-	if err := tx.Where("code = ?", code).First(&perm).Error; err == nil {
-		return perm.ID, nil
-	}
-
-	// 权限不存在，从代码定义中创建
-	permissionDef := permission.GetPermissionByCode(code)
-	if permissionDef == nil {
-		return 0, gorm.ErrRecordNotFound
-	}
-
-	// 创建新权限记录
-	newPerm := model.Permission{
-		Name:        permissionDef.Name,
-		Code:        permissionDef.Code,
-		Type:        model.PermissionTypeAPI, // 默认为API类型
-		Description: permissionDef.Description,
-		Status:      model.PermissionStatusActive,
-	}
-
-	if err := tx.Create(&newPerm).Error; err != nil {
-		return 0, err
-	}
-
-	return newPerm.ID, nil
-}
+// 注意：不再需要 getOrCreatePermission 方法
+// 权限代码直接存储在 role_permissions 表中，不依赖权限表
 
 // isProtectedRole 检查是否为受保护角色
 func (h *RolePermissionHandler) isProtectedRole(roleCode string) bool {

@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
 import {
   ActionType,
-  FooterToolbar,
   PageContainer,
   ProTable,
   ProColumns,
@@ -32,7 +31,7 @@ const RoleList: React.FC = () => {
   const [showPermissionAssign, setShowPermissionAssign] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
   const [currentRow, setCurrentRow] = useState<RoleItem>();
-  const [selectedRowsState, setSelectedRows] = useState<RoleItem[]>([]);
+
   const [permissionCounts, setPermissionCounts] = useState<Record<number, number>>({});
 
   // 获取角色权限数量
@@ -61,15 +60,18 @@ const RoleList: React.FC = () => {
   /**
    * 删除角色
    */
-  const handleRemove = async (selectedRows: RoleItem[]) => {
+  const handleRemove = async (record: RoleItem) => {
+    // 检查是否为超级管理员角色
+    if (isSuperAdmin(record)) {
+      message.error('不能删除超级管理员角色');
+      return false;
+    }
+
     const hide = message.loading('正在删除');
-    if (!selectedRows) return true;
     try {
-      for (const row of selectedRows) {
-        await deleteRole(row.id);
-      }
+      await deleteRole(record.id);
       hide();
-      message.success('删除成功，即将刷新');
+      message.success('删除成功');
       actionRef.current?.reloadAndRest?.();
       return true;
     } catch (error) {
@@ -80,9 +82,22 @@ const RoleList: React.FC = () => {
   };
 
   /**
+   * 检查是否为超级管理员角色
+   */
+  const isSuperAdmin = (record: RoleItem): boolean => {
+    return record.code === 'super_admin';
+  };
+
+  /**
    * 切换角色状态
    */
   const handleStatusChange = async (record: RoleItem, checked: boolean) => {
+    // 超级管理员角色不允许修改状态
+    if (isSuperAdmin(record)) {
+      message.warning('超级管理员角色状态不可修改');
+      return;
+    }
+
     const hide = message.loading('正在更新状态');
     try {
       const newStatus = checked ? 1 : 0;
@@ -122,7 +137,7 @@ const RoleList: React.FC = () => {
       },
     },
     {
-      title: '角色代码',
+      title: '角色标识',
       dataIndex: 'code',
       valueType: 'text',
     },
@@ -156,6 +171,7 @@ const RoleList: React.FC = () => {
           onChange={(checked) => handleStatusChange(record, checked)}
           checkedChildren="启用"
           unCheckedChildren="禁用"
+          disabled={isSuperAdmin(record)}
         />
       ),
       valueEnum: {
@@ -179,35 +195,47 @@ const RoleList: React.FC = () => {
       title: '操作',
       dataIndex: 'option',
       valueType: 'option',
-      render: (_, record) => [
-        <a
-          key="edit"
-          onClick={() => {
-            setCurrentRow(record);
-            setUpdateModalOpen(true);
-          }}
-        >
-          编辑
-        </a>,
-        <a
-          key="permission"
-          onClick={() => {
-            setCurrentRow(record);
-            setShowPermissionAssign(true);
-          }}
-        >
-          分配权限
-        </a>,
-        <Popconfirm
-          key="delete"
-          title="确定删除这个角色吗？"
-          onConfirm={async () => {
-            await handleRemove([record]);
-          }}
-        >
-          <a style={{ color: 'red' }}>删除</a>
-        </Popconfirm>,
-      ],
+      render: (_, record) => {
+        const isProtected = isSuperAdmin(record);
+
+        if (isProtected) {
+          return [
+            <span key="protected" style={{ color: '#999' }}>
+              受保护角色
+            </span>
+          ];
+        }
+
+        return [
+          <a
+            key="edit"
+            onClick={() => {
+              setCurrentRow(record);
+              setUpdateModalOpen(true);
+            }}
+          >
+            编辑
+          </a>,
+          <a
+            key="permission"
+            onClick={() => {
+              setCurrentRow(record);
+              setShowPermissionAssign(true);
+            }}
+          >
+            分配权限
+          </a>,
+          <Popconfirm
+            key="delete"
+            title="确定删除这个角色吗？"
+            onConfirm={async () => {
+              await handleRemove(record);
+            }}
+          >
+            <a style={{ color: 'red' }}>删除</a>
+          </Popconfirm>,
+        ];
+      },
     },
   ];
 
@@ -240,33 +268,7 @@ const RoleList: React.FC = () => {
           return result;
         }}
         columns={columns}
-        rowSelection={{
-          onChange: (_, selectedRows) => {
-            setSelectedRows(selectedRows);
-          },
-        }}
       />
-      {selectedRowsState?.length > 0 && (
-        <FooterToolbar
-          extra={
-            <div>
-              已选择{' '}
-              <a style={{ fontWeight: 600 }}>{selectedRowsState.length}</a>{' '}
-              项
-            </div>
-          }
-        >
-          <Button
-            onClick={async () => {
-              await handleRemove(selectedRowsState);
-              setSelectedRows([]);
-              actionRef.current?.reloadAndRest?.();
-            }}
-          >
-            批量删除
-          </Button>
-        </FooterToolbar>
-      )}
 
       <CreateForm
         open={createModalOpen}

@@ -100,11 +100,11 @@ type PermissionUpdateRequest struct {
 }
 
 // RolePermission 角色权限关联模型
+// 直接存储权限代码，不依赖权限表
 type RolePermission struct {
-	RoleID       uint `json:"role_id" gorm:"primaryKey"`
-	PermissionID uint `json:"permission_id" gorm:"primaryKey"`
+	RoleID         uint   `json:"role_id" gorm:"primaryKey"`
+	PermissionCode string `json:"permission_code" gorm:"primaryKey;size:100"`
 
 	// 关联关系
-	Role       Role       `json:"role" gorm:"foreignKey:RoleID"`
-	Permission Permission `json:"permission" gorm:"foreignKey:PermissionID"`
+	Role Role `json:"role" gorm:"foreignKey:RoleID"`
 }

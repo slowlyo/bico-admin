@@ -2,7 +2,7 @@
 import { history } from '@umijs/max';
 import { message } from 'antd';
 import React from 'react';
-import { getUserProfile } from '@/services/auth';
+import { getUserProfile, getUserPermissions } from '@/services/auth';
 import { AvatarDropdown, AvatarName } from '@/components';
 
 const loginPath = '/login';
@@ -12,6 +12,7 @@ const loginPath = '/login';
  */
 export async function getInitialState(): Promise<{
   currentUser?: API.CurrentUser;
+  userPermissions?: string[];
   loading?: boolean;
   fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
@@ -29,13 +30,28 @@ export async function getInitialState(): Promise<{
     }
   };
 
+  const fetchUserPermissions = async () => {
+    try {
+      const permissionsInfo = await getUserPermissions();
+      if (permissionsInfo.code === 200) {
+        return permissionsInfo.data;
+      }
+      return [];
+    } catch (error) {
+      console.error('获取用户权限失败:', error);
+      return [];
+    }
+  };
+
   // 如果不是登录页面，执行
   const { location } = history;
   if (location.pathname !== loginPath) {
     const currentUser = await fetchUserInfo();
+    const userPermissions = currentUser ? await fetchUserPermissions() : [];
     return {
       fetchUserInfo,
       currentUser,
+      userPermissions,
     };
   }
 

@@ -182,7 +182,7 @@ export async function updateRoleStatus(
 export async function getRolePermissions(id: number): Promise<{
   code: number;
   message: string;
-  data: PermissionItem[];
+  data: string[]; // 后端返回权限代码字符串数组
 }> {
   try {
     const response = await request(`/admin/roles/${id}/permissions`, {

@@ -42,11 +42,9 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
     try {
       const response = await getRolePermissions(roleId);
       if (response.code === 200) {
-        // 确保data是数组，防止null或undefined导致的错误
+        // 后端返回的是权限代码字符串数组，直接使用
         const data = Array.isArray(response.data) ? response.data : [];
-        // 使用权限代码作为标识，与权限树的key保持一致
-        const permissionCodes = data.map((p) => p.code || p.id?.toString());
-        setSelectedPermissions(permissionCodes.filter(Boolean));
+        setSelectedPermissions(data);
       }
     } catch (error) {
       console.error('加载角色权限失败:', error);
@@ -56,7 +54,7 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
   // 转换权限树数据格式
   const convertTreeData = (permissions: PermissionItem[]): any[] => {
     return permissions.map((permission) => ({
-      title: `${permission.name} (${permission.code})`,
+      title: `${permission.name}`,
       key: permission.code || permission.id?.toString(), // 使用code作为key，兼容新的权限结构
       children: permission.children ? convertTreeData(permission.children) : [],
     }));
@@ -118,12 +116,12 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
       
       <ProFormText
         name="code"
-        label="角色代码"
-        placeholder="请输入角色代码"
+        label="角色标识"
+        placeholder="请输入角色标识"
         rules={[
-          { required: true, message: '请输入角色代码!' },
-          { max: 50, message: '角色代码不能超过50个字符!' },
-          { pattern: /^[a-zA-Z0-9_-]+$/, message: '角色代码只能包含字母、数字、下划线和横线!' },
+          { required: true, message: '请输入角色标识!' },
+          { max: 50, message: '角色标识不能超过50个字符!' },
+          { pattern: /^[a-zA-Z0-9_-]+$/, message: '角色标识只能包含字母、数字、下划线和横线!' },
         ]}
       />
       
@@ -161,7 +159,6 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
               const keys = Array.isArray(checkedKeys) ? checkedKeys : checkedKeys.checked || [];
               setSelectedPermissions(keys as string[]);
             }}
-            placeholder="请选择权限"
           />
         </div>
       </div>

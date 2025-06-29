@@ -147,7 +147,7 @@ users
 roles
 ├── id (主键)
 ├── name (角色名)
-├── code (角色代码)
+├── code (角色标识)
 ├── description (描述)
 └── timestamps
 

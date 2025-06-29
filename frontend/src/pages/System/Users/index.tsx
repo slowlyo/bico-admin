@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
 import {
   ActionType,
-  FooterToolbar,
   PageContainer,
   ProTable,
   ProColumns,
@@ -31,22 +30,19 @@ const UserList: React.FC = () => {
   const [showDetail, setShowDetail] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
   const [currentRow, setCurrentRow] = useState<UserItem>();
-  const [selectedRowsState, setSelectedRows] = useState<UserItem[]>([]);
+
 
 
 
   /**
    * 删除用户
    */
-  const handleRemove = async (selectedRows: UserItem[]) => {
+  const handleRemove = async (record: UserItem) => {
     const hide = message.loading('正在删除');
-    if (!selectedRows) return true;
     try {
-      for (const row of selectedRows) {
-        await deleteUser(row.id);
-      }
+      await deleteUser(record.id);
       hide();
-      message.success('删除成功，即将刷新');
+      message.success('删除成功');
       actionRef.current?.reloadAndRest?.();
       return true;
     } catch (error) {
@@ -77,7 +73,6 @@ const UserList: React.FC = () => {
     {
       title: 'ID',
       dataIndex: 'id',
-      tip: '用户唯一标识',
       hideInSearch: true,
       width: 80,
     },
@@ -180,7 +175,7 @@ const UserList: React.FC = () => {
           key="delete"
           title="确定删除这个用户吗？"
           onConfirm={async () => {
-            await handleRemove([record]);
+            await handleRemove(record);
           }}
         >
           <a style={{ color: 'red' }}>删除</a>
@@ -211,33 +206,7 @@ const UserList: React.FC = () => {
         ]}
         request={getUserList}
         columns={columns}
-        rowSelection={{
-          onChange: (_, selectedRows) => {
-            setSelectedRows(selectedRows);
-          },
-        }}
       />
-      {selectedRowsState?.length > 0 && (
-        <FooterToolbar
-          extra={
-            <div>
-              已选择{' '}
-              <a style={{ fontWeight: 600 }}>{selectedRowsState.length}</a>{' '}
-              项
-            </div>
-          }
-        >
-          <Button
-            onClick={async () => {
-              await handleRemove(selectedRowsState);
-              setSelectedRows([]);
-              actionRef.current?.reloadAndRest?.();
-            }}
-          >
-            批量删除
-          </Button>
-        </FooterToolbar>
-      )}
 
       <CreateForm
         open={createModalOpen}

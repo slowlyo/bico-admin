@@ -350,7 +350,7 @@ func (h *RoleHandler) GetRolePermissions(c *fiber.Ctx) error {
 		"profile:change_password": "修改密码",
 	}
 
-	// 从权限配置中获取角色权限 - 使用角色代码而不是名称
+	// 从权限配置中获取角色权限 - 使用角色标识而不是名称
 	rolePermissions := map[string][]string{
 		"admin": {
 			"system:view", "system:manage",
@@ -367,7 +367,7 @@ func (h *RoleHandler) GetRolePermissions(c *fiber.Ctx) error {
 		},
 	}
 
-	// 使用角色代码而不是名称来查找权限
+	// 使用角色标识而不是名称来查找权限
 	if perms, exists := rolePermissions[role.Code]; exists {
 		for _, permCode := range perms {
 			permName := permissionNames[permCode]

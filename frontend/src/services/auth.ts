@@ -105,3 +105,16 @@ export async function changePassword(params: ChangePasswordParams): Promise<{
     data: params,
   });
 }
+
+/**
+ * 获取用户权限
+ */
+export async function getUserPermissions(): Promise<{
+  code: number;
+  message: string;
+  data: string[];
+}> {
+  return request('/admin/auth/permissions', {
+    method: 'GET',
+  });
+}

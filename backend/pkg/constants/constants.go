@@ -15,12 +15,12 @@ const (
 
 // 缓存键前缀
 const (
-	CacheKeyUser        = "user:"
-	CacheKeyRole        = "role:"
-	CacheKeyPermission  = "permission:"
-	CacheKeyToken       = "token:"
-	CacheKeyUserRoles   = "user_roles:"
-	CacheKeyRolePerms   = "role_permissions:"
+	CacheKeyUser       = "user:"
+	CacheKeyRole       = "role:"
+	CacheKeyPermission = "permission:"
+	CacheKeyToken      = "token:"
+	CacheKeyUserRoles  = "user_roles:"
+	CacheKeyRolePerms  = "role_permissions:"
 )
 
 // 缓存过期时间（秒）
@@ -65,7 +65,7 @@ const (
 	PermissionTypeAPI    = 3
 )
 
-// 默认角色代码
+// 默认角色标识
 const (
 	RoleCodeSuperAdmin = "super_admin"
 	RoleCodeAdmin      = "admin"
@@ -111,10 +111,10 @@ const (
 
 // 成功消息
 const (
-	MsgSuccess      = "Success"
-	MsgCreated      = "Created successfully"
-	MsgUpdated      = "Updated successfully"
-	MsgDeleted      = "Deleted successfully"
-	MsgLoginSuccess = "Login successful"
+	MsgSuccess       = "Success"
+	MsgCreated       = "Created successfully"
+	MsgUpdated       = "Updated successfully"
+	MsgDeleted       = "Deleted successfully"
+	MsgLoginSuccess  = "Login successful"
 	MsgLogoutSuccess = "Logout successful"
 )

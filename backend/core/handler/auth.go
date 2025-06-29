@@ -201,28 +201,25 @@ func (h *AuthHandler) GetUserPermissions(c *fiber.Ctx) error {
 
 	// 超级管理员拥有所有权限
 	if isSuperAdmin {
-		var permissions []model.Permission
-		err := h.db.Where("status = ?", model.PermissionStatusActive).
-			Find(&permissions).Error
-		if err != nil {
-			return response.InternalServerError(c, "Failed to get permissions")
+		// 从代码中获取所有权限常量
+		allPermissionCodes := []string{
+			// 系统管理权限
+			"system:view", "system:manage",
+			// 用户管理权限
+			"user:view", "user:create", "user:update", "user:delete", "user:manage_status", "user:reset_password",
+			// 角色管理权限
+			"role:view", "role:create", "role:update", "role:delete", "role:assign_permissions",
 		}
-
-		var permissionCodes []string
-		for _, p := range permissions {
-			permissionCodes = append(permissionCodes, p.Code)
-		}
-		return response.Success(c, permissionCodes)
+		return response.Success(c, allPermissionCodes)
 	}
 
 	// 普通用户通过角色获取权限
 	var permissionCodes []string
-	err = h.db.Table("permissions p").
-		Select("DISTINCT p.code").
-		Joins("JOIN role_permissions rp ON p.id = rp.permission_id").
+	err = h.db.Table("role_permissions rp").
+		Select("DISTINCT rp.permission_code").
 		Joins("JOIN user_roles ur ON rp.role_id = ur.role_id").
-		Where("ur.user_id = ? AND p.status = ?", userID, model.PermissionStatusActive).
-		Pluck("code", &permissionCodes).Error
+		Where("ur.user_id = ?", userID).
+		Pluck("permission_code", &permissionCodes).Error
 
 	if err != nil {
 		return response.InternalServerError(c, "Failed to get user permissions")

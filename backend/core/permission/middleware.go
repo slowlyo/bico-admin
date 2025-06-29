@@ -129,13 +129,11 @@ func (pm *PermissionMiddleware) hasPermission(userID uint, permission string) (b
 		return true, nil
 	}
 
-	// 查询用户是否有该权限
+	// 直接查询 role_permissions 表，不依赖权限表
 	var count int64
-	err = pm.db.Table("permissions p").
-		Joins("JOIN role_permissions rp ON p.id = rp.permission_id").
+	err = pm.db.Table("role_permissions rp").
 		Joins("JOIN user_roles ur ON rp.role_id = ur.role_id").
-		Where("ur.user_id = ? AND p.code = ? AND p.status = ?",
-			userID, permission, model.PermissionStatusActive).
+		Where("ur.user_id = ? AND rp.permission_code = ?", userID, permission).
 		Count(&count).Error
 
 	return count > 0, err

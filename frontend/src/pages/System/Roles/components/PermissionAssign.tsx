@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Tree, message, Spin, Input } from 'antd';
+import { Modal, Tree, message, Spin, Input, Button, Space } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { getPermissionTree, getRolePermissions, assignRolePermissions } from '@/services/role';
 import type { PermissionItem } from '@/services/role';
@@ -43,11 +43,9 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
     try {
       const response = await getRolePermissions(id);
       if (response.code === 200) {
-        // 确保data是数组，防止null或undefined导致的错误
+        // 后端返回的是权限代码字符串数组，直接使用
         const data = Array.isArray(response.data) ? response.data : [];
-        // 使用权限代码作为标识，与权限树的key保持一致
-        const permissionCodes = data.map((p) => p.code || p.id?.toString());
-        setSelectedPermissions(permissionCodes.filter(Boolean));
+        setSelectedPermissions(data);
       }
     } catch (error) {
       console.error('加载角色权限失败:', error);
@@ -89,13 +87,66 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
     }
   };
 
+  // 获取所有权限节点的key（排除分类节点）
+  const getAllPermissionKeys = (permissions: PermissionItem[]): string[] => {
+    let keys: string[] = [];
+    permissions.forEach(permission => {
+      const code = permission.code || permission.id?.toString();
+      if (code && !isCategoryNode(code)) {
+        keys.push(code);
+      }
+      if (permission.children) {
+        keys = keys.concat(getAllPermissionKeys(permission.children));
+      }
+    });
+    return keys;
+  };
+
+  // 全选（基于当前显示的权限）
+  const handleSelectAll = () => {
+    const currentKeys = getAllPermissionKeys(filteredPermissionTree);
+    // 合并当前选中的权限和当前显示的所有权限，去重
+    const allKeys = Array.from(new Set([...selectedPermissions, ...currentKeys]));
+    setSelectedPermissions(allKeys);
+  };
+
+  // 反选（反转当前显示权限的选择状态）
+  const handleInvertSelection = () => {
+    const currentKeys = getAllPermissionKeys(filteredPermissionTree);
+    const newSelectedKeys = [...selectedPermissions];
+
+    currentKeys.forEach(key => {
+      const index = newSelectedKeys.indexOf(key);
+      if (index > -1) {
+        // 如果已选中，则取消选中
+        newSelectedKeys.splice(index, 1);
+      } else {
+        // 如果未选中，则选中
+        newSelectedKeys.push(key);
+      }
+    });
+
+    setSelectedPermissions(newSelectedKeys);
+  };
+
+  // 检查是否为分类节点（分类节点的code通常是中文名称，不是有效的权限代码）
+  const isCategoryNode = (code: string): boolean => {
+    // 有效的权限代码格式为 "module:action"，如 "user:view"
+    return !code.includes(':');
+  };
+
   // 转换权限树数据格式
   const convertTreeData = (permissions: PermissionItem[]): any[] => {
-    return permissions.map((permission) => ({
-      title: `${permission.name} (${permission.code})`,
-      key: permission.code || permission.id?.toString(), // 使用code作为key，兼容新的权限结构
-      children: permission.children ? convertTreeData(permission.children) : [],
-    }));
+    return permissions.map((permission) => {
+      const code = permission.code || permission.id?.toString();
+      const isCategory = isCategoryNode(code);
+
+      return {
+        title: isCategory ? permission.name : `${permission.name}`,
+        key: code,
+        children: permission.children ? convertTreeData(permission.children) : [],
+      };
+    });
   };
 
   // 提交权限分配
@@ -105,9 +156,12 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
       return;
     }
 
+    // 过滤掉分类节点，只提交有效的权限代码
+    const validPermissions = selectedPermissions.filter(code => !isCategoryNode(code));
+
     setSubmitting(true);
     try {
-      await assignRolePermissions(roleId, selectedPermissions);
+      await assignRolePermissions(roleId, validPermissions);
       message.success('权限分配成功');
       onFinish();
     } catch (error) {
@@ -160,21 +214,31 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
           <div style={{ marginBottom: 16, color: '#666' }}>
             请选择要分配给该角色的权限：
           </div>
-          <div style={{ 
-            border: '1px solid #d9d9d9', 
-            borderRadius: 6, 
-            padding: 12, 
-            maxHeight: 400, 
-            overflow: 'auto' 
+          <div style={{
+            border: '1px solid #d9d9d9',
+            borderRadius: 6,
+            padding: 12,
+            maxHeight: 400,
+            overflow: 'auto'
           }}>
-            <Input
-              placeholder="搜索权限名称或代码"
-              prefix={<SearchOutlined />}
-              value={searchValue}
-              onChange={(e) => handleSearch(e.target.value)}
-              style={{ marginBottom: 12 }}
-              allowClear
-            />
+            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Input
+                placeholder="搜索权限名称"
+                prefix={<SearchOutlined />}
+                value={searchValue}
+                onChange={(e) => handleSearch(e.target.value)}
+                style={{ flex: 1, marginRight: 12 }}
+                allowClear
+              />
+              <Space>
+                <Button onClick={handleSelectAll}>
+                  全选
+                </Button>
+                <Button onClick={handleInvertSelection}>
+                  反选
+                </Button>
+              </Space>
+            </div>
             <Tree
               checkable
               treeData={convertTreeData(filteredPermissionTree)}
@@ -188,7 +252,10 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
             />
           </div>
           <div style={{ marginTop: 16, color: '#999', fontSize: '12px' }}>
-            已选择 {selectedPermissions.length} 个权限
+            已选择 {selectedPermissions.filter(code => !isCategoryNode(code)).length} 个权限
+            {selectedPermissions.length > selectedPermissions.filter(code => !isCategoryNode(code)).length &&
+              ` (包含 ${selectedPermissions.length - selectedPermissions.filter(code => !isCategoryNode(code)).length} 个分类)`
+            }
           </div>
         </div>
       )}

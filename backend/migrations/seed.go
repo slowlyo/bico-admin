@@ -213,8 +213,8 @@ func assignSuperAdminPermissions(db *gorm.DB) {
 	// 为超级管理员角色分配所有权限
 	for _, perm := range allPermissions {
 		rolePermission := model.RolePermission{
-			RoleID:       superAdminRole.ID,
-			PermissionID: perm.ID,
+			RoleID:         superAdminRole.ID,
+			PermissionCode: perm.Code,
 		}
 
 		if err := db.Create(&rolePermission).Error; err != nil {

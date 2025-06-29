@@ -90,12 +90,12 @@ const CreateForm: React.FC<CreateFormProps> = ({
       
       <ProFormText
         name="code"
-        label="角色代码"
-        placeholder="请输入角色代码"
+        label="角色标识"
+        placeholder="请输入角色标识"
         rules={[
-          { required: true, message: '请输入角色代码!' },
-          { max: 50, message: '角色代码不能超过50个字符!' },
-          { pattern: /^[a-zA-Z0-9_-]+$/, message: '角色代码只能包含字母、数字、下划线和横线!' },
+          { required: true, message: '请输入角色标识!' },
+          { max: 50, message: '角色标识不能超过50个字符!' },
+          { pattern: /^[a-zA-Z0-9_-]+$/, message: '角色标识只能包含字母、数字、下划线和横线!' },
         ]}
       />
       
