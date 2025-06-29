@@ -186,6 +186,73 @@ func (h *AuthHandler) GetProfile(c *fiber.Ctx) error {
 	return response.Success(c, userResponse)
 }
 
+// GetUserPermissions 获取当前用户权限
+func (h *AuthHandler) GetUserPermissions(c *fiber.Ctx) error {
+	userID := middleware.GetUserID(c)
+	if userID == 0 {
+		return response.Unauthorized(c, "User not authenticated")
+	}
+
+	// 检查用户是否为超级管理员
+	isSuperAdmin, err := h.isSuperAdmin(userID)
+	if err != nil {
+		return response.InternalServerError(c, "Failed to check user role")
+	}
+
+	// 超级管理员拥有所有权限
+	if isSuperAdmin {
+		var permissions []model.Permission
+		err := h.db.Where("status = ?", model.PermissionStatusActive).
+			Find(&permissions).Error
+		if err != nil {
+			return response.InternalServerError(c, "Failed to get permissions")
+		}
+
+		var permissionCodes []string
+		for _, p := range permissions {
+			permissionCodes = append(permissionCodes, p.Code)
+		}
+		return response.Success(c, permissionCodes)
+	}
+
+	// 普通用户通过角色获取权限
+	var permissionCodes []string
+	err = h.db.Table("permissions p").
+		Select("DISTINCT p.code").
+		Joins("JOIN role_permissions rp ON p.id = rp.permission_id").
+		Joins("JOIN user_roles ur ON rp.role_id = ur.role_id").
+		Where("ur.user_id = ? AND p.status = ?", userID, model.PermissionStatusActive).
+		Pluck("code", &permissionCodes).Error
+
+	if err != nil {
+		return response.InternalServerError(c, "Failed to get user permissions")
+	}
+
+	return response.Success(c, permissionCodes)
+}
+
+// isSuperAdmin 检查用户是否为超级管理员
+func (h *AuthHandler) isSuperAdmin(userID uint) (bool, error) {
+	var count int64
+	err := h.db.Table("users u").
+		Joins("JOIN user_roles ur ON u.id = ur.user_id").
+		Joins("JOIN roles r ON ur.role_id = r.id").
+		Where("u.id = ? AND r.code = ? AND r.status = ?",
+			userID, "super_admin", model.RoleStatusActive).
+		Count(&count).Error
+
+	if err != nil {
+		// 如果查询失败，尝试通过用户表的role字段检查（兼容旧版本）
+		var user model.User
+		if err := h.db.First(&user, userID).Error; err != nil {
+			return false, err
+		}
+		return user.Role == "super_admin", nil
+	}
+
+	return count > 0, nil
+}
+
 // UpdateProfile 更新用户资料
 func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 	userID := middleware.GetUserID(c)

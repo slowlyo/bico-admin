@@ -108,6 +108,18 @@ const CreateForm: React.FC<CreateFormProps> = ({
         ]}
       />
 
+      <ProFormSelect
+        name="status"
+        label="状态"
+        options={[
+          { label: '启用', value: 1 },
+          { label: '禁用', value: 0 },
+        ]}
+        placeholder="请选择状态"
+        initialValue={1}
+        rules={[{ required: true, message: '请选择状态!' }]}
+      />
+
       <div style={{ marginBottom: 24 }}>
         <label style={{ fontWeight: 500, marginBottom: 8, display: 'block' }}>
           权限分配

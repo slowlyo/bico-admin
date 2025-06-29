@@ -26,6 +26,7 @@ func SetupAuthRoutes(app fiber.Router, db *gorm.DB, cfg *config.Config) {
 			protected.Get("/profile", authHandler.GetProfile)
 			protected.Put("/profile", authHandler.UpdateProfile)
 			protected.Post("/change-password", authHandler.ChangePassword)
+			protected.Get("/permissions", authHandler.GetUserPermissions)
 		}
 	}
 }

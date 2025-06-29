@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ProDescriptions } from '@ant-design/pro-components';
 import { Card, Tag, Spin, Button } from 'antd';
-import { getRole } from '@/services/role';
+import { getRole, getRolePermissions } from '@/services/role';
 import type { RoleItem } from '@/services/role';
 
 export type RoleDetailProps = {
@@ -12,13 +12,22 @@ export type RoleDetailProps = {
 const RoleDetail: React.FC<RoleDetailProps> = ({ roleId, onClose }) => {
   const [role, setRole] = useState<RoleItem>();
   const [loading, setLoading] = useState(false);
+  const [permissions, setPermissions] = useState<any[]>([]);
 
   const loadRoleDetail = async () => {
     setLoading(true);
     try {
-      const response = await getRole(roleId);
-      if (response.code === 200) {
-        setRole(response.data);
+      const [roleResponse, permissionsResponse] = await Promise.all([
+        getRole(roleId),
+        getRolePermissions(roleId)
+      ]);
+
+      if (roleResponse.code === 200) {
+        setRole(roleResponse.data);
+      }
+
+      if (permissionsResponse.code === 200) {
+        setPermissions(permissionsResponse.data || []);
       }
     } catch (error) {
       console.error('加载角色详情失败:', error);
@@ -96,10 +105,10 @@ const RoleDetail: React.FC<RoleDetailProps> = ({ roleId, onClose }) => {
       />
 
       <Card title="权限列表" style={{ marginTop: 16 }}>
-        {role.permissions && role.permissions.length > 0 ? (
+        {permissions.length > 0 ? (
           <div>
-            {role.permissions.map((permission: any) => (
-              <Tag key={permission.id} color="blue" style={{ margin: '4px' }}>
+            {permissions.map((permission: any) => (
+              <Tag key={permission.code || permission.id} color="blue" style={{ margin: '4px' }}>
                 {permission.name}
               </Tag>
             ))}

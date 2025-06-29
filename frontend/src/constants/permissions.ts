@@ -39,13 +39,8 @@ export const PERMISSIONS = {
     MANAGE_TREE: 'permission:manage_tree',
   },
 
-  // 个人资料权限（所有用户都有，无需权限检查）
-  PROFILE: {
-    VIEW: 'profile:view',
-    UPDATE: 'profile:update',
-    CHANGE_PASSWORD: 'profile:change_password',
-    UPLOAD_AVATAR: 'profile:upload_avatar',
-  },
+  // 注意：个人资料相关功能无需权限验证，所有登录用户都可以访问
+  // 已移除 PROFILE 相关权限定义
 
   // 内容管理权限（预留）
   CONTENT: {
@@ -64,122 +59,35 @@ export const PERMISSIONS = {
   },
 } as const;
 
-// 角色权限映射 - 优化后的权限分配
-export const ROLE_PERMISSIONS = {
-  // 超级管理员 - 拥有所有权限
-  admin: [
-    // 系统管理
-    PERMISSIONS.SYSTEM.VIEW,
-    PERMISSIONS.SYSTEM.MANAGE,
-    PERMISSIONS.SYSTEM.DASHBOARD,
-    PERMISSIONS.SYSTEM.SETTINGS,
+// 注意：角色权限映射已移除，现在通过API动态获取用户权限
+// 权限常量保留在前端，便于开发时引用和类型检查
 
-    // 用户管理
-    PERMISSIONS.USER.VIEW,
-    PERMISSIONS.USER.CREATE,
-    PERMISSIONS.USER.UPDATE,
-    PERMISSIONS.USER.DELETE,
-    PERMISSIONS.USER.MANAGE_STATUS,
-    PERMISSIONS.USER.RESET_PASSWORD,
-    PERMISSIONS.USER.EXPORT,
-    PERMISSIONS.USER.IMPORT,
+// 权限检查函数 - 现在通过API获取用户权限进行检查
+// 这些函数需要配合全局状态管理使用
 
-    // 角色管理
-    PERMISSIONS.ROLE.VIEW,
-    PERMISSIONS.ROLE.CREATE,
-    PERMISSIONS.ROLE.UPDATE,
-    PERMISSIONS.ROLE.DELETE,
-    PERMISSIONS.ROLE.ASSIGN_PERMISSIONS,
-    PERMISSIONS.ROLE.MANAGE_STATUS,
-
-    // 权限管理
-    PERMISSIONS.PERMISSION.VIEW,
-    PERMISSIONS.PERMISSION.CREATE,
-    PERMISSIONS.PERMISSION.UPDATE,
-    PERMISSIONS.PERMISSION.DELETE,
-    PERMISSIONS.PERMISSION.MANAGE_TREE,
-
-    // 内容管理
-    PERMISSIONS.CONTENT.VIEW,
-    PERMISSIONS.CONTENT.CREATE,
-    PERMISSIONS.CONTENT.UPDATE,
-    PERMISSIONS.CONTENT.DELETE,
-    PERMISSIONS.CONTENT.PUBLISH,
-
-    // 日志管理
-    PERMISSIONS.LOG.VIEW,
-    PERMISSIONS.LOG.EXPORT,
-    PERMISSIONS.LOG.DELETE,
-
-    // 个人资料（所有用户都有）
-    PERMISSIONS.PROFILE.VIEW,
-    PERMISSIONS.PROFILE.UPDATE,
-    PERMISSIONS.PROFILE.CHANGE_PASSWORD,
-    PERMISSIONS.PROFILE.UPLOAD_AVATAR,
-  ],
-
-  // 管理者 - 部分管理权限
-  manager: [
-    // 系统管理（仅查看）
-    PERMISSIONS.SYSTEM.VIEW,
-    PERMISSIONS.SYSTEM.DASHBOARD,
-
-    // 用户管理（部分权限）
-    PERMISSIONS.USER.VIEW,
-    PERMISSIONS.USER.CREATE,
-    PERMISSIONS.USER.UPDATE,
-    PERMISSIONS.USER.MANAGE_STATUS,
-    PERMISSIONS.USER.EXPORT,
-
-    // 角色管理（仅查看）
-    PERMISSIONS.ROLE.VIEW,
-
-    // 内容管理
-    PERMISSIONS.CONTENT.VIEW,
-    PERMISSIONS.CONTENT.CREATE,
-    PERMISSIONS.CONTENT.UPDATE,
-    PERMISSIONS.CONTENT.PUBLISH,
-
-    // 个人资料
-    PERMISSIONS.PROFILE.VIEW,
-    PERMISSIONS.PROFILE.UPDATE,
-    PERMISSIONS.PROFILE.CHANGE_PASSWORD,
-    PERMISSIONS.PROFILE.UPLOAD_AVATAR,
-  ],
-
-  // 普通用户 - 基础权限
-  user: [
-    // 系统管理（仅仪表板）
-    PERMISSIONS.SYSTEM.DASHBOARD,
-
-    // 内容管理（仅查看）
-    PERMISSIONS.CONTENT.VIEW,
-
-    // 个人资料
-    PERMISSIONS.PROFILE.VIEW,
-    PERMISSIONS.PROFILE.UPDATE,
-    PERMISSIONS.PROFILE.CHANGE_PASSWORD,
-    PERMISSIONS.PROFILE.UPLOAD_AVATAR,
-  ],
-} as const;
-
-// 权限检查函数
-export const hasPermission = (userRole: string, permission: string): boolean => {
-  const rolePermissions = ROLE_PERMISSIONS[userRole as keyof typeof ROLE_PERMISSIONS];
-  return rolePermissions ? rolePermissions.includes(permission) : false;
+/**
+ * 检查用户是否有指定权限
+ * @param userPermissions 用户权限列表（从API获取）
+ * @param permission 要检查的权限
+ */
+export const hasPermission = (userPermissions: string[], permission: string): boolean => {
+  return userPermissions.includes(permission);
 };
 
-// 检查多个权限（需要全部满足）
-export const hasAllPermissions = (userRole: string, permissions: string[]): boolean => {
-  return permissions.every(permission => hasPermission(userRole, permission));
+/**
+ * 检查多个权限（需要全部满足）
+ * @param userPermissions 用户权限列表（从API获取）
+ * @param permissions 要检查的权限列表
+ */
+export const hasAllPermissions = (userPermissions: string[], permissions: string[]): boolean => {
+  return permissions.every(permission => hasPermission(userPermissions, permission));
 };
 
-// 检查多个权限（满足其中一个即可）
-export const hasAnyPermission = (userRole: string, permissions: string[]): boolean => {
-  return permissions.some(permission => hasPermission(userRole, permission));
-};
-
-// 获取用户所有权限
-export const getUserPermissions = (userRole: string): string[] => {
-  return ROLE_PERMISSIONS[userRole as keyof typeof ROLE_PERMISSIONS] || [];
+/**
+ * 检查多个权限（满足任意一个即可）
+ * @param userPermissions 用户权限列表（从API获取）
+ * @param permissions 要检查的权限列表
+ */
+export const hasAnyPermission = (userPermissions: string[], permissions: string[]): boolean => {
+  return permissions.some(permission => hasPermission(userPermissions, permission));
 };

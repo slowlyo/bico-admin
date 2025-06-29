@@ -43,8 +43,8 @@ func (s *Seeder) SeedRoles() error {
 	roles := []model.Role{
 		{
 			Name:        "超级管理员",
-			Code:        "admin",
-			Description: "系统超级管理员，拥有所有权限",
+			Code:        "super_admin",
+			Description: "系统超级管理员，拥有所有权限，不可删除或编辑",
 			Status:      model.RoleStatusActive,
 		},
 		{
@@ -57,6 +57,13 @@ func (s *Seeder) SeedRoles() error {
 			Name:        "普通用户",
 			Code:        "user",
 			Description: "普通用户，拥有基础权限",
+			Status:      model.RoleStatusActive,
+		},
+		// 保留原有的 admin 角色以兼容现有数据
+		{
+			Name:        "管理员(旧)",
+			Code:        "admin",
+			Description: "兼容旧版本的管理员角色，建议迁移到 super_admin",
 			Status:      model.RoleStatusActive,
 		},
 	}
@@ -83,20 +90,32 @@ func (s *Seeder) SeedRoles() error {
 
 // SeedPermissions 创建默认权限
 func (s *Seeder) SeedPermissions() error {
+	// 使用权限常量定义权限数据
 	permissions := []model.Permission{
-		// 用户管理权限
+		// 系统管理权限
 		{
-			Name:        "用户管理",
-			Code:        "user.manage",
+			Name:        "查看系统",
+			Code:        "system:view",
 			Type:        model.PermissionTypeMenu,
-			Resource:    "user",
-			Action:      "manage",
-			Description: "用户管理菜单权限",
+			Resource:    "system",
+			Action:      "view",
+			Description: "查看系统管理页面",
 			Status:      model.PermissionStatusActive,
 		},
 		{
+			Name:        "管理系统",
+			Code:        "system:manage",
+			Type:        model.PermissionTypeAPI,
+			Resource:    "system",
+			Action:      "manage",
+			Description: "管理系统设置",
+			Status:      model.PermissionStatusActive,
+		},
+
+		// 用户管理权限
+		{
 			Name:        "查看用户",
-			Code:        "user.view",
+			Code:        "user:view",
 			Type:        model.PermissionTypeAPI,
 			Resource:    "user",
 			Action:      "view",
@@ -105,11 +124,94 @@ func (s *Seeder) SeedPermissions() error {
 		},
 		{
 			Name:        "创建用户",
-			Code:        "user.create",
+			Code:        "user:create",
 			Type:        model.PermissionTypeAPI,
 			Resource:    "user",
 			Action:      "create",
 			Description: "创建新用户",
+			Status:      model.PermissionStatusActive,
+		},
+		{
+			Name:        "编辑用户",
+			Code:        "user:update",
+			Type:        model.PermissionTypeAPI,
+			Resource:    "user",
+			Action:      "update",
+			Description: "编辑用户信息",
+			Status:      model.PermissionStatusActive,
+		},
+		{
+			Name:        "删除用户",
+			Code:        "user:delete",
+			Type:        model.PermissionTypeAPI,
+			Resource:    "user",
+			Action:      "delete",
+			Description: "删除用户",
+			Status:      model.PermissionStatusActive,
+		},
+		{
+			Name:        "管理用户状态",
+			Code:        "user:manage_status",
+			Type:        model.PermissionTypeAPI,
+			Resource:    "user",
+			Action:      "manage_status",
+			Description: "启用/禁用用户",
+			Status:      model.PermissionStatusActive,
+		},
+		{
+			Name:        "重置密码",
+			Code:        "user:reset_password",
+			Type:        model.PermissionTypeAPI,
+			Resource:    "user",
+			Action:      "reset_password",
+			Description: "重置用户密码",
+			Status:      model.PermissionStatusActive,
+		},
+
+		// 角色管理权限
+		{
+			Name:        "查看角色",
+			Code:        "role:view",
+			Type:        model.PermissionTypeAPI,
+			Resource:    "role",
+			Action:      "view",
+			Description: "查看角色列表和详情",
+			Status:      model.PermissionStatusActive,
+		},
+		{
+			Name:        "创建角色",
+			Code:        "role:create",
+			Type:        model.PermissionTypeAPI,
+			Resource:    "role",
+			Action:      "create",
+			Description: "创建新角色",
+			Status:      model.PermissionStatusActive,
+		},
+		{
+			Name:        "编辑角色",
+			Code:        "role:update",
+			Type:        model.PermissionTypeAPI,
+			Resource:    "role",
+			Action:      "update",
+			Description: "编辑角色信息",
+			Status:      model.PermissionStatusActive,
+		},
+		{
+			Name:        "删除角色",
+			Code:        "role:delete",
+			Type:        model.PermissionTypeAPI,
+			Resource:    "role",
+			Action:      "delete",
+			Description: "删除角色",
+			Status:      model.PermissionStatusActive,
+		},
+		{
+			Name:        "分配权限",
+			Code:        "role:assign_permissions",
+			Type:        model.PermissionTypeAPI,
+			Resource:    "role",
+			Action:      "assign_permissions",
+			Description: "为角色分配权限",
 			Status:      model.PermissionStatusActive,
 		},
 		{
@@ -193,7 +295,7 @@ func (s *Seeder) SeedDefaultAdmin() error {
 				Email:    "admin@bico.com",
 				Password: "123456", // 默认密码，建议首次登录后修改
 				Nickname: "系统管理员",
-				Role:     "admin",
+				Role:     "super_admin", // 使用超级管理员角色
 				Status:   model.UserStatusActive,
 			}
 
@@ -209,10 +311,10 @@ func (s *Seeder) SeedDefaultAdmin() error {
 				return err
 			}
 
-			// 获取管理员角色
+			// 获取超级管理员角色
 			var adminRole model.Role
-			if err := s.db.Where("code = ?", "admin").First(&adminRole).Error; err != nil {
-				log.Printf("获取管理员角色失败: %v", err)
+			if err := s.db.Where("code = ?", "super_admin").First(&adminRole).Error; err != nil {
+				log.Printf("获取超级管理员角色失败: %v", err)
 				return err
 			}
 

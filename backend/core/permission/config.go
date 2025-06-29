@@ -23,16 +23,14 @@ const (
 	UserResetPassword = "user:reset_password"
 
 	// 角色管理权限
-	RoleView            = "role:view"
-	RoleCreate          = "role:create"
-	RoleUpdate          = "role:update"
-	RoleDelete          = "role:delete"
+	RoleView              = "role:view"
+	RoleCreate            = "role:create"
+	RoleUpdate            = "role:update"
+	RoleDelete            = "role:delete"
 	RoleAssignPermissions = "role:assign_permissions"
 
-	// 个人资料权限
-	ProfileView         = "profile:view"
-	ProfileUpdate       = "profile:update"
-	ProfileChangePassword = "profile:change_password"
+	// 注意：个人资料相关功能无需权限验证，所有登录用户都可以访问
+	// 已移除 profile:* 相关权限定义
 )
 
 // AllPermissions 所有权限定义
@@ -56,79 +54,14 @@ var AllPermissions = []Permission{
 	{Code: RoleDelete, Name: "删除角色", Description: "删除角色", Category: "角色管理"},
 	{Code: RoleAssignPermissions, Name: "分配权限", Description: "为角色分配权限", Category: "角色管理"},
 
-	// 个人资料
-	{Code: ProfileView, Name: "查看个人资料", Description: "查看个人资料", Category: "个人资料"},
-	{Code: ProfileUpdate, Name: "更新个人资料", Description: "更新个人资料", Category: "个人资料"},
-	{Code: ProfileChangePassword, Name: "修改密码", Description: "修改个人密码", Category: "个人资料"},
+	// 注意：个人资料相关功能无需权限验证，已移除相关权限定义
 }
 
-// RolePermissions 角色权限映射
-var RolePermissions = map[string][]string{
-	"admin": {
-		// 系统管理
-		SystemView, SystemManage,
-		// 用户管理
-		UserView, UserCreate, UserUpdate, UserDelete, UserManageStatus, UserResetPassword,
-		// 角色管理
-		RoleView, RoleCreate, RoleUpdate, RoleDelete, RoleAssignPermissions,
-		// 个人资料
-		ProfileView, ProfileUpdate, ProfileChangePassword,
-	},
-	"manager": {
-		// 用户管理（部分权限）
-		UserView, UserCreate, UserUpdate, UserManageStatus,
-		// 个人资料
-		ProfileView, ProfileUpdate, ProfileChangePassword,
-	},
-	"user": {
-		// 个人资料
-		ProfileView, ProfileUpdate, ProfileChangePassword,
-	},
-}
+// 注意：角色权限映射已移除，现在完全基于数据库的 role_permissions 关联表
+// 权限验证通过数据库查询实现，支持动态权限分配
 
-// HasPermission 检查用户是否有指定权限
-func HasPermission(userRole, permission string) bool {
-	permissions, exists := RolePermissions[userRole]
-	if !exists {
-		return false
-	}
-
-	for _, p := range permissions {
-		if p == permission {
-			return true
-		}
-	}
-	return false
-}
-
-// HasAllPermissions 检查用户是否有所有指定权限
-func HasAllPermissions(userRole string, permissions []string) bool {
-	for _, permission := range permissions {
-		if !HasPermission(userRole, permission) {
-			return false
-		}
-	}
-	return true
-}
-
-// HasAnyPermission 检查用户是否有任意一个指定权限
-func HasAnyPermission(userRole string, permissions []string) bool {
-	for _, permission := range permissions {
-		if HasPermission(userRole, permission) {
-			return true
-		}
-	}
-	return false
-}
-
-// GetUserPermissions 获取用户所有权限
-func GetUserPermissions(userRole string) []string {
-	permissions, exists := RolePermissions[userRole]
-	if !exists {
-		return []string{}
-	}
-	return permissions
-}
+// 注意：旧的静态权限检查函数已移除
+// 现在权限验证完全通过 PermissionMiddleware 的数据库查询实现
 
 // GetPermissionsByCategory 按分类获取权限
 func GetPermissionsByCategory() map[string][]Permission {
@@ -137,4 +70,29 @@ func GetPermissionsByCategory() map[string][]Permission {
 		categories[permission.Category] = append(categories[permission.Category], permission)
 	}
 	return categories
+}
+
+// IsSuperAdmin 检查角色是否为超级管理员
+func IsSuperAdmin(roleCode string) bool {
+	return roleCode == "super_admin"
+}
+
+// IsProtectedRole 检查角色是否为受保护角色（不可删除或编辑）
+func IsProtectedRole(roleCode string) bool {
+	return roleCode == "super_admin"
+}
+
+// IsProfileRoute 检查路由是否为个人资料相关路由（无需权限验证）
+func IsProfileRoute(path string) bool {
+	profileRoutes := []string{
+		"/auth/profile",
+		"/auth/change-password",
+	}
+
+	for _, route := range profileRoutes {
+		if path == route {
+			return true
+		}
+	}
+	return false
 }

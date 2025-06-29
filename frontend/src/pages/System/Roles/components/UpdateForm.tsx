@@ -139,10 +139,10 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
       <ProFormSelect
         name="status"
         label="状态"
-        valueEnum={{
-          1: '启用',
-          0: '禁用',
-        }}
+        options={[
+          { label: '启用', value: 1 },
+          { label: '禁用', value: 0 },
+        ]}
         placeholder="请选择状态"
         rules={[{ required: true, message: '请选择状态!' }]}
       />

@@ -8,7 +8,7 @@ import {
   ProColumns,
 } from '@ant-design/pro-components';
 import { Button, Drawer, message, Popconfirm, Switch, Tag } from 'antd';
-import { getRoleList, deleteRole, updateRoleStatus } from '@/services/role';
+import { getRoleList, deleteRole, updateRoleStatus, getRolePermissions } from '@/services/role';
 import CreateForm from './components/CreateForm';
 import UpdateForm from './components/UpdateForm';
 import RoleDetail from './components/RoleDetail';
@@ -33,6 +33,30 @@ const RoleList: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const [currentRow, setCurrentRow] = useState<RoleItem>();
   const [selectedRowsState, setSelectedRows] = useState<RoleItem[]>([]);
+  const [permissionCounts, setPermissionCounts] = useState<Record<number, number>>({});
+
+  // 获取角色权限数量
+  const fetchPermissionCount = async (roleId: number): Promise<number> => {
+    try {
+      const response = await getRolePermissions(roleId);
+      if (response.code === 200) {
+        return response.data?.length || 0;
+      }
+      return 0;
+    } catch (error) {
+      console.error('获取角色权限数量失败:', error);
+      return 0;
+    }
+  };
+
+  // 批量获取权限数量
+  const fetchAllPermissionCounts = async (roles: RoleItem[]) => {
+    const counts: Record<number, number> = {};
+    for (const role of roles) {
+      counts[role.id] = await fetchPermissionCount(role.id);
+    }
+    setPermissionCounts(counts);
+  };
 
   /**
    * 删除角色
@@ -113,11 +137,14 @@ const RoleList: React.FC = () => {
       title: '权限数量',
       dataIndex: 'permissions',
       search: false,
-      render: (_, record) => (
-        <Tag color="blue">
-          {record.permissions?.length || 0} 个权限
-        </Tag>
-      ),
+      render: (_, record) => {
+        const count = permissionCounts[record.id];
+        return (
+          <Tag color="blue">
+            {count !== undefined ? `${count} 个权限` : '加载中...'}
+          </Tag>
+        );
+      },
     },
     {
       title: '状态',
@@ -204,7 +231,14 @@ const RoleList: React.FC = () => {
             <PlusOutlined /> 新建
           </Button>,
         ]}
-        request={getRoleList}
+        request={async (params) => {
+          const result = await getRoleList(params);
+          // 获取权限数量
+          if (result.success && result.data.length > 0) {
+            fetchAllPermissionCounts(result.data);
+          }
+          return result;
+        }}
         columns={columns}
         rowSelection={{
           onChange: (_, selectedRows) => {
