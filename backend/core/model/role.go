@@ -3,11 +3,11 @@ package model
 // Role 角色模型
 type Role struct {
 	BaseModel
-	Name        string       `json:"name" gorm:"uniqueIndex;size:50;not null" validate:"required,max=50"`
-	Code        string       `json:"code" gorm:"uniqueIndex;size:50;not null" validate:"required,max=50"`
-	Description string       `json:"description" gorm:"size:255"`
-	Status      RoleStatus   `json:"status" gorm:"default:1"`
-	
+	Name        string     `json:"name" gorm:"uniqueIndex;size:50;not null" validate:"required,max=50"`
+	Code        string     `json:"code" gorm:"uniqueIndex;size:50;not null" validate:"required,max=50"`
+	Description string     `json:"description" gorm:"size:255"`
+	Status      RoleStatus `json:"status" gorm:"default:1"`
+
 	// 关联关系
 	Users       []User       `json:"users" gorm:"many2many:user_roles;"`
 	Permissions []Permission `json:"permissions" gorm:"many2many:role_permissions;"`
@@ -50,7 +50,7 @@ type Permission struct {
 	ParentID    *uint            `json:"parent_id" gorm:"index"`
 	Sort        int              `json:"sort" gorm:"default:0"`
 	Status      PermissionStatus `json:"status" gorm:"default:1"`
-	
+
 	// 关联关系
 	Parent   *Permission  `json:"parent" gorm:"foreignKey:ParentID"`
 	Children []Permission `json:"children" gorm:"foreignKey:ParentID"`
@@ -97,4 +97,14 @@ type PermissionUpdateRequest struct {
 	ParentID    *uint            `json:"parent_id"`
 	Sort        int              `json:"sort"`
 	Status      PermissionStatus `json:"status" validate:"oneof=0 1"`
+}
+
+// RolePermission 角色权限关联模型
+type RolePermission struct {
+	RoleID       uint `json:"role_id" gorm:"primaryKey"`
+	PermissionID uint `json:"permission_id" gorm:"primaryKey"`
+
+	// 关联关系
+	Role       Role       `json:"role" gorm:"foreignKey:RoleID"`
+	Permission Permission `json:"permission" gorm:"foreignKey:PermissionID"`
 }

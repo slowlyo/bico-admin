@@ -72,6 +72,25 @@ func GetPermissionsByCategory() map[string][]Permission {
 	return categories
 }
 
+// GetAllPermissionCodes 获取所有权限代码列表
+func GetAllPermissionCodes() []string {
+	var codes []string
+	for _, permission := range AllPermissions {
+		codes = append(codes, permission.Code)
+	}
+	return codes
+}
+
+// GetPermissionByCode 根据权限代码获取权限信息
+func GetPermissionByCode(code string) *Permission {
+	for _, permission := range AllPermissions {
+		if permission.Code == code {
+			return &permission
+		}
+	}
+	return nil
+}
+
 // IsSuperAdmin 检查角色是否为超级管理员
 func IsSuperAdmin(roleCode string) bool {
 	return roleCode == "super_admin"

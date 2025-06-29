@@ -20,21 +20,29 @@ func NewSeeder(db *gorm.DB) *Seeder {
 
 // SeedAll 执行所有种子数据
 func (s *Seeder) SeedAll() error {
-	log.Println("开始执行数据库种子数据...")
+	log.Println("开始执行RBAC权限系统种子数据...")
 
+	// 1. 创建角色
 	if err := s.SeedRoles(); err != nil {
 		return err
 	}
 
+	// 2. 创建权限
 	if err := s.SeedPermissions(); err != nil {
 		return err
 	}
 
+	// 3. 创建默认管理员用户
 	if err := s.SeedDefaultAdmin(); err != nil {
 		return err
 	}
 
-	log.Println("数据库种子数据执行完成")
+	// 4. 分配超级管理员权限
+	if err := s.AssignSuperAdminPermissions(); err != nil {
+		return err
+	}
+
+	log.Println("RBAC权限系统种子数据执行完成")
 	return nil
 }
 
@@ -348,5 +356,51 @@ func (s *Seeder) SeedIfEmpty() error {
 	}
 
 	log.Println("数据库已有数据，跳过种子数据")
+	return nil
+}
+
+// AssignSuperAdminPermissions 为超级管理员角色分配所有权限
+func (s *Seeder) AssignSuperAdminPermissions() error {
+	log.Println("为超级管理员角色分配权限...")
+
+	// 获取超级管理员角色
+	var superAdminRole model.Role
+	if err := s.db.Where("code = ?", "super_admin").First(&superAdminRole).Error; err != nil {
+		log.Printf("未找到超级管理员角色: %v", err)
+		return err
+	}
+
+	// 获取所有权限
+	var allPermissions []model.Permission
+	if err := s.db.Where("status = ?", model.PermissionStatusActive).Find(&allPermissions).Error; err != nil {
+		log.Printf("获取权限列表失败: %v", err)
+		return err
+	}
+
+	// 检查是否已经分配了权限
+	var existingCount int64
+	s.db.Model(&model.RolePermission{}).Where("role_id = ?", superAdminRole.ID).Count(&existingCount)
+
+	if existingCount > 0 {
+		log.Printf("超级管理员角色已分配 %d 个权限，跳过", existingCount)
+		return nil
+	}
+
+	// 为超级管理员角色分配所有权限
+	successCount := 0
+	for _, perm := range allPermissions {
+		rolePermission := model.RolePermission{
+			RoleID:       superAdminRole.ID,
+			PermissionID: perm.ID,
+		}
+
+		if err := s.db.Create(&rolePermission).Error; err != nil {
+			log.Printf("分配权限 '%s' 失败: %v", perm.Code, err)
+		} else {
+			successCount++
+		}
+	}
+
+	log.Printf("为超级管理员角色成功分配了 %d/%d 个权限", successCount, len(allPermissions))
 	return nil
 }

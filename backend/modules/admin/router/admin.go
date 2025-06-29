@@ -27,6 +27,7 @@ func SetupRoutes(app fiber.Router, db *gorm.DB) {
 	dashboardHandler := handler.NewDashboardHandler(db)
 	userHandler := handler.NewUserHandler(db)
 	roleHandler := handler.NewRoleHandler(db)
+	rolePermissionHandler := handler.NewRolePermissionHandler(db)
 
 	// 后台管理路由（需要认证）
 	{
@@ -69,25 +70,17 @@ func SetupRoutes(app fiber.Router, db *gorm.DB) {
 			// 角色状态管理
 			roles.Put("/:id/status", roleHandler.UpdateRoleStatus)
 
-			// 权限管理
-			roles.Get("/:id/permissions", roleHandler.GetRolePermissions)
-			roles.Put("/:id/permissions", roleHandler.AssignPermissions)
+			// 角色权限管理 - 使用新的权限管理处理器
+			roles.Get("/:id/permissions", rolePermissionHandler.GetRolePermissions)
+			roles.Put("/:id/permissions", rolePermissionHandler.AssignRolePermissions)
+			roles.Delete("/:roleId/permissions/:permissionCode", rolePermissionHandler.RemoveRolePermission)
 		}
 
-		// 权限管理 - 改为代码配置，提供权限列表查询接口
+		// 权限管理 - 权限定义在代码中，提供查询接口
 		permissions := protected.Group("/permissions")
 		{
-			permissions.Get("/", func(c *fiber.Ctx) error {
-				// 返回所有权限配置，兼容前端分页格式
-				allPermissions := permission.AllPermissions
-				return c.JSON(fiber.Map{
-					"data":     allPermissions,
-					"total":    len(allPermissions),
-					"success":  true,
-					"current":  1,
-					"pageSize": len(allPermissions),
-				})
-			})
+			// 获取所有权限定义
+			permissions.Get("/", rolePermissionHandler.GetAllPermissions)
 
 			permissions.Get("/tree", func(c *fiber.Ctx) error {
 				// 返回权限树结构，按分类组织
@@ -122,14 +115,7 @@ func SetupRoutes(app fiber.Router, db *gorm.DB) {
 				})
 			})
 
-			permissions.Get("/roles/:role", func(c *fiber.Ctx) error {
-				role := c.Params("role")
-				userPermissions := permission.GetUserPermissions(role)
-				return c.JSON(fiber.Map{
-					"code": 200,
-					"data": userPermissions,
-				})
-			})
+			// 注意：角色权限查询已移至 /roles/:id/permissions 路由
 		}
 	}
 }
