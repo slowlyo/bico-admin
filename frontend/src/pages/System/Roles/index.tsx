@@ -50,7 +50,7 @@ const RoleList: React.FC = () => {
       return true;
     } catch (error) {
       hide();
-      message.error('删除失败，请重试');
+      // 错误消息由全局错误处理器显示，这里不再重复显示
       return false;
     }
   };
@@ -68,7 +68,7 @@ const RoleList: React.FC = () => {
       actionRef.current?.reload?.();
     } catch (error) {
       hide();
-      message.error('状态更新失败，请重试');
+      // 错误消息由全局错误处理器显示，这里不再重复显示
     }
   };
 

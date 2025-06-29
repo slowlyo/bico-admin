@@ -104,7 +104,23 @@ export const request = {
           localStorage.removeItem('token');
           history.push('/login');
         } else {
-          message.error(`请求错误 ${error.response.status}: ${error.response.statusText}`);
+          // 尝试从响应中获取具体的错误消息
+          let errorMessage = `请求错误 ${error.response.status}`;
+
+          if (error.response.data) {
+            // 后端返回的错误格式: { code: number, message: string }
+            if (error.response.data.message) {
+              errorMessage = error.response.data.message;
+            } else if (typeof error.response.data === 'string') {
+              errorMessage = error.response.data;
+            } else {
+              errorMessage += `: ${error.response.statusText}`;
+            }
+          } else {
+            errorMessage += `: ${error.response.statusText}`;
+          }
+
+          message.error(errorMessage);
         }
       } else if (error.request) {
         // 请求已经成功发起，但没有收到响应

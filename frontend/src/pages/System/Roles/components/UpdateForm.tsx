@@ -77,7 +77,7 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
       onFinish();
       return true;
     } catch (error) {
-      message.error('更新失败，请重试');
+      // 错误消息由全局错误处理器显示，这里不再重复显示
       return false;
     }
   };

@@ -41,11 +41,11 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             onFinish();
             return true;
           } else {
-            message.error(response.message || '密码修改失败');
+            // 错误消息由全局错误处理器显示，这里不再重复显示
             return false;
           }
         } catch (error: any) {
-          message.error(error.message || '密码修改失败，请重试');
+          // 错误消息由全局错误处理器显示，这里不再重复显示
           return false;
         }
       }}

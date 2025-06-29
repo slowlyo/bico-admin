@@ -42,18 +42,18 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
             message.error('用户ID不能为空');
             return false;
           }
-          
+
           const response = await updateUser(values.id, value);
           if (response.code === 200) {
             message.success('更新成功');
             onFinish();
             return true;
           } else {
-            message.error(response.message || '更新失败');
+            // 错误消息由全局错误处理器显示，这里不再重复显示
             return false;
           }
         } catch (error: any) {
-          message.error(error.message || '更新失败，请重试');
+          // 错误消息由全局错误处理器显示，这里不再重复显示
           return false;
         }
       }}

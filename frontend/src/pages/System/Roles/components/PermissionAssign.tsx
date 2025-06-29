@@ -34,7 +34,7 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
       }
     } catch (error) {
       console.error('加载权限树失败:', error);
-      message.error('加载权限树失败');
+      // 错误消息由全局错误处理器显示，这里不再重复显示
     }
   };
 
@@ -51,7 +51,7 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
       }
     } catch (error) {
       console.error('加载角色权限失败:', error);
-      message.error('加载角色权限失败');
+      // 错误消息由全局错误处理器显示，这里不再重复显示
     }
   };
 
@@ -111,7 +111,7 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
       message.success('权限分配成功');
       onFinish();
     } catch (error) {
-      message.error('权限分配失败，请重试');
+      // 错误消息由全局错误处理器显示，这里不再重复显示
     } finally {
       setSubmitting(false);
     }
