@@ -10,6 +10,7 @@ import (
 	"bico-admin/core/config"
 	"bico-admin/core/database"
 	"bico-admin/core/model"
+	"bico-admin/core/permission"
 	"bico-admin/pkg/response"
 )
 
@@ -18,7 +19,7 @@ type RoleHandler struct {
 	db      *gorm.DB
 	config  *config.Config
 	roleOps *database.Operations[model.Role]
-	permOps *database.Operations[model.Permission]
+	// 注意：权限操作不再需要，权限定义在代码中
 }
 
 // NewRoleHandler 创建角色管理处理器实例
@@ -28,7 +29,6 @@ func NewRoleHandler(db *gorm.DB) *RoleHandler {
 		db:      db,
 		config:  cfg,
 		roleOps: database.NewOperations[model.Role](db),
-		permOps: database.NewOperations[model.Permission](db),
 	}
 }
 
@@ -44,7 +44,7 @@ func (h *RoleHandler) GetRoles(c *fiber.Ctx) error {
 		PageSize:     pageSize,
 		Search:       search,
 		SearchFields: []string{"name", "code", "description"},
-		Preloads:     []string{"Permissions"},
+		// 注意：不再预加载Permissions，权限信息通过单独的API获取
 	}
 
 	result, err := h.roleOps.List(params)
@@ -84,21 +84,15 @@ func (h *RoleHandler) CreateRole(c *fiber.Ctx) error {
 		return response.InternalServerError(c, "Failed to create role")
 	}
 
-	// 如果有权限ID，关联权限
-	if len(req.PermissionIDs) > 0 {
-		if err := h.assignPermissionsToRole(role.ID, req.PermissionIDs); err != nil {
+	// 如果有权限代码，关联权限
+	if len(req.PermissionCodes) > 0 {
+		if err := h.assignPermissionCodesToRole(role.ID, req.PermissionCodes); err != nil {
 			// 权限关联失败，记录错误但不影响角色创建
 		}
 	}
 
-	// 获取完整的角色信息（包含权限）
-	var fullRole model.Role
-	if err := h.db.Preload("Permissions").First(&fullRole, role.ID).Error; err != nil {
-		// 如果获取失败，返回基本信息
-		return response.Success(c, role)
-	}
-
-	return response.Success(c, fullRole)
+	// 返回创建的角色信息
+	return response.Success(c, role)
 }
 
 // GetRole 获取单个角色
@@ -108,9 +102,9 @@ func (h *RoleHandler) GetRole(c *fiber.Ctx) error {
 		return response.BadRequest(c, "Invalid role ID")
 	}
 
-	// 获取角色及其权限信息
+	// 获取角色信息
 	var role model.Role
-	if err := h.db.Preload("Permissions").Where("id = ?", uint(id)).First(&role).Error; err != nil {
+	if err := h.db.Where("id = ?", uint(id)).First(&role).Error; err != nil {
 		return response.NotFound(c, "Role not found")
 	}
 
@@ -169,16 +163,16 @@ func (h *RoleHandler) UpdateRole(c *fiber.Ctx) error {
 		}
 	}
 
-	// 如果有权限ID，更新权限关联
-	if len(req.PermissionIDs) > 0 {
-		if err := h.updateRolePermissions(uint(id), req.PermissionIDs); err != nil {
+	// 如果有权限代码，更新权限关联
+	if len(req.PermissionCodes) > 0 {
+		if err := h.updateRolePermissionCodes(uint(id), req.PermissionCodes); err != nil {
 			// 权限更新失败，记录错误但不影响其他字段更新
 		}
 	}
 
-	// 获取更新后的角色信息（包含权限）
+	// 获取更新后的角色信息
 	var updatedRole model.Role
-	if err := h.db.Preload("Permissions").First(&updatedRole, uint(id)).Error; err != nil {
+	if err := h.db.First(&updatedRole, uint(id)).Error; err != nil {
 		return response.InternalServerError(c, "Failed to get updated role")
 	}
 
@@ -275,9 +269,9 @@ func (h *RoleHandler) UpdateRoleStatus(c *fiber.Ctx) error {
 		return response.InternalServerError(c, "Failed to update role status")
 	}
 
-	// 获取更新后的角色信息（包含权限）
+	// 获取更新后的角色信息
 	var updatedRole model.Role
-	if err := h.db.Preload("Permissions").First(&updatedRole, uint(id)).Error; err != nil {
+	if err := h.db.First(&updatedRole, uint(id)).Error; err != nil {
 		return response.InternalServerError(c, "Failed to get updated role")
 	}
 
@@ -286,31 +280,69 @@ func (h *RoleHandler) UpdateRoleStatus(c *fiber.Ctx) error {
 
 // 业务逻辑方法 - 直接在handler中实现
 
-// assignPermissionsToRole 为角色分配权限
-func (h *RoleHandler) assignPermissionsToRole(roleID uint, permissionIDs []uint) error {
-	// 获取角色
-	var role model.Role
-	if err := h.db.First(&role, roleID).Error; err != nil {
+// 注意：旧的基于Permission model的函数已移除
+// 现在使用基于权限代码的新实现
+
+// assignPermissionCodesToRole 为角色分配权限代码（新版本）
+func (h *RoleHandler) assignPermissionCodesToRole(roleID uint, permissionCodes []string) error {
+	// 过滤掉分类名称，只保留有效的权限代码
+	validCodes := h.filterValidPermissionCodes(permissionCodes)
+
+	if len(validCodes) == 0 {
+		return nil // 没有有效的权限代码
+	}
+
+	// 开始事务
+	tx := h.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 清除角色现有权限
+	if err := tx.Where("role_id = ?", roleID).Delete(&model.RolePermission{}).Error; err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	// 获取权限
-	var permissions []model.Permission
-	if err := h.db.Where("id IN ?", permissionIDs).Find(&permissions).Error; err != nil {
-		return err
+	// 为每个权限代码创建角色权限关联
+	for _, code := range validCodes {
+		rolePermission := model.RolePermission{
+			RoleID:         roleID,
+			PermissionCode: code,
+		}
+		if err := tx.Create(&rolePermission).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
-	// 关联权限
-	if err := h.db.Model(&role).Association("Permissions").Replace(permissions); err != nil {
-		return err
-	}
-
-	return nil
+	// 提交事务
+	return tx.Commit().Error
 }
 
-// updateRolePermissions 更新角色权限
-func (h *RoleHandler) updateRolePermissions(roleID uint, permissionIDs []uint) error {
-	return h.assignPermissionsToRole(roleID, permissionIDs)
+// updateRolePermissionCodes 更新角色权限代码
+func (h *RoleHandler) updateRolePermissionCodes(roleID uint, permissionCodes []string) error {
+	return h.assignPermissionCodesToRole(roleID, permissionCodes)
+}
+
+// filterValidPermissionCodes 过滤有效的权限代码，移除分类名称
+func (h *RoleHandler) filterValidPermissionCodes(codes []string) []string {
+	allValidCodes := permission.GetAllPermissionCodes()
+	var validCodes []string
+
+	for _, code := range codes {
+		// 检查是否为有效的权限代码
+		for _, validCode := range allValidCodes {
+			if code == validCode {
+				validCodes = append(validCodes, code)
+				break
+			}
+		}
+	}
+
+	return validCodes
 }
 
 // GetRolePermissions 获取角色的权限列表 - 适配新的代码配置权限系统

@@ -81,8 +81,8 @@ A: 使用GORM的预加载功能：
 var user model.User
 db.Preload("Roles").First(&user, id)
 
-// 预加载多层关联
-db.Preload("Roles.Permissions").First(&user, id)
+// 注意：权限信息不再通过关联查询获取
+// 权限数据通过单独的API接口获取，基于role_permissions表查询
 ```
 
 ## 🔐 认证授权相关
@@ -100,10 +100,10 @@ A:
 3. 路由级别的权限控制
 
 ### Q: 如何添加新的权限？
-A: 
-1. 在数据库中添加权限记录
-2. 将权限分配给相应的角色
-3. 在代码中检查对应的权限代码
+A:
+1. 在 `backend/core/permission/config.go` 中添加权限常量和定义
+2. 在前端 `frontend/src/constants/permissions.ts` 中添加对应的权限常量
+3. 通过系统界面为角色分配新权限
 
 ## 🎨 前端相关
 

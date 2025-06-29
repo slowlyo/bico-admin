@@ -151,24 +151,17 @@ roles
 ├── description (描述)
 └── timestamps
 
--- 权限表
-permissions
-├── id (主键)
-├── name (权限名)
-├── code (权限代码)
-├── type (权限类型)
-├── parent_id (父权限)
-└── timestamps
-
 -- 用户角色关联表
 user_roles
 ├── user_id (用户ID)
 └── role_id (角色ID)
 
--- 角色权限关联表
+-- 角色权限关联表（直接存储权限代码）
 role_permissions
 ├── role_id (角色ID)
-└── permission_id (权限ID)
+└── permission_code (权限代码)
+
+注意：权限定义在代码中，不存储在数据库表中
 ```
 
 ## 🔐 安全架构

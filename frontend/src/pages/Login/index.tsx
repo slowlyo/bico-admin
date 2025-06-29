@@ -51,14 +51,33 @@ const Login: React.FC = () => {
   const { styles } = useStyles();
 
   const fetchUserInfo = async () => {
-    const userInfo = await initialState?.fetchUserInfo?.();
-    if (userInfo) {
-      flushSync(() => {
-        setInitialState((s) => ({
-          ...s,
-          currentUser: userInfo,
-        }));
-      });
+    // 重新调用 getInitialState 来获取完整的用户信息和权限
+    const newInitialState = await initialState?.fetchUserInfo?.();
+
+    if (newInitialState) {
+      // 手动获取权限
+      try {
+        const { getUserPermissions } = await import('@/services/auth');
+        const permissionsInfo = await getUserPermissions();
+        const userPermissions = permissionsInfo.code === 200 ? permissionsInfo.data : [];
+
+        flushSync(() => {
+          setInitialState((s) => ({
+            ...s,
+            currentUser: newInitialState,
+            userPermissions: userPermissions,
+          }));
+        });
+      } catch (error) {
+        console.error('登录后权限获取失败:', error);
+        flushSync(() => {
+          setInitialState((s) => ({
+            ...s,
+            currentUser: newInitialState,
+            userPermissions: [],
+          }));
+        });
+      }
     }
   };
 

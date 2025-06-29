@@ -4,6 +4,10 @@ import { message } from 'antd';
 import React from 'react';
 import { getUserProfile, getUserPermissions } from '@/services/auth';
 import { AvatarDropdown, AvatarName } from '@/components';
+import { initWarningSuppress } from '@/utils/suppressWarnings';
+
+// 初始化警告屏蔽
+initWarningSuppress();
 
 const loginPath = '/login';
 
@@ -33,8 +37,8 @@ export async function getInitialState(): Promise<{
   const fetchUserPermissions = async () => {
     try {
       const permissionsInfo = await getUserPermissions();
-      if (permissionsInfo.code === 200) {
-        return permissionsInfo.data;
+      if (permissionsInfo && permissionsInfo.code === 200) {
+        return permissionsInfo.data || [];
       }
       return [];
     } catch (error) {
@@ -47,7 +51,17 @@ export async function getInitialState(): Promise<{
   const { location } = history;
   if (location.pathname !== loginPath) {
     const currentUser = await fetchUserInfo();
-    const userPermissions = currentUser ? await fetchUserPermissions() : [];
+    let userPermissions: string[] = [];
+
+    if (currentUser) {
+      try {
+        userPermissions = await fetchUserPermissions();
+      } catch (error) {
+        console.error('权限获取失败，使用空权限列表:', error);
+        userPermissions = [];
+      }
+    }
+
     return {
       fetchUserInfo,
       currentUser,

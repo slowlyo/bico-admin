@@ -10,10 +10,6 @@ type Permission struct {
 
 // 权限常量定义
 const (
-	// 系统管理权限
-	SystemView   = "system:view"
-	SystemManage = "system:manage"
-
 	// 用户管理权限
 	UserView          = "user:view"
 	UserCreate        = "user:create"
@@ -35,10 +31,6 @@ const (
 
 // AllPermissions 所有权限定义
 var AllPermissions = []Permission{
-	// 系统管理
-	{Code: SystemView, Name: "查看系统", Description: "查看系统管理页面", Category: "系统管理"},
-	{Code: SystemManage, Name: "管理系统", Description: "管理系统设置", Category: "系统管理"},
-
 	// 用户管理
 	{Code: UserView, Name: "查看用户", Description: "查看用户列表和详情", Category: "用户管理"},
 	{Code: UserCreate, Name: "创建用户", Description: "创建新用户", Category: "用户管理"},

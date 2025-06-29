@@ -27,76 +27,20 @@ func main() {
 
 	log.Println("开始初始化RBAC权限系统数据...")
 
-	// 1. 初始化权限数据
-	initPermissions(db)
-
-	// 2. 初始化角色数据
+	// 1. 初始化角色数据
 	initRoles(db)
 
-	// 3. 初始化超级管理员用户
+	// 2. 初始化超级管理员用户
 	initSuperAdmin(db)
 
-	// 4. 分配超级管理员权限
+	// 3. 分配超级管理员权限（基于代码定义的权限）
 	assignSuperAdminPermissions(db)
 
 	log.Println("RBAC权限系统数据初始化完成!")
 }
 
-// initPermissions 初始化权限数据
-func initPermissions(db *gorm.DB) {
-	log.Println("初始化权限数据...")
-
-	// 从代码中获取所有权限定义
-	permissionDefs := []struct {
-		Code        string
-		Name        string
-		Description string
-		Category    string
-	}{
-		// 系统管理权限
-		{"system:view", "查看系统", "查看系统管理页面", "系统管理"},
-		{"system:manage", "管理系统", "管理系统设置", "系统管理"},
-
-		// 用户管理权限
-		{"user:view", "查看用户", "查看用户列表和详情", "用户管理"},
-		{"user:create", "创建用户", "创建新用户", "用户管理"},
-		{"user:update", "编辑用户", "编辑用户信息", "用户管理"},
-		{"user:delete", "删除用户", "删除用户", "用户管理"},
-		{"user:manage_status", "管理用户状态", "启用/禁用用户", "用户管理"},
-		{"user:reset_password", "重置密码", "重置用户密码", "用户管理"},
-
-		// 角色管理权限
-		{"role:view", "查看角色", "查看角色列表和详情", "角色管理"},
-		{"role:create", "创建角色", "创建新角色", "角色管理"},
-		{"role:update", "编辑角色", "编辑角色信息", "角色管理"},
-		{"role:delete", "删除角色", "删除角色", "角色管理"},
-		{"role:assign_permissions", "分配权限", "为角色分配权限", "角色管理"},
-	}
-
-	for _, permDef := range permissionDefs {
-		// 检查权限是否已存在
-		var existingPerm model.Permission
-		if err := db.Where("code = ?", permDef.Code).First(&existingPerm).Error; err == nil {
-			log.Printf("权限 '%s' 已存在，跳过", permDef.Code)
-			continue
-		}
-
-		// 创建权限记录
-		permission := model.Permission{
-			Name:        permDef.Name,
-			Code:        permDef.Code,
-			Type:        model.PermissionTypeAPI,
-			Description: permDef.Description,
-			Status:      model.PermissionStatusActive,
-		}
-
-		if err := db.Create(&permission).Error; err != nil {
-			log.Printf("创建权限 '%s' 失败: %v", permDef.Code, err)
-		} else {
-			log.Printf("创建权限: %s - %s", permDef.Code, permDef.Name)
-		}
-	}
-}
+// 注意：权限数据不再存储在数据库中
+// 权限定义完全基于代码，位于 backend/core/permission/config.go
 
 // initRoles 初始化角色数据
 func initRoles(db *gorm.DB) {
@@ -183,7 +127,7 @@ func initSuperAdmin(db *gorm.DB) {
 	log.Printf("超级管理员用户创建成功: username=%s, password=123456", user.Username)
 }
 
-// assignSuperAdminPermissions 为超级管理员角色分配所有权限
+// assignSuperAdminPermissions 为超级管理员角色分配所有权限（基于代码定义）
 func assignSuperAdminPermissions(db *gorm.DB) {
 	log.Println("为超级管理员角色分配权限...")
 
@@ -194,11 +138,22 @@ func assignSuperAdminPermissions(db *gorm.DB) {
 		return
 	}
 
-	// 获取所有权限
-	var allPermissions []model.Permission
-	if err := db.Where("status = ?", model.PermissionStatusActive).Find(&allPermissions).Error; err != nil {
-		log.Printf("获取权限列表失败: %v", err)
-		return
+	// 从代码中获取所有权限代码
+	allPermissionCodes := []string{
+		// 用户管理权限
+		"user:view",
+		"user:create",
+		"user:update",
+		"user:delete",
+		"user:manage_status",
+		"user:reset_password",
+
+		// 角色管理权限
+		"role:view",
+		"role:create",
+		"role:update",
+		"role:delete",
+		"role:assign_permissions",
 	}
 
 	// 检查是否已经分配了权限
@@ -211,16 +166,16 @@ func assignSuperAdminPermissions(db *gorm.DB) {
 	}
 
 	// 为超级管理员角色分配所有权限
-	for _, perm := range allPermissions {
+	for _, permissionCode := range allPermissionCodes {
 		rolePermission := model.RolePermission{
 			RoleID:         superAdminRole.ID,
-			PermissionCode: perm.Code,
+			PermissionCode: permissionCode,
 		}
 
 		if err := db.Create(&rolePermission).Error; err != nil {
-			log.Printf("分配权限 '%s' 失败: %v", perm.Code, err)
+			log.Printf("分配权限 '%s' 失败: %v", permissionCode, err)
 		}
 	}
 
-	log.Printf("为超级管理员角色分配了 %d 个权限", len(allPermissions))
+	log.Printf("为超级管理员角色分配了 %d 个权限", len(allPermissionCodes))
 }

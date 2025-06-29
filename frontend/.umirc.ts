@@ -7,6 +7,10 @@ export default defineConfig({
     // 暗色主题
     dark: false,
   },
+  // 开发环境配置
+  define: {
+    'process.env.NODE_ENV': process.env.NODE_ENV,
+  },
   access: {},
   model: {},
   initialState: {},

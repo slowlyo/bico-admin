@@ -115,8 +115,9 @@ const Profile: React.FC = () => {
             <Button
               type="primary"
               icon={<LockOutlined />}
-              block
+              size="middle"
               onClick={() => setChangePasswordVisible(true)}
+              style={{ minWidth: '120px' }}
             >
               修改密码
             </Button>

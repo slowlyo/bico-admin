@@ -23,6 +23,9 @@ func SetupRoutes(app fiber.Router, db *gorm.DB) {
 	protected := app.Group("/")
 	protected.Use(middleware.AuthMiddleware(cfg.JWT.Secret))
 
+	// 创建权限中间件实例
+	permissionMiddleware := permission.NewPermissionMiddleware(db)
+
 	// 后台管理处理器
 	dashboardHandler := handler.NewDashboardHandler(db)
 	userHandler := handler.NewUserHandler(db)
@@ -31,58 +34,68 @@ func SetupRoutes(app fiber.Router, db *gorm.DB) {
 
 	// 后台管理路由（需要认证）
 	{
-		// 仪表板
+		// 仪表板（所有登录用户都可以访问）
 		protected.Get("/dashboard", dashboardHandler.GetDashboard)
 		protected.Get("/dashboard/stats", dashboardHandler.GetStats)
 
 		// 用户管理
 		users := protected.Group("/users")
 		{
-			users.Get("/", userHandler.GetUsers)
-			users.Post("/", userHandler.CreateUser)
-			users.Get("/:id", userHandler.GetUser)
-			users.Put("/:id", userHandler.UpdateUser)
-			users.Delete("/:id", userHandler.DeleteUser)
+			// 查看用户列表和详情
+			users.Get("/", permissionMiddleware.RequirePermission(permission.UserView), userHandler.GetUsers)
+			users.Get("/:id", permissionMiddleware.RequirePermission(permission.UserView), userHandler.GetUser)
 
-			// 批量操作
-			users.Delete("/batch", userHandler.BatchDeleteUsers)
+			// 创建用户
+			users.Post("/", permissionMiddleware.RequirePermission(permission.UserCreate), userHandler.CreateUser)
+
+			// 更新用户
+			users.Put("/:id", permissionMiddleware.RequirePermission(permission.UserUpdate), userHandler.UpdateUser)
+
+			// 删除用户
+			users.Delete("/:id", permissionMiddleware.RequirePermission(permission.UserDelete), userHandler.DeleteUser)
+			users.Delete("/batch", permissionMiddleware.RequirePermission(permission.UserDelete), userHandler.BatchDeleteUsers)
 
 			// 用户状态管理
-			users.Put("/:id/status", userHandler.UpdateUserStatus)
+			users.Put("/:id/status", permissionMiddleware.RequirePermission(permission.UserManageStatus), userHandler.UpdateUserStatus)
 
 			// 密码管理
-			users.Put("/:id/password", userHandler.ChangeUserPassword)
-			users.Put("/:id/reset-password", userHandler.ResetUserPassword)
+			users.Put("/:id/password", permissionMiddleware.RequirePermission(permission.UserUpdate), userHandler.ChangeUserPassword)
+			users.Put("/:id/reset-password", permissionMiddleware.RequirePermission(permission.UserResetPassword), userHandler.ResetUserPassword)
 		}
 
 		// 角色管理
 		roles := protected.Group("/roles")
 		{
-			roles.Get("/", roleHandler.GetRoles)
-			roles.Post("/", roleHandler.CreateRole)
-			roles.Get("/:id", roleHandler.GetRole)
-			roles.Put("/:id", roleHandler.UpdateRole)
-			roles.Delete("/:id", roleHandler.DeleteRole)
+			// 查看角色列表和详情
+			roles.Get("/", permissionMiddleware.RequirePermission(permission.RoleView), roleHandler.GetRoles)
+			roles.Get("/:id", permissionMiddleware.RequirePermission(permission.RoleView), roleHandler.GetRole)
 
-			// 批量操作
-			roles.Delete("/batch", roleHandler.BatchDeleteRoles)
+			// 创建角色
+			roles.Post("/", permissionMiddleware.RequirePermission(permission.RoleCreate), roleHandler.CreateRole)
+
+			// 更新角色
+			roles.Put("/:id", permissionMiddleware.RequirePermission(permission.RoleUpdate), roleHandler.UpdateRole)
+
+			// 删除角色
+			roles.Delete("/:id", permissionMiddleware.RequirePermission(permission.RoleDelete), roleHandler.DeleteRole)
+			roles.Delete("/batch", permissionMiddleware.RequirePermission(permission.RoleDelete), roleHandler.BatchDeleteRoles)
 
 			// 角色状态管理
-			roles.Put("/:id/status", roleHandler.UpdateRoleStatus)
+			roles.Put("/:id/status", permissionMiddleware.RequirePermission(permission.RoleUpdate), roleHandler.UpdateRoleStatus)
 
 			// 角色权限管理 - 使用新的权限管理处理器
-			roles.Get("/:id/permissions", rolePermissionHandler.GetRolePermissions)
-			roles.Put("/:id/permissions", rolePermissionHandler.AssignRolePermissions)
-			roles.Delete("/:roleId/permissions/:permissionCode", rolePermissionHandler.RemoveRolePermission)
+			roles.Get("/:id/permissions", permissionMiddleware.RequirePermission(permission.RoleView), rolePermissionHandler.GetRolePermissions)
+			roles.Put("/:id/permissions", permissionMiddleware.RequirePermission(permission.RoleAssignPermissions), rolePermissionHandler.AssignRolePermissions)
+			roles.Delete("/:roleId/permissions/:permissionCode", permissionMiddleware.RequirePermission(permission.RoleAssignPermissions), rolePermissionHandler.RemoveRolePermission)
 		}
 
 		// 权限管理 - 权限定义在代码中，提供查询接口
 		permissions := protected.Group("/permissions")
 		{
-			// 获取所有权限定义
-			permissions.Get("/", rolePermissionHandler.GetAllPermissions)
+			// 获取所有权限定义（需要角色查看权限）
+			permissions.Get("/", permissionMiddleware.RequirePermission(permission.RoleView), rolePermissionHandler.GetAllPermissions)
 
-			permissions.Get("/tree", func(c *fiber.Ctx) error {
+			permissions.Get("/tree", permissionMiddleware.RequirePermission(permission.RoleView), func(c *fiber.Ctx) error {
 				// 返回权限树结构，按分类组织
 				categories := permission.GetPermissionsByCategory()
 				var treeData []map[string]interface{}
