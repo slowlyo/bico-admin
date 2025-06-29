@@ -29,11 +29,24 @@ export default defineConfig({
       icon: 'DashboardOutlined',
     },
     {
-      name: '用户管理',
-      path: '/users',
-      component: './Users',
-      icon: 'UserOutlined',
-      access: 'canManageUsers',
+      name: '系统管理',
+      path: '/system',
+      icon: 'SettingOutlined',
+      access: 'canSeeAdmin',
+      routes: [
+        {
+          name: '用户管理',
+          path: '/system/users',
+          component: './System/Users',
+          access: 'canManageUsers',
+        },
+        {
+          name: '角色管理',
+          path: '/system/roles',
+          component: './System/Roles',
+          access: 'canManageRoles',
+        },
+      ],
     },
     {
       path: '/profile',

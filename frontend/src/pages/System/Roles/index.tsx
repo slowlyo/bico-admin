@@ -7,40 +7,42 @@ import {
   ProTable,
   ProColumns,
 } from '@ant-design/pro-components';
-import { Button, Drawer, message, Popconfirm } from 'antd';
-import { getUserList, deleteUser } from '@/services/user';
+import { Button, Drawer, message, Popconfirm, Switch, Tag } from 'antd';
+import { getRoleList, deleteRole, updateRoleStatus } from '@/services/role';
 import CreateForm from './components/CreateForm';
 import UpdateForm from './components/UpdateForm';
-import UserDetail from './components/UserDetail';
+import RoleDetail from './components/RoleDetail';
+import PermissionAssign from './components/PermissionAssign';
 
-export type UserItem = {
+export type RoleItem = {
   id: number;
-  username: string;
-  email: string;
-  nickname?: string;
-  phone?: string;
+  name: string;
+  code: string;
+  description?: string;
   status: number;
   created_at: string;
   updated_at: string;
+  permissions?: any[];
 };
 
-const UserList: React.FC = () => {
+const RoleList: React.FC = () => {
   const [createModalOpen, setCreateModalOpen] = useState<boolean>(false);
   const [updateModalOpen, setUpdateModalOpen] = useState<boolean>(false);
   const [showDetail, setShowDetail] = useState<boolean>(false);
+  const [showPermissionAssign, setShowPermissionAssign] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
-  const [currentRow, setCurrentRow] = useState<UserItem>();
-  const [selectedRowsState, setSelectedRows] = useState<UserItem[]>([]);
+  const [currentRow, setCurrentRow] = useState<RoleItem>();
+  const [selectedRowsState, setSelectedRows] = useState<RoleItem[]>([]);
 
   /**
-   * 删除用户
+   * 删除角色
    */
-  const handleRemove = async (selectedRows: UserItem[]) => {
+  const handleRemove = async (selectedRows: RoleItem[]) => {
     const hide = message.loading('正在删除');
     if (!selectedRows) return true;
     try {
       for (const row of selectedRows) {
-        await deleteUser(row.id);
+        await deleteRole(row.id);
       }
       hide();
       message.success('删除成功，即将刷新');
@@ -53,11 +55,35 @@ const UserList: React.FC = () => {
     }
   };
 
-  const columns: ProColumns<UserItem>[] = [
+  /**
+   * 切换角色状态
+   */
+  const handleStatusChange = async (record: RoleItem, checked: boolean) => {
+    const hide = message.loading('正在更新状态');
+    try {
+      const newStatus = checked ? 1 : 0;
+      await updateRoleStatus(record.id, newStatus);
+      hide();
+      message.success('状态更新成功');
+      actionRef.current?.reload?.();
+    } catch (error) {
+      hide();
+      message.error('状态更新失败，请重试');
+    }
+  };
+
+  const columns: ProColumns<RoleItem>[] = [
     {
       title: 'ID',
       dataIndex: 'id',
-      tip: '用户唯一标识',
+      valueType: 'text',
+      width: 80,
+      search: false,
+    },
+    {
+      title: '角色名称',
+      dataIndex: 'name',
+      valueType: 'text',
       render: (dom, entity) => {
         return (
           <a
@@ -72,32 +98,42 @@ const UserList: React.FC = () => {
       },
     },
     {
-      title: '用户名',
-      dataIndex: 'username',
+      title: '角色代码',
+      dataIndex: 'code',
       valueType: 'text',
     },
     {
-      title: '邮箱',
-      dataIndex: 'email',
+      title: '描述',
+      dataIndex: 'description',
       valueType: 'text',
+      search: false,
+      ellipsis: true,
     },
     {
-      title: '昵称',
-      dataIndex: 'nickname',
-      valueType: 'text',
-    },
-    {
-      title: '手机号',
-      dataIndex: 'phone',
-      valueType: 'text',
+      title: '权限数量',
+      dataIndex: 'permissions',
+      search: false,
+      render: (_, record) => (
+        <Tag color="blue">
+          {record.permissions?.length || 0} 个权限
+        </Tag>
+      ),
     },
     {
       title: '状态',
       dataIndex: 'status',
       hideInForm: true,
+      render: (_, record) => (
+        <Switch
+          checked={record.status === 1}
+          onChange={(checked) => handleStatusChange(record, checked)}
+          checkedChildren="启用"
+          unCheckedChildren="禁用"
+        />
+      ),
       valueEnum: {
         1: {
-          text: '正常',
+          text: '启用',
           status: 'Success',
         },
         0: {
@@ -108,10 +144,9 @@ const UserList: React.FC = () => {
     },
     {
       title: '创建时间',
-      sorter: true,
       dataIndex: 'created_at',
       valueType: 'dateTime',
-      hideInSearch: true,
+      search: false,
     },
     {
       title: '操作',
@@ -119,17 +154,26 @@ const UserList: React.FC = () => {
       valueType: 'option',
       render: (_, record) => [
         <a
-          key="config"
+          key="edit"
           onClick={() => {
-            setUpdateModalOpen(true);
             setCurrentRow(record);
+            setUpdateModalOpen(true);
           }}
         >
           编辑
         </a>,
+        <a
+          key="permission"
+          onClick={() => {
+            setCurrentRow(record);
+            setShowPermissionAssign(true);
+          }}
+        >
+          分配权限
+        </a>,
         <Popconfirm
           key="delete"
-          title="确定删除这个用户吗？"
+          title="确定删除这个角色吗？"
           onConfirm={async () => {
             await handleRemove([record]);
           }}
@@ -142,8 +186,8 @@ const UserList: React.FC = () => {
 
   return (
     <PageContainer>
-      <ProTable<UserItem, API.PageParams>
-        headerTitle="用户列表"
+      <ProTable<RoleItem, API.PageParams>
+        headerTitle="角色列表"
         actionRef={actionRef}
         rowKey="id"
         search={{
@@ -160,7 +204,7 @@ const UserList: React.FC = () => {
             <PlusOutlined /> 新建
           </Button>,
         ]}
-        request={getUserList}
+        request={getRoleList}
         columns={columns}
         rowSelection={{
           onChange: (_, selectedRows) => {
@@ -204,6 +248,7 @@ const UserList: React.FC = () => {
       <UpdateForm
         open={updateModalOpen}
         onOpenChange={setUpdateModalOpen}
+        values={currentRow || {}}
         onFinish={async () => {
           setUpdateModalOpen(false);
           setCurrentRow(undefined);
@@ -211,7 +256,6 @@ const UserList: React.FC = () => {
             actionRef.current.reload();
           }
         }}
-        values={currentRow || {}}
       />
 
       <Drawer
@@ -223,18 +267,28 @@ const UserList: React.FC = () => {
         }}
         closable={false}
       >
-        {currentRow?.username && (
-          <UserDetail
-            user={currentRow}
-            onClose={() => {
-              setCurrentRow(undefined);
-              setShowDetail(false);
-            }}
+        {currentRow?.id && (
+          <RoleDetail
+            roleId={currentRow.id}
+            onClose={() => setShowDetail(false)}
           />
         )}
       </Drawer>
+
+      <PermissionAssign
+        open={showPermissionAssign}
+        onOpenChange={setShowPermissionAssign}
+        roleId={currentRow?.id}
+        onFinish={async () => {
+          setShowPermissionAssign(false);
+          setCurrentRow(undefined);
+          if (actionRef.current) {
+            actionRef.current.reload();
+          }
+        }}
+      />
     </PageContainer>
   );
 };
 
-export default UserList;
+export default RoleList;

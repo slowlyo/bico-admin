@@ -11,8 +11,17 @@ type Response struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-// PaginationResponse 分页响应结构
+// PaginationResponse 分页响应结构 - 符合Ant Design Pro标准
 type PaginationResponse struct {
+	Data     interface{} `json:"data"`
+	Total    int64       `json:"total"`
+	Success  bool        `json:"success"`
+	Current  int         `json:"current"`
+	PageSize int         `json:"pageSize"`
+}
+
+// LegacyPaginationResponse 传统分页响应结构（兼容性）
+type LegacyPaginationResponse struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
@@ -96,9 +105,20 @@ func InternalServerError(c *fiber.Ctx, message string) error {
 	return Error(c, fiber.StatusInternalServerError, message)
 }
 
-// Pagination 分页响应
-func Pagination(c *fiber.Ctx, data interface{}, total int64, page, size int) error {
+// Pagination 分页响应 - 符合Ant Design Pro标准
+func Pagination(c *fiber.Ctx, data interface{}, total int64, current, pageSize int) error {
 	return c.Status(fiber.StatusOK).JSON(PaginationResponse{
+		Data:     data,
+		Total:    total,
+		Success:  true,
+		Current:  current,
+		PageSize: pageSize,
+	})
+}
+
+// LegacyPagination 传统分页响应（兼容性）
+func LegacyPagination(c *fiber.Ctx, data interface{}, total int64, page, size int) error {
+	return c.Status(fiber.StatusOK).JSON(LegacyPaginationResponse{
 		Code:    CodeSuccess,
 		Message: "Success",
 		Data:    data,

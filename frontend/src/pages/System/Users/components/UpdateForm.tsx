@@ -3,41 +3,55 @@ import {
   ModalForm,
   ProFormText,
   ProFormSelect,
-  ProFormDigit,
 } from '@ant-design/pro-components';
 import { message } from 'antd';
-import { createUser } from '@/services/user';
+import { updateUser } from '@/services/user';
 
-export interface CreateFormProps {
+export interface UpdateFormProps {
   open: boolean;
   onOpenChange: (visible: boolean) => void;
   onFinish: () => void;
+  values: Partial<{
+    id: number;
+    username: string;
+    email: string;
+    nickname?: string;
+    phone?: string;
+    status: number;
+  }>;
 }
 
-const CreateForm: React.FC<CreateFormProps> = ({
+const UpdateForm: React.FC<UpdateFormProps> = ({
   open,
   onOpenChange,
   onFinish,
+  values,
 }) => {
   return (
     <ModalForm
-      title="新建用户"
+      title="编辑用户"
       width="400px"
       open={open}
       onOpenChange={onOpenChange}
+      initialValues={values}
       onFinish={async (value) => {
         try {
-          const response = await createUser(value);
+          if (!values.id) {
+            message.error('用户ID不能为空');
+            return false;
+          }
+          
+          const response = await updateUser(values.id, value);
           if (response.code === 200) {
-            message.success('创建成功');
+            message.success('更新成功');
             onFinish();
             return true;
           } else {
-            message.error(response.message || '创建失败');
+            message.error(response.message || '更新失败');
             return false;
           }
         } catch (error: any) {
-          message.error(error.message || '创建失败，请重试');
+          message.error(error.message || '更新失败，请重试');
           return false;
         }
       }}
@@ -56,10 +70,6 @@ const CreateForm: React.FC<CreateFormProps> = ({
       <ProFormText
         rules={[
           {
-            required: true,
-            message: '邮箱为必填项',
-          },
-          {
             type: 'email',
             message: '请输入有效的邮箱地址',
           },
@@ -67,21 +77,6 @@ const CreateForm: React.FC<CreateFormProps> = ({
         label="邮箱"
         name="email"
         placeholder="请输入邮箱"
-      />
-      <ProFormText.Password
-        rules={[
-          {
-            required: true,
-            message: '密码为必填项',
-          },
-          {
-            min: 6,
-            message: '密码至少6位',
-          },
-        ]}
-        label="密码"
-        name="password"
-        placeholder="请输入密码"
       />
       <ProFormText
         label="昵称"
@@ -107,11 +102,10 @@ const CreateForm: React.FC<CreateFormProps> = ({
           0: '禁用',
         }}
         placeholder="请选择状态"
-        initialValue={1}
         rules={[{ required: true, message: '请选择状态!' }]}
       />
     </ModalForm>
   );
 };
 
-export default CreateForm;
+export default UpdateForm;

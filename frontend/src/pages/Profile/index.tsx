@@ -73,10 +73,6 @@ const Profile: React.FC = () => {
               label="邮箱"
               rules={[
                 {
-                  required: true,
-                  message: '请输入邮箱',
-                },
-                {
                   type: 'email',
                   message: '请输入有效的邮箱地址',
                 },

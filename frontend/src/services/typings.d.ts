@@ -7,7 +7,8 @@ declare namespace API {
     phone?: string;
     avatar?: string;
     status?: number;
-    roles?: any[];
+    role?: string; // 用户角色，用于权限判断
+    roles?: any[]; // 用户角色列表
   };
 
   type LoginResult = {

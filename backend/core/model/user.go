@@ -16,6 +16,7 @@ type User struct {
 	Avatar      string     `json:"avatar" gorm:"size:255"`
 	Phone       string     `json:"phone" gorm:"size:20"`
 	Status      UserStatus `json:"status" gorm:"default:1"`
+	Role        string     `json:"role" gorm:"size:20;default:'user'" validate:"oneof=admin manager user"`
 	LastLoginAt *time.Time `json:"last_login_at"`
 	LastLoginIP string     `json:"last_login_ip" gorm:"size:45"`
 
@@ -39,6 +40,7 @@ type UserCreateRequest struct {
 	Password string `json:"password" validate:"required,min=6"`
 	Nickname string `json:"nickname" validate:"max=50"`
 	Phone    string `json:"phone" validate:"max=20"`
+	Role     string `json:"role" validate:"oneof=admin manager user"`
 	RoleIDs  []uint `json:"role_ids"`
 }
 
@@ -49,6 +51,7 @@ type UserUpdateRequest struct {
 	Nickname string     `json:"nickname" validate:"max=50"`
 	Phone    string     `json:"phone" validate:"max=20"`
 	Status   UserStatus `json:"status" validate:"oneof=0 1 2"`
+	Role     string     `json:"role" validate:"oneof=admin manager user"`
 	RoleIDs  []uint     `json:"role_ids"`
 }
 
@@ -73,6 +76,7 @@ type UserResponse struct {
 	Avatar      string     `json:"avatar"`
 	Phone       string     `json:"phone"`
 	Status      UserStatus `json:"status"`
+	Role        string     `json:"role"`
 	LastLoginAt *time.Time `json:"last_login_at"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
@@ -105,6 +109,7 @@ func (u *User) ToResponse() UserResponse {
 		Avatar:      u.Avatar,
 		Phone:       u.Phone,
 		Status:      u.Status,
+		Role:        u.Role,
 		LastLoginAt: u.LastLoginAt,
 		CreatedAt:   u.CreatedAt,
 		UpdatedAt:   u.UpdatedAt,

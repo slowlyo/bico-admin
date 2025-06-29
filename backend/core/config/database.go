@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+	"bico-admin/core/database"
 	"bico-admin/core/model"
 )
 
@@ -44,6 +45,13 @@ func InitDatabase(cfg *Config) (*gorm.DB, error) {
 	// 自动迁移
 	if err := autoMigrate(db); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
+	}
+
+	// 执行种子数据（仅在数据库为空时）
+	seeder := database.NewSeeder(db)
+	if err := seeder.SeedIfEmpty(); err != nil {
+		log.Printf("Warning: Failed to seed database: %v", err)
+		// 种子数据失败不影响应用启动，只记录警告
 	}
 
 	log.Println("Database connected successfully")
