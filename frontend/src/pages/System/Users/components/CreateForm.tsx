@@ -7,6 +7,7 @@ import {
 } from '@ant-design/pro-components';
 import { message } from 'antd';
 import { createUser } from '@/services/user';
+import { getRoleList } from '@/services/role';
 
 export interface CreateFormProps {
   open: boolean;
@@ -22,7 +23,7 @@ const CreateForm: React.FC<CreateFormProps> = ({
   return (
     <ModalForm
       title="新建用户"
-      width="400px"
+      width="600px"
       open={open}
       onOpenChange={onOpenChange}
       onFinish={async (value) => {
@@ -98,14 +99,26 @@ const CreateForm: React.FC<CreateFormProps> = ({
       <ProFormSelect
         name="role"
         label="角色"
-        valueEnum={{
-          'admin': '管理员',
-          'manager': '管理者',
-          'user': '普通用户',
-        }}
         placeholder="请选择角色"
         initialValue="user"
+        showSearch
         rules={[{ required: true, message: '请选择角色!' }]}
+        request={async () => {
+          try {
+            const response = await getRoleList({ current: 1, pageSize: 100 });
+            return response.data.map((role) => ({
+              label: role.name,
+              value: role.code,
+            }));
+          } catch (error) {
+            console.error('获取角色列表失败:', error);
+            return [
+              { label: '管理员', value: 'admin' },
+              { label: '管理者', value: 'manager' },
+              { label: '普通用户', value: 'user' },
+            ];
+          }
+        }}
       />
       <ProFormSelect
         name="status"

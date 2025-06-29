@@ -47,10 +47,6 @@ const RoleDetail: React.FC<RoleDetailProps> = ({ roleId, onClose }) => {
 
   return (
     <div>
-      <div style={{ marginBottom: 16, textAlign: 'right' }}>
-        <Button onClick={onClose}>关闭</Button>
-      </div>
-      
       <ProDescriptions
         title="角色详情"
         column={1}

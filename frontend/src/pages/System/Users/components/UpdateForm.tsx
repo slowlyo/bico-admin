@@ -6,6 +6,7 @@ import {
 } from '@ant-design/pro-components';
 import { message } from 'antd';
 import { updateUser } from '@/services/user';
+import { getRoleList } from '@/services/role';
 
 export interface UpdateFormProps {
   open: boolean;
@@ -18,6 +19,7 @@ export interface UpdateFormProps {
     nickname?: string;
     phone?: string;
     status: number;
+    role?: string;
   }>;
 }
 
@@ -30,7 +32,7 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
   return (
     <ModalForm
       title="编辑用户"
-      width="400px"
+      width="600px"
       open={open}
       onOpenChange={onOpenChange}
       initialValues={values}
@@ -95,12 +97,35 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
         ]}
       />
       <ProFormSelect
+        name="role"
+        label="角色"
+        placeholder="请选择角色"
+        showSearch
+        rules={[{ required: true, message: '请选择角色!' }]}
+        request={async () => {
+          try {
+            const response = await getRoleList({ current: 1, pageSize: 100 });
+            return response.data.map((role) => ({
+              label: role.name,
+              value: role.code,
+            }));
+          } catch (error) {
+            console.error('获取角色列表失败:', error);
+            return [
+              { label: '管理员', value: 'admin' },
+              { label: '管理者', value: 'manager' },
+              { label: '普通用户', value: 'user' },
+            ];
+          }
+        }}
+      />
+      <ProFormSelect
         name="status"
         label="状态"
-        valueEnum={{
-          1: '正常',
-          0: '禁用',
-        }}
+        options={[
+          { label: '正常', value: 1 },
+          { label: '禁用', value: 0 },
+        ]}
         placeholder="请选择状态"
         rules={[{ required: true, message: '请选择状态!' }]}
       />

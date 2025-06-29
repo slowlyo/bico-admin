@@ -79,6 +79,12 @@ const UserList: React.FC = () => {
       dataIndex: 'id',
       tip: '用户唯一标识',
       hideInSearch: true,
+      width: 80,
+    },
+    {
+      title: '用户名',
+      dataIndex: 'username',
+      valueType: 'text',
       render: (dom, entity) => {
         return (
           <a
@@ -91,11 +97,6 @@ const UserList: React.FC = () => {
           </a>
         );
       },
-    },
-    {
-      title: '用户名',
-      dataIndex: 'username',
-      valueType: 'text',
     },
     {
       title: '邮箱',

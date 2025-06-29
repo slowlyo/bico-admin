@@ -327,9 +327,30 @@ func (h *RoleHandler) GetRolePermissions(c *fiber.Ctx) error {
 	}
 
 	// 在新的权限系统中，我们根据角色名称返回对应的权限代码
-	var permissions []map[string]interface{}
+	// 初始化为空数组，确保永远不返回null
+	permissions := make([]map[string]interface{}, 0)
 
-	// 从权限配置中获取角色权限
+	// 权限代码到名称的映射
+	permissionNames := map[string]string{
+		"system:view":             "系统查看",
+		"system:manage":           "系统管理",
+		"user:view":               "用户查看",
+		"user:create":             "用户创建",
+		"user:update":             "用户编辑",
+		"user:delete":             "用户删除",
+		"user:manage_status":      "用户状态管理",
+		"user:reset_password":     "重置密码",
+		"role:view":               "角色查看",
+		"role:create":             "角色创建",
+		"role:update":             "角色编辑",
+		"role:delete":             "角色删除",
+		"role:assign_permissions": "分配权限",
+		"profile:view":            "个人资料查看",
+		"profile:update":          "个人资料编辑",
+		"profile:change_password": "修改密码",
+	}
+
+	// 从权限配置中获取角色权限 - 使用角色代码而不是名称
 	rolePermissions := map[string][]string{
 		"admin": {
 			"system:view", "system:manage",
@@ -346,12 +367,17 @@ func (h *RoleHandler) GetRolePermissions(c *fiber.Ctx) error {
 		},
 	}
 
-	if perms, exists := rolePermissions[role.Name]; exists {
+	// 使用角色代码而不是名称来查找权限
+	if perms, exists := rolePermissions[role.Code]; exists {
 		for _, permCode := range perms {
+			permName := permissionNames[permCode]
+			if permName == "" {
+				permName = permCode // 如果没有找到对应的名称，使用代码作为名称
+			}
 			permissions = append(permissions, map[string]interface{}{
 				"id":   permCode,
 				"code": permCode,
-				"name": permCode, // 可以从权限配置中获取实际名称
+				"name": permName,
 			})
 		}
 	}

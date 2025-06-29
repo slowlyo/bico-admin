@@ -16,6 +16,11 @@ export default (initialState: any) => {
     // 是否已登录
     isLogin: !!currentUser,
 
+    // 个人资料权限豁免 - 所有登录用户都可以访问
+    canViewProfile: !!currentUser,
+    canUpdateProfile: !!currentUser,
+    canChangePassword: !!currentUser,
+
     // 具体权限检查
     canCreateUser: hasPermission(userRole, PERMISSIONS.USER.CREATE),
     canUpdateUser: hasPermission(userRole, PERMISSIONS.USER.UPDATE),

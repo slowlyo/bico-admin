@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Tree, message, Spin } from 'antd';
+import { Modal, Tree, message, Spin, Input } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 import { getPermissionTree, getRolePermissions, assignRolePermissions } from '@/services/role';
 import type { PermissionItem } from '@/services/role';
 
@@ -17,9 +18,11 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
   roleId,
 }) => {
   const [permissionTree, setPermissionTree] = useState<PermissionItem[]>([]);
+  const [filteredPermissionTree, setFilteredPermissionTree] = useState<PermissionItem[]>([]);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
 
   // 加载权限树
   const loadPermissionTree = async () => {
@@ -27,6 +30,7 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
       const response = await getPermissionTree();
       if (response.code === 200) {
         setPermissionTree(response.data);
+        setFilteredPermissionTree(response.data);
       }
     } catch (error) {
       console.error('加载权限树失败:', error);
@@ -39,8 +43,10 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
     try {
       const response = await getRolePermissions(id);
       if (response.code === 200) {
-        // 新的权限系统使用code作为标识
-        const permissionCodes = response.data.map((p) => p.code || p.id?.toString());
+        // 确保data是数组，防止null或undefined导致的错误
+        const data = Array.isArray(response.data) ? response.data : [];
+        // 使用权限代码作为标识，与权限树的key保持一致
+        const permissionCodes = data.map((p) => p.code || p.id?.toString());
         setSelectedPermissions(permissionCodes.filter(Boolean));
       }
     } catch (error) {
@@ -49,11 +55,45 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
     }
   };
 
+  // 权限筛选函数
+  const filterPermissions = (permissions: PermissionItem[], searchText: string): PermissionItem[] => {
+    if (!searchText) return permissions;
+
+    return permissions.filter((permission) => {
+      const matchesSearch =
+        permission.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        (permission.code && permission.code.toLowerCase().includes(searchText.toLowerCase()));
+
+      const hasMatchingChildren = permission.children &&
+        filterPermissions(permission.children, searchText).length > 0;
+
+      if (matchesSearch || hasMatchingChildren) {
+        return {
+          ...permission,
+          children: permission.children ? filterPermissions(permission.children, searchText) : [],
+        };
+      }
+
+      return false;
+    }).filter(Boolean);
+  };
+
+  // 处理搜索
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+    if (!value) {
+      setFilteredPermissionTree(permissionTree);
+    } else {
+      const filtered = filterPermissions(permissionTree, value);
+      setFilteredPermissionTree(filtered);
+    }
+  };
+
   // 转换权限树数据格式
   const convertTreeData = (permissions: PermissionItem[]): any[] => {
     return permissions.map((permission) => ({
       title: `${permission.name} (${permission.code})`,
-      key: permission.code || permission.id, // 使用code作为key，兼容新的权限结构
+      key: permission.code || permission.id?.toString(), // 使用code作为key，兼容新的权限结构
       children: permission.children ? convertTreeData(permission.children) : [],
     }));
   };
@@ -127,12 +167,22 @@ const PermissionAssign: React.FC<PermissionAssignProps> = ({
             maxHeight: 400, 
             overflow: 'auto' 
           }}>
+            <Input
+              placeholder="搜索权限名称或代码"
+              prefix={<SearchOutlined />}
+              value={searchValue}
+              onChange={(e) => handleSearch(e.target.value)}
+              style={{ marginBottom: 12 }}
+              allowClear
+            />
             <Tree
               checkable
-              treeData={convertTreeData(permissionTree)}
+              treeData={convertTreeData(filteredPermissionTree)}
               checkedKeys={selectedPermissions}
               onCheck={(checkedKeys) => {
-                setSelectedPermissions(checkedKeys as number[]);
+                // 确保类型正确，支持字符串数组
+                const keys = Array.isArray(checkedKeys) ? checkedKeys : checkedKeys.checked || [];
+                setSelectedPermissions(keys as string[]);
               }}
               defaultExpandAll
             />

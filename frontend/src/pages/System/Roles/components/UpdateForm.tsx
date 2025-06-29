@@ -23,7 +23,7 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
   values,
 }) => {
   const [permissionTree, setPermissionTree] = useState<PermissionItem[]>([]);
-  const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]);
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
 
   // 加载权限树
   const loadPermissionTree = async () => {
@@ -42,8 +42,11 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
     try {
       const response = await getRolePermissions(roleId);
       if (response.code === 200) {
-        const permissionIds = response.data.map((p) => p.id);
-        setSelectedPermissions(permissionIds);
+        // 确保data是数组，防止null或undefined导致的错误
+        const data = Array.isArray(response.data) ? response.data : [];
+        // 使用权限代码作为标识，与权限树的key保持一致
+        const permissionCodes = data.map((p) => p.code || p.id?.toString());
+        setSelectedPermissions(permissionCodes.filter(Boolean));
       }
     } catch (error) {
       console.error('加载角色权限失败:', error);
@@ -53,8 +56,8 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
   // 转换权限树数据格式
   const convertTreeData = (permissions: PermissionItem[]): any[] => {
     return permissions.map((permission) => ({
-      title: permission.name,
-      key: permission.id,
+      title: `${permission.name} (${permission.code})`,
+      key: permission.code || permission.id?.toString(), // 使用code作为key，兼容新的权限结构
       children: permission.children ? convertTreeData(permission.children) : [],
     }));
   };
@@ -154,7 +157,9 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
             treeData={convertTreeData(permissionTree)}
             checkedKeys={selectedPermissions}
             onCheck={(checkedKeys) => {
-              setSelectedPermissions(checkedKeys as number[]);
+              // 确保类型正确，支持字符串数组
+              const keys = Array.isArray(checkedKeys) ? checkedKeys : checkedKeys.checked || [];
+              setSelectedPermissions(keys as string[]);
             }}
             placeholder="请选择权限"
           />
