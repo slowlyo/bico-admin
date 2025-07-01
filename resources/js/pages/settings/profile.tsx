@@ -3,7 +3,7 @@ import { Transition } from '@headlessui/react';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
-import DeleteUser from '@/components/delete-user';
+
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -100,8 +100,7 @@ export default function Profile() {
                     </form>
                 </div>
 
-                {/* todo: 移除 "删除用户" 功能 */}
-                <DeleteUser />
+
             </SettingsLayout>
         </AppLayout>
     );
