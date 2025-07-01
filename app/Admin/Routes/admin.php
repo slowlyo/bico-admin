@@ -11,19 +11,10 @@ use Inertia\Inertia;
 // 根路由重定向到管理后台
 Route::get('/', fn () => redirect('admin'))->name('home');
 
-// 管理后台首页路由
-Route::middleware(['auth'])->get('admin', fn () => Inertia::render('dashboard'))->name('admin');
-
-// 仪表盘路由组
-Route::middleware(['auth'])->group(function () {
-    Route::get('admin/dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');
-});
-
 // 游客可访问的路由组
 Route::group(['middleware' => 'guest', 'prefix' => 'admin'], function () {
     // 登录页面
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
-        ->name('login');
+    Route::get('login', [AuthenticatedSessionController::class, 'create']) ->name('login');
     
     // 登录处理
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
@@ -31,6 +22,9 @@ Route::group(['middleware' => 'guest', 'prefix' => 'admin'], function () {
 
 // 需要认证的路由组
 Route::group(['middleware' => 'auth', 'prefix' => 'admin'], function () {
+    // 仪表盘
+    Route::get('dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');
+
     // 密码确认
     Route::get('confirm-password', [ConfirmablePasswordController::class, 'show'])
         ->name('password.confirm');
@@ -52,7 +46,5 @@ Route::group(['middleware' => 'auth', 'prefix' => 'admin'], function () {
     Route::put('settings/password', [PasswordController::class, 'update'])->name('password.update');
 
     // 外观设置
-    Route::get('settings/appearance', function () {
-        return Inertia::render('settings/appearance');
-    })->name('appearance');
+    Route::get('settings/appearance', fn () => Inertia::render('settings/appearance'))->name('appearance');
 });
