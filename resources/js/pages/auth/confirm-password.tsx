@@ -24,20 +24,20 @@ export default function ConfirmPassword() {
 
     return (
         <AuthLayout
-            title="Confirm your password"
-            description="This is a secure area of the application. Please confirm your password before continuing."
+            title="确认您的密码"
+            description="这是应用程序的安全区域。请在继续之前确认您的密码。"
         >
-            <Head title="Confirm password" />
+            <Head title="确认密码" />
 
             <form onSubmit={submit}>
                 <div className="space-y-6">
                     <div className="grid gap-2">
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="password">密码</Label>
                         <Input
                             id="password"
                             type="password"
                             name="password"
-                            placeholder="Password"
+                            placeholder="请输入密码"
                             autoComplete="current-password"
                             value={data.password}
                             autoFocus
@@ -50,7 +50,7 @@ export default function ConfirmPassword() {
                     <div className="flex items-center">
                         <Button className="w-full" disabled={processing}>
                             {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                            Confirm password
+                            确认密码
                         </Button>
                     </div>
                 </div>
