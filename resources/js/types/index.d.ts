@@ -22,12 +22,24 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface LayoutOption {
+    name: string;
+    description: string;
+    component: string;
+}
+
+export interface LayoutConfig {
+    current: string;
+    options: Record<string, LayoutOption>;
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
     ziggy: Config & { location: string };
     sidebarOpen: boolean;
+    layout: LayoutConfig;
     [key: string]: unknown;
 }
 

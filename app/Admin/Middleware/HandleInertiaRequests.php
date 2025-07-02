@@ -51,6 +51,24 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'layout' => $this->getLayoutConfig(),
+        ];
+    }
+
+    /**
+     * 获取当前请求的布局配置
+     *
+     * @return array
+     */
+    private function getLayoutConfig(): array
+    {
+        $layoutConfig = config('admin.layout', []);
+        $defaultLayout = $layoutConfig['default'] ?? 'sidebar';
+        $layoutOptions = $layoutConfig['options'] ?? [];
+
+        return [
+            'current' => $defaultLayout,
+            'options' => $layoutOptions,
         ];
     }
 }
