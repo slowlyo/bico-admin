@@ -1,9 +1,8 @@
 <?php
 
+use App\Admin\Controllers\System\UserController;
 use App\Admin\Controllers\Auth\AuthenticatedSessionController;
 use App\Admin\Controllers\Auth\ConfirmablePasswordController;
-
-
 use App\Admin\Controllers\Settings\PasswordController;
 use App\Admin\Controllers\Settings\ProfileController;
 use Inertia\Inertia;
@@ -47,4 +46,15 @@ Route::group(['middleware' => 'auth:admin', 'prefix' => 'admin'], function () {
 
     // 外观设置
     Route::get('settings/appearance', fn () => Inertia::render('settings/appearance'))->name('appearance');
+
+    // 用户管理
+    Route::resource('users', UserController::class)->names([
+        'index' => 'admin.users.index',
+        'create' => 'admin.users.create',
+        'store' => 'admin.users.store',
+        'show' => 'admin.users.show',
+        'edit' => 'admin.users.edit',
+        'update' => 'admin.users.update',
+        'destroy' => 'admin.users.destroy',
+    ]);
 });
