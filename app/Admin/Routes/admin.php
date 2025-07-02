@@ -12,7 +12,7 @@ use Inertia\Inertia;
 Route::get('/', fn () => redirect('admin'))->name('home');
 
 // 游客可访问的路由组
-Route::group(['middleware' => 'guest', 'prefix' => 'admin'], function () {
+Route::group(['middleware' => 'guest:admin', 'prefix' => 'admin'], function () {
     // 登录页面
     Route::get('login', [AuthenticatedSessionController::class, 'create']) ->name('login');
     
@@ -21,7 +21,7 @@ Route::group(['middleware' => 'guest', 'prefix' => 'admin'], function () {
 });
 
 // 需要认证的路由组
-Route::group(['middleware' => 'auth', 'prefix' => 'admin'], function () {
+Route::group(['middleware' => 'auth:admin', 'prefix' => 'admin'], function () {
     // 仪表盘
     Route::get('dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');
 

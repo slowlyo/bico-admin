@@ -21,7 +21,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 type ProfileForm = {
     name: string;
-    email: string;
 };
 
 export default function Profile() {
@@ -29,7 +28,6 @@ export default function Profile() {
 
     const { data, setData, patch, errors, processing, recentlySuccessful } = useForm<Required<ProfileForm>>({
         name: auth.user.name,
-        email: auth.user.email,
     });
 
     const submit: FormEventHandler = (e) => {
@@ -46,7 +44,7 @@ export default function Profile() {
 
             <SettingsLayout>
                 <div className="space-y-6">
-                    <HeadingSmall title="个人资料信息" description="更新您的姓名和邮箱地址" />
+                    <HeadingSmall title="个人资料信息" description="更新您的姓名信息" />
 
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-2">
@@ -66,20 +64,19 @@ export default function Profile() {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="email">邮箱地址</Label>
+                            <Label htmlFor="username">用户名</Label>
 
                             <Input
-                                id="email"
-                                type="email"
+                                id="username"
+                                type="text"
                                 className="mt-1 block w-full"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                required
+                                value={auth.user.username}
+                                disabled
                                 autoComplete="username"
-                                placeholder="请输入邮箱地址"
+                                placeholder="用户名不可更改"
                             />
 
-                            <InputError className="mt-2" message={errors.email} />
+                            <p className="text-sm text-muted-foreground">用户名不可更改</p>
                         </div>
 
 

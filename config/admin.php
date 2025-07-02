@@ -21,7 +21,7 @@ return [
         | - 'header': 顶部导航布局
         |
         */
-        'default' => env('ADMIN_DEFAULT_LAYOUT', 'mix'),
+        'default' => env('ADMIN_DEFAULT_LAYOUT', 'sidebar'),
 
         /*
         |--------------------------------------------------------------------------
@@ -42,11 +42,7 @@ return [
                 'description' => '顶部水平导航栏，适合简洁界面',
                 'component' => 'app-header-layout',
             ],
-            'mix' => [
-                'name' => '混合布局',
-                'description' => '结合侧边栏和顶部导航，提供更丰富的导航体验',
-                'component' => 'app-mix-layout',
-            ],
+
         ],
     ],
 

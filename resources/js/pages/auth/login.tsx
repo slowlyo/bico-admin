@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 
 type LoginForm = {
-    email: string;
+    username: string;
     password: string;
     remember: boolean;
 };
@@ -21,7 +21,7 @@ interface LoginProps {
 
 export default function Login({ status }: LoginProps) {
     const { data, setData, post, processing, errors, reset } = useForm<Required<LoginForm>>({
-        email: '',
+        username: '',
         password: '',
         remember: false,
     });
@@ -34,25 +34,25 @@ export default function Login({ status }: LoginProps) {
     };
 
     return (
-        <AuthLayout title="登录您的账户" description="请在下方输入您的邮箱和密码进行登录">
+        <AuthLayout title="登录您的账户" description="请在下方输入您的用户名和密码进行登录">
             <Head title="登录" />
 
             <form className="flex flex-col gap-6" onSubmit={submit}>
                 <div className="grid gap-6">
                     <div className="grid gap-2">
-                        <Label htmlFor="email">邮箱地址</Label>
+                        <Label htmlFor="username">用户名</Label>
                         <Input
-                            id="email"
-                            type="email"
+                            id="username"
+                            type="text"
                             required
                             autoFocus
                             tabIndex={1}
-                            autoComplete="email"
-                            value={data.email}
-                            onChange={(e) => setData('email', e.target.value)}
-                            placeholder="email@example.com"
+                            autoComplete="username"
+                            value={data.username}
+                            onChange={(e) => setData('username', e.target.value)}
+                            placeholder="请输入用户名"
                         />
-                        <InputError message={errors.email} />
+                        <InputError message={errors.username} />
                     </div>
 
                     <div className="grid gap-2">

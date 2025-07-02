@@ -19,5 +19,8 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // 运行AdminUser种子
+        $this->call(AdminUserSeeder::class);
     }
 }

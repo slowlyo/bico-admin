@@ -1,5 +1,4 @@
 import AppHeaderLayout from '@/layouts/app/app-header-layout';
-import AppMixLayout from '@/layouts/app/app-mix-layout';
 import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
@@ -30,8 +29,6 @@ function getLayoutComponent(layoutType: string) {
     switch (layoutType) {
         case 'header':
             return AppHeaderLayout;
-        case 'mix':
-            return AppMixLayout;
         case 'sidebar':
         default:
             return AppSidebarLayout;
