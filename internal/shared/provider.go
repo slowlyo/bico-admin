@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+	"bico-admin/internal/shared/model"
 	"bico-admin/pkg/config"
 	"bico-admin/pkg/database"
 	pkgLogger "bico-admin/pkg/logger"
@@ -107,11 +108,18 @@ func ProvideRedis(cfg *config.Config) (*redis.Client, error) {
 
 // autoMigrate 自动迁移数据库表
 func autoMigrate(db *gorm.DB) error {
-	// TODO: 添加需要迁移的模型
-	// return db.AutoMigrate(
-	// 	&model.User{},
-	// 	// 其他模型...
-	// )
+	// 导入模型包
+	models := []interface{}{
+		&model.User{},
+		&model.AdminUser{},
+		// 其他模型...
+	}
+
+	// 执行自动迁移
+	if err := db.AutoMigrate(models...); err != nil {
+		return fmt.Errorf("数据库迁移失败: %w", err)
+	}
+
 	pkgLogger.Info("数据库迁移完成")
 	return nil
 }

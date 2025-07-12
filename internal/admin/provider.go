@@ -13,6 +13,7 @@ import (
 var ProviderSet = wire.NewSet(
 	// Repository层
 	repository.NewUserRepository,
+	repository.NewAdminUserRepository,
 
 	// Service层
 	service.NewUserService,

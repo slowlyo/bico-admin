@@ -1,0 +1,856 @@
+basePath: /
+definitions:
+  response.ApiResponse:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+  response.PageResponse:
+    properties:
+      list: {}
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  types.AdminLoginRequest:
+    properties:
+      captcha:
+        type: string
+      password:
+        maxLength: 100
+        minLength: 6
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - captcha
+    - password
+    - username
+    type: object
+  types.AdminLoginResponse:
+    properties:
+      expires_at:
+        type: string
+      menus:
+        items:
+          $ref: '#/definitions/types.Menu'
+        type: array
+      permissions:
+        items:
+          type: string
+        type: array
+      token:
+        type: string
+      user_info:
+        $ref: '#/definitions/types.UserInfo'
+    type: object
+  types.Menu:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/types.Menu'
+        type: array
+      icon:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      path:
+        type: string
+      sort:
+        type: integer
+    type: object
+  types.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  types.UserCreateRequest:
+    properties:
+      avatar:
+        maxLength: 255
+        type: string
+      birthday:
+        type: string
+      email:
+        maxLength: 100
+        type: string
+      gender:
+        enum:
+        - 0
+        - 1
+        - 2
+        type: integer
+      nickname:
+        maxLength: 100
+        type: string
+      password:
+        maxLength: 100
+        minLength: 6
+        type: string
+      phone:
+        maxLength: 20
+        type: string
+      remark:
+        maxLength: 500
+        type: string
+      status:
+        enum:
+        - 0
+        - 1
+        type: integer
+      user_type:
+        enum:
+        - admin
+        - master
+        - normal
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - password
+    - user_type
+    - username
+    type: object
+  types.UserInfo:
+    properties:
+      avatar:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      nickname:
+        type: string
+      status:
+        type: integer
+      user_type:
+        type: string
+      username:
+        type: string
+    type: object
+  types.UserPasswordRequest:
+    properties:
+      password:
+        maxLength: 100
+        minLength: 6
+        type: string
+    required:
+    - password
+    type: object
+  types.UserResponse:
+    properties:
+      avatar:
+        type: string
+      birthday:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      gender:
+        type: integer
+      gender_text:
+        type: string
+      id:
+        type: integer
+      last_login_at:
+        type: string
+      last_login_ip:
+        type: string
+      login_count:
+        type: integer
+      nickname:
+        type: string
+      phone:
+        type: string
+      remark:
+        type: string
+      status:
+        type: integer
+      status_text:
+        type: string
+      updated_at:
+        type: string
+      user_type:
+        type: string
+      user_type_text:
+        type: string
+      username:
+        type: string
+    type: object
+  types.UserStatsResponse:
+    properties:
+      active_users:
+        type: integer
+      admin_users:
+        type: integer
+      master_users:
+        type: integer
+      normal_users:
+        type: integer
+      today_logins:
+        type: integer
+      total_users:
+        type: integer
+      weekly_logins:
+        type: integer
+    type: object
+  types.UserUpdateRequest:
+    properties:
+      avatar:
+        maxLength: 255
+        type: string
+      birthday:
+        type: string
+      email:
+        maxLength: 100
+        type: string
+      gender:
+        enum:
+        - 0
+        - 1
+        - 2
+        type: integer
+      nickname:
+        maxLength: 100
+        type: string
+      phone:
+        maxLength: 20
+        type: string
+      remark:
+        maxLength: 500
+        type: string
+      status:
+        enum:
+        - 0
+        - 1
+        type: integer
+      user_type:
+        enum:
+        - admin
+        - master
+        - normal
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Bico Admin 管理系统API文档
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Bico Admin API
+  version: "1.0"
+paths:
+  /admin/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 管理员登录接口
+      parameters:
+      - description: 登录请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.AdminLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.AdminLoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      summary: 管理员登录
+      tags:
+      - 认证
+  /admin/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: 管理员登出接口
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 登出
+      tags:
+      - 认证
+  /admin/auth/profile:
+    get:
+      description: 获取当前登录用户的详细信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UserResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取当前用户信息
+      tags:
+      - 认证
+    put:
+      consumes:
+      - application/json
+      description: 更新当前登录用户的信息
+      parameters:
+      - description: 更新用户请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.UserUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UserResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新当前用户信息
+      tags:
+      - 认证
+  /admin/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: 刷新访问令牌
+      parameters:
+      - description: 刷新令牌请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.AdminLoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      summary: 刷新令牌
+      tags:
+      - 认证
+  /admin/configs:
+    get:
+      description: 分页获取系统配置列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取配置列表
+      tags:
+      - 配置管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新的系统配置
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 创建配置
+      tags:
+      - 配置管理
+  /admin/configs/{id}:
+    delete:
+      description: 删除系统配置
+      parameters:
+      - description: 配置ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 删除配置
+      tags:
+      - 配置管理
+    get:
+      description: 根据ID获取配置详情
+      parameters:
+      - description: 配置ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取配置详情
+      tags:
+      - 配置管理
+    put:
+      consumes:
+      - application/json
+      description: 更新系统配置
+      parameters:
+      - description: 配置ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新配置
+      tags:
+      - 配置管理
+  /admin/logs:
+    delete:
+      description: 清理系统日志
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 清理日志
+      tags:
+      - 日志管理
+    get:
+      description: 分页获取系统日志列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取日志列表
+      tags:
+      - 日志管理
+  /admin/system/cache:
+    delete:
+      description: 清理系统缓存
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 清理缓存
+      tags:
+      - 系统管理
+  /admin/system/cache/stats:
+    get:
+      description: 获取缓存使用统计信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取缓存统计
+      tags:
+      - 系统管理
+  /admin/system/info:
+    get:
+      description: 获取系统基本信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取系统信息
+      tags:
+      - 系统管理
+  /admin/system/stats:
+    get:
+      description: 获取系统运行统计信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取系统统计
+      tags:
+      - 系统管理
+  /admin/users:
+    get:
+      consumes:
+      - application/json
+      description: 分页获取用户列表
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - description: 搜索关键词
+        in: query
+        name: keyword
+        type: string
+      - description: 用户类型
+        in: query
+        name: user_type
+        type: string
+      - description: 状态
+        in: query
+        name: status
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.PageResponse'
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: 获取用户列表
+      tags:
+      - 用户管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新用户
+      parameters:
+      - description: 创建用户请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.UserCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UserResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 创建用户
+      tags:
+      - 用户管理
+  /admin/users/{id}:
+    delete:
+      description: 软删除用户
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 删除用户
+      tags:
+      - 用户管理
+    get:
+      description: 根据用户ID获取用户详细信息
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UserResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 根据ID获取用户
+      tags:
+      - 用户管理
+    put:
+      consumes:
+      - application/json
+      description: 更新用户信息
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新用户请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.UserUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UserResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新用户
+      tags:
+      - 用户管理
+  /admin/users/{id}/password:
+    patch:
+      consumes:
+      - application/json
+      description: 管理员重置用户密码
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 密码重置请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.UserPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 重置用户密码
+      tags:
+      - 用户管理
+  /admin/users/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: 更新用户状态（激活/禁用）
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 状态更新请求
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            status:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新用户状态
+      tags:
+      - 用户管理
+  /admin/users/stats:
+    get:
+      description: 获取用户统计信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UserStatsResponse'
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: 获取用户统计
+      tags:
+      - 用户管理
+  /api/hello:
+    get:
+      description: API端简单的Hello接口
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      summary: API端Hello
+      tags:
+      - API
+  /master/hello:
+    get:
+      description: 主控端简单的Hello接口
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ApiResponse'
+      summary: 主控端Hello
+      tags:
+      - 主控端
+securityDefinitions:
+  ApiKeyAuth:
+    description: Bearer token
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

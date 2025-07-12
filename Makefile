@@ -16,6 +16,9 @@ LOGS_DIR=logs
 
 # 构建目标
 .PHONY: all build build-linux clean test deps wire run dev prod help init default
+.PHONY: install-tools install-swag swag swag-force fmt vet check
+.PHONY: docker-build docker-run logs-clean
+.PHONY: migrate migrate-rollback migrate-fresh
 
 # 默认目标
 default: help
@@ -78,15 +81,24 @@ clean:
 	rm -rf $(LOGS_DIR)/*.log
 
 # 开发工具
-install-tools:
+install-tools: install-swag
 	@echo "安装开发工具..."
-	$(GOGET) github.com/google/wire/cmd/wire@latest
-	$(GOGET) github.com/swaggo/swag/cmd/swag@latest
+	go install github.com/google/wire/cmd/wire@latest
+
+# 安装swag到本地bin
+install-swag:
+	@echo "安装swag到本地..."
+	go install github.com/swaggo/swag/cmd/swag@latest
 
 # 生成API文档
-swag:
+swag: install-swag
 	@echo "生成API文档..."
-	swag init -g $(MAIN_PATH)/main.go
+	@swag init -g $(MAIN_PATH)/main.go --output ./docs || echo "生成失败，请检查Swagger注释"
+
+# 强制生成API文档 (忽略错误)
+swag-force: install-swag
+	@echo "强制生成API文档..."
+	-swag init -g $(MAIN_PATH)/main.go --output ./docs
 
 # 格式化代码
 fmt:
@@ -116,7 +128,20 @@ logs-clean:
 	@echo "清理日志..."
 	rm -f $(LOGS_DIR)/*.log
 
-# 帮助信息
+# 数据库迁移
+migrate:
+	@echo "执行数据库迁移..."
+	$(GORUN) ./cmd/migrate -action=migrate
+
+migrate-rollback:
+	@echo "回滚数据库迁移..."
+	$(GORUN) ./cmd/migrate -action=rollback
+
+migrate-fresh:
+	@echo "重新创建数据库..."
+	$(GORUN) ./cmd/migrate -action=fresh
+
+# 帮助信息(说明信息需要对齐)
 help:
 	@echo "可用命令:"
 	@echo "  make          - 显示帮助信息 (默认)"
@@ -134,4 +159,9 @@ help:
 	@echo "  make fmt      - 格式化代码"
 	@echo "  make vet      - 代码静态检查"
 	@echo "  make swag     - 生成API文档"
+	@echo "  make swag-force - 强制生成API文档"
+	@echo "  make install-swag - 安装swag工具"
+	@echo "  make migrate  - 执行数据库迁移"
+	@echo "  make migrate-rollback - 回滚数据库迁移"
+	@echo "  make migrate-fresh - 重新创建数据库"
 	@echo "  make help     - 显示帮助信息"

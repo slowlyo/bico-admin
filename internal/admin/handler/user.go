@@ -170,7 +170,7 @@ func (h *UserHandler) Delete(c *gin.Context) {
 // @Produce json
 // @Security ApiKeyAuth
 // @Param id path int true "用户ID"
-// @Param request body types.StatusRequest true "状态更新请求"
+// @Param request body object{status=int} true "状态更新请求" example({"status": 1})
 // @Success 200 {object} response.ApiResponse
 // @Router /admin/users/{id}/status [patch]
 func (h *UserHandler) UpdateStatus(c *gin.Context) {
@@ -180,7 +180,7 @@ func (h *UserHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	var req sharedTypes.StatusRequest
+	var req types.StatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error())
 		return

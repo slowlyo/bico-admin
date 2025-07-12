@@ -6,8 +6,10 @@ import (
 	"bico-admin/internal/shared/types"
 )
 
-// StatusRequest 状态更新请求 (别名)
-type StatusRequest = types.StatusRequest
+// StatusRequest 状态更新请求
+type StatusRequest struct {
+	Status int `json:"status" binding:"oneof=0 1 -1"`
+}
 
 // UserListRequest 用户列表请求
 type UserListRequest struct {
