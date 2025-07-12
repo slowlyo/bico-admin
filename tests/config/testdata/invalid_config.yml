@@ -1,0 +1,17 @@
+# 无效配置文件 - 缺少必要字段
+app:
+  # 缺少name字段
+  version: "1.0.0"
+  environment: "test"
+
+server:
+  host: "127.0.0.1"
+  port: -1  # 无效端口
+
+database:
+  # 缺少driver字段
+  database: "test.db"
+
+jwt:
+  # 缺少secret字段
+  issuer: "test"

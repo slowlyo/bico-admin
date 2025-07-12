@@ -5,6 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"bico-admin/pkg/config"
+	"bico-admin/pkg/jwt"
 	"bico-admin/pkg/response"
 )
 
@@ -35,7 +37,7 @@ func Auth() gin.HandlerFunc {
 			return
 		}
 
-		// TODO: 验证JWT令牌
+		// 验证JWT令牌
 		userID, userType, err := validateToken(token)
 		if err != nil {
 			response.Unauthorized(c, "认证令牌无效")
@@ -52,15 +54,17 @@ func Auth() gin.HandlerFunc {
 	})
 }
 
-// validateToken 验证令牌（临时实现）
+// validateToken 验证令牌
 func validateToken(token string) (uint, string, error) {
-	// TODO: 实现真正的JWT令牌验证
-	// 这里是临时的mock实现
-	if strings.HasPrefix(token, "mock_token_") {
-		return 1, "admin", nil // 返回mock用户ID和类型
+	cfg := config.Get()
+	jwtManager := jwt.NewJWTManager(cfg.JWT.Secret, cfg.JWT.Issuer, cfg.JWT.ExpireTime)
+
+	claims, err := jwtManager.ValidateToken(token)
+	if err != nil {
+		return 0, "", err
 	}
-	
-	return 0, "", gin.Error{Err: gin.Error{}.Err, Type: gin.ErrorTypePublic}
+
+	return claims.UserID, claims.UserType, nil
 }
 
 // RequirePermission 权限检查中间件

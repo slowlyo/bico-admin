@@ -19,6 +19,7 @@ LOGS_DIR=logs
 .PHONY: install-tools install-swag swag swag-force fmt vet check
 .PHONY: docker-build docker-run logs-clean
 .PHONY: migrate migrate-rollback migrate-fresh
+.PHONY: run-dev run-console run-file test-configs
 
 # 默认目标
 default: help
@@ -55,6 +56,25 @@ run: wire init
 
 # 开发模式 (别名)
 dev: run
+
+# 使用开发环境配置运行
+run-dev: wire init
+	@echo "使用开发环境配置启动..."
+	$(GORUN) $(MAIN_PATH) -config=config/app.dev.yml
+
+# 使用控制台格式日志运行
+run-console: wire init
+	@echo "使用控制台格式日志启动..."
+	BICO_LOG_FORMAT=console $(GORUN) $(MAIN_PATH)
+
+# 使用文件输出日志运行
+run-file: wire init
+	@echo "使用文件输出日志启动..."
+	BICO_LOG_OUTPUT=file $(GORUN) $(MAIN_PATH)
+
+# 测试配置功能
+test-configs:
+	@./scripts/test-configs.sh
 
 # 构建二进制文件
 build: wire
@@ -148,6 +168,9 @@ help:
 	@echo "  make all      - 完整构建流程 (deps + wire + test + build)"
 	@echo "  make run      - 开发模式运行 (使用go run)"
 	@echo "  make dev      - 开发模式运行 (run的别名)"
+	@echo "  make run-dev  - 使用开发环境配置运行"
+	@echo "  make run-console - 使用控制台格式日志运行"
+	@echo "  make run-file - 使用文件输出日志运行"
 	@echo "  make prod     - 生产模式运行 (先构建再运行)"
 	@echo "  make build    - 构建二进制文件"
 	@echo "  make test     - 运行测试"
@@ -164,4 +187,5 @@ help:
 	@echo "  make migrate  - 执行数据库迁移"
 	@echo "  make migrate-rollback - 回滚数据库迁移"
 	@echo "  make migrate-fresh - 重新创建数据库"
+	@echo "  make test-configs - 显示配置使用说明"
 	@echo "  make help     - 显示帮助信息"

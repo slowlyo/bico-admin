@@ -76,7 +76,7 @@ func Get() *Config {
 
 // validateConfig 验证配置
 func validateConfig(config *Config) error {
-	if config.App.Name == "" {
+	if strings.TrimSpace(config.App.Name) == "" {
 		return fmt.Errorf("应用名称不能为空")
 	}
 
@@ -110,7 +110,7 @@ func validateConfig(config *Config) error {
 		return fmt.Errorf("数据库名称不能为空")
 	}
 
-	if config.JWT.Secret == "" {
+	if strings.TrimSpace(config.JWT.Secret) == "" {
 		return fmt.Errorf("JWT密钥不能为空")
 	}
 

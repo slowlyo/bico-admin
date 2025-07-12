@@ -1,24 +1,26 @@
 # Bico Admin 应用配置文件
+# 这是基础配置模板，包含所有可用的配置项
+# 生产环境请创建 app.prod.yml 并覆盖相应配置
 
 app:
-  name: "bico-admin"
-  version: "1.0.0"
-  environment: "development"
-  debug: true
+  name: "bico-admin"     # 应用名称
+  version: "1.0.0"       # 应用版本
+  environment: "development"  # 运行环境: development, staging, production
+  debug: true            # 调试模式(生产环境请设为false)
 
 server:
-  host: "0.0.0.0"
-  port: 8899
-  read_timeout: "30s"
-  write_timeout: "30s"
-  idle_timeout: "60s"
+  host: "0.0.0.0"       # 监听地址: 0.0.0.0(所有接口) 或 127.0.0.1(仅本地)
+  port: 8899            # 监听端口
+  read_timeout: "30s"   # 读取超时时间
+  write_timeout: "30s"  # 写入超时时间
+  idle_timeout: "60s"   # 空闲连接超时时间
 
 database:
-  driver: "sqlite"
-  database: "data/bico_admin.db"
-  max_idle_conns: 5
-  max_open_conns: 10
-  conn_max_lifetime: "1h"
+  driver: "sqlite"      # 数据库驱动: sqlite, mysql, postgres
+  database: "data/bico_admin.db"  # SQLite数据库文件路径
+  max_idle_conns: 5     # 最大空闲连接数
+  max_open_conns: 10    # 最大打开连接数
+  conn_max_lifetime: "1h"  # 连接最大生存时间
 
   # MySQL 配置示例
   # driver: "mysql"
@@ -44,27 +46,40 @@ database:
   # conn_max_lifetime: "1h"
 
 redis:
-  host: "localhost"
-  port: 6379
-  password: ""
-  database: 0
-  pool_size: 10
-  min_idle_conns: 5
-  dial_timeout: "5s"
-  read_timeout: "3s"
-  write_timeout: "3s"
+  host: "localhost"     # Redis服务器地址
+  port: 6379            # Redis服务器端口
+  password: ""          # Redis密码(为空表示无密码)
+  database: 0           # Redis数据库编号(0-15)
+  pool_size: 10         # 连接池大小
+  min_idle_conns: 5     # 最小空闲连接数
+  dial_timeout: "5s"    # 连接超时时间
+  read_timeout: "3s"    # 读取超时时间
+  write_timeout: "3s"   # 写入超时时间
 
 log:
-  level: "info"
-  format: "json"
-  output: "stdout"
-  filename: "logs/app.log"
-  max_size: 100
-  max_age: 7
-  max_backups: 10
-  compress: true
+  level: "info"          # 日志级别: debug, info, warn, error, fatal
+  format: "json"         # 日志格式: json(结构化) 或 console(控制台友好)
+  output: "stdout"       # 输出方式: stdout(标准输出) 或 file(文件输出)
+  filename: "logs/app.log"  # 日志文件路径(仅当output为file时生效)
+  max_size: 100          # 单个日志文件最大大小(MB)
+  max_age: 7             # 日志文件保留天数
+  max_backups: 10        # 保留的旧日志文件数量
+  compress: true         # 是否压缩旧日志文件
 
 jwt:
-  secret: "your-secret-key-change-in-production"
-  issuer: "bico-admin"
-  expire_time: "24h"
+  secret: "your-secret-key-change-in-production"  # JWT密钥(生产环境必须更改)
+  issuer: "bico-admin"      # JWT签发者
+  expire_time: "24h"        # JWT过期时间(支持: 1h, 24h, 7d等格式)
+
+# 配置使用说明:
+# 1. 环境变量优先级高于配置文件，格式: BICO_<配置路径>
+#    例如: BICO_LOG_LEVEL=debug, BICO_DATABASE_DRIVER=mysql
+# 2. 创建环境特定配置文件覆盖默认配置:
+#    - app.dev.yml (开发环境)
+#    - app.staging.yml (测试环境)
+#    - app.prod.yml (生产环境)
+# 3. 日志输出配置:
+#    - 控制台输出: output: "stdout"
+#    - 文件输出: output: "file" + filename: "logs/app.log"
+#    - JSON格式: format: "json" (生产环境推荐)
+#    - 控制台格式: format: "console" (开发环境推荐)

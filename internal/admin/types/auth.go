@@ -35,3 +35,32 @@ type RefreshTokenRequest struct {
 type LogoutRequest struct {
 	Token string `json:"token" binding:"required"`
 }
+
+// AdminUserCreateRequest 创建管理员用户请求
+type AdminUserCreateRequest struct {
+	Username string `json:"username" binding:"required,min=3,max=50"`
+	Password string `json:"password" binding:"required,min=6,max=100"`
+	Name     string `json:"name" binding:"required,min=1,max=100"`
+	Avatar   string `json:"avatar" binding:"max=255"`
+	Enabled  bool   `json:"enabled"`
+}
+
+// AdminUserUpdateRequest 更新管理员用户请求
+type AdminUserUpdateRequest struct {
+	Username string `json:"username" binding:"required,min=3,max=50"`
+	Password string `json:"password" binding:"omitempty,min=6,max=100"` // 可选，为空则不更新密码
+	Name     string `json:"name" binding:"required,min=1,max=100"`
+	Avatar   string `json:"avatar" binding:"max=255"`
+	Enabled  bool   `json:"enabled"`
+}
+
+// AdminUserResponse 管理员用户响应
+type AdminUserResponse struct {
+	ID        uint   `json:"id"`
+	Username  string `json:"username"`
+	Name      string `json:"name"`
+	Avatar    string `json:"avatar"`
+	Enabled   bool   `json:"enabled"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}

@@ -1,0 +1,25 @@
+# 测试覆盖配置文件
+app:
+  name: "override-app"
+  environment: "override"
+
+server:
+  port: 8888
+
+database:
+  driver: "mysql"
+  host: "override-host"
+  port: 3306
+  username: "override-user"
+  password: "override-pass"
+  database: "override-db"
+
+log:
+  level: "error"
+  format: "json"
+  output: "file"
+  filename: "override.log"
+
+jwt:
+  secret: "override-secret"
+  expire_time: "2h"

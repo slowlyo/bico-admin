@@ -16,6 +16,7 @@ import (
 	"bico-admin/internal/master"
 	masterRoutes "bico-admin/internal/master/routes"
 	"bico-admin/internal/shared"
+	sharedMiddleware "bico-admin/internal/shared/middleware"
 	"bico-admin/pkg/config"
 )
 
@@ -58,8 +59,8 @@ func ProvideGinEngine(
 	r := gin.New()
 
 	// 添加全局中间件
-	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
+	r.Use(sharedMiddleware.Logging())
 
 	// 注册路由
 	adminRoutes.RegisterRoutes(r, adminHandlers)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -37,8 +38,12 @@ import (
 // @description Bearer token
 
 func main() {
+	// 解析命令行参数
+	var configPath = flag.String("config", "", "配置文件路径")
+	flag.Parse()
+
 	// 加载配置
-	cfg, err := config.Load("")
+	cfg, err := config.Load(*configPath)
 	if err != nil {
 		panic(fmt.Sprintf("加载配置失败: %v", err))
 	}

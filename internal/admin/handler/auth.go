@@ -50,19 +50,20 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Summary 登出
 // @Description 管理员登出接口
 // @Tags 认证
-// @Accept json
 // @Produce json
 // @Security ApiKeyAuth
 // @Success 200 {object} response.ApiResponse
+// @Failure 401 {object} response.ApiResponse
 // @Router /admin/auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
-	token := c.GetHeader("Authorization")
-	if token == "" {
-		response.BadRequest(c, "缺少认证令牌")
+	// 从上下文获取令牌
+	token, exists := c.Get("token")
+	if !exists {
+		response.Unauthorized(c, "未找到认证令牌")
 		return
 	}
 
-	if err := h.authService.Logout(c.Request.Context(), token); err != nil {
+	if err := h.authService.Logout(c.Request.Context(), token.(string)); err != nil {
 		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
 		return
 	}
@@ -102,7 +103,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // @Tags 认证
 // @Produce json
 // @Security ApiKeyAuth
-// @Success 200 {object} response.ApiResponse{data=types.UserResponse}
+// @Success 200 {object} response.ApiResponse{data=types.AdminUserResponse}
 // @Failure 401 {object} response.ApiResponse
 // @Router /admin/auth/profile [get]
 func (h *AuthHandler) GetProfile(c *gin.Context) {
@@ -128,8 +129,8 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param request body types.UserUpdateRequest true "更新用户请求"
-// @Success 200 {object} response.ApiResponse{data=types.UserResponse}
+// @Param request body types.AdminUserUpdateRequest true "更新用户请求"
+// @Success 200 {object} response.ApiResponse{data=types.AdminUserResponse}
 // @Failure 400 {object} response.ApiResponse
 // @Router /admin/auth/profile [put]
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
@@ -139,7 +140,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	var req types.UserUpdateRequest
+	var req types.AdminUserUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error())
 		return

@@ -1,0 +1,46 @@
+# 测试配置文件
+app:
+  name: "test-app"
+  version: "1.0.0"
+  environment: "test"
+  debug: true
+
+server:
+  host: "127.0.0.1"
+  port: 9999
+  read_timeout: "10s"
+  write_timeout: "10s"
+  idle_timeout: "30s"
+
+database:
+  driver: "sqlite"
+  database: "test.db"
+  max_idle_conns: 2
+  max_open_conns: 5
+  conn_max_lifetime: "30m"
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  database: 15
+  pool_size: 5
+  min_idle_conns: 2
+  dial_timeout: "3s"
+  read_timeout: "2s"
+  write_timeout: "2s"
+
+log:
+  level: "debug"
+  format: "console"
+  output: "stdout"
+  filename: "test.log"
+  max_size: 50
+  max_age: 3
+  max_backups: 5
+  compress: false
+
+jwt:
+  secret: "test-secret-key"
+  issuer: "test-issuer"
+  expire_time: "1h"

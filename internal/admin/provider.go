@@ -17,6 +17,7 @@ var ProviderSet = wire.NewSet(
 
 	// Service层
 	service.NewUserService,
+	service.NewAdminUserService,
 	service.NewAuthService,
 
 	// Handler层
