@@ -6,6 +6,9 @@ import (
 	"bico-admin/internal/shared/types"
 )
 
+// StatusRequest 状态更新请求 (别名)
+type StatusRequest = types.StatusRequest
+
 // UserListRequest 用户列表请求
 type UserListRequest struct {
 	types.BasePageQuery

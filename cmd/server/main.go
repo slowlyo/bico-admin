@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "bico-admin/docs" // 导入swagger文档
 	"bico-admin/pkg/config"
 	"bico-admin/pkg/logger"
 
@@ -84,6 +85,26 @@ func main() {
 		logger.Info("启动HTTP服务器",
 			zap.String("addr", server.Addr),
 		)
+
+		// 输出访问地址信息
+		host := cfg.Server.Host
+		if host == "0.0.0.0" {
+			host = "localhost"
+		}
+		baseURL := fmt.Sprintf("http://%s:%d", host, cfg.Server.Port)
+
+		fmt.Printf("\n🚀 服务启动成功！\n")
+		fmt.Printf("📍 访问地址:\n")
+		fmt.Printf("   • 主页: %s\n", baseURL)
+		fmt.Printf("   • Admin端: %s/admin\n", baseURL)
+		fmt.Printf("   • Master端: %s/master\n", baseURL)
+		fmt.Printf("   • API端: %s/api\n", baseURL)
+		fmt.Printf("📚 API文档:\n")
+		fmt.Printf("   • Swagger UI: %s/swagger/index.html\n", baseURL)
+		fmt.Printf("   • API JSON: %s/swagger/doc.json\n", baseURL)
+		fmt.Printf("🔧 环境: %s\n", cfg.App.Environment)
+		fmt.Printf("📝 日志级别: %s\n\n", cfg.Log.Level)
+
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("启动HTTP服务器失败", zap.Error(err))
 		}

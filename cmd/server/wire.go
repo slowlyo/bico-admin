@@ -6,6 +6,8 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"bico-admin/internal/admin"
 	adminRoutes "bico-admin/internal/admin/routes"
@@ -63,6 +65,11 @@ func ProvideGinEngine(
 	adminRoutes.RegisterRoutes(r, adminHandlers)
 	masterRoutes.RegisterRoutes(r, masterHandlers)
 	apiRoutes.RegisterRoutes(r, apiHandlers)
+
+	// 注册Swagger路由 (仅在非生产环境)
+	if !cfg.App.IsProduction() {
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
 
 	return r
 }

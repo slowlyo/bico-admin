@@ -170,7 +170,7 @@ func (h *UserHandler) Delete(c *gin.Context) {
 // @Produce json
 // @Security ApiKeyAuth
 // @Param id path int true "用户ID"
-// @Param request body sharedTypes.StatusRequest true "状态更新请求"
+// @Param request body types.StatusRequest true "状态更新请求"
 // @Success 200 {object} response.ApiResponse
 // @Router /admin/users/{id}/status [patch]
 func (h *UserHandler) UpdateStatus(c *gin.Context) {
