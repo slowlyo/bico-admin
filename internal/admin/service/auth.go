@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
+	"bico-admin/internal/admin/definitions"
 	"bico-admin/internal/admin/types"
 	sharedTypes "bico-admin/internal/shared/types"
 	"bico-admin/pkg/config"
@@ -175,37 +176,16 @@ func (s *authService) UpdateProfile(ctx context.Context, userID uint, req *types
 
 // getAdminPermissions 获取管理员权限
 func (s *authService) getAdminPermissions() []string {
-	return []string{
-		"user:read", "user:write", "user:delete",
-		"system:read", "system:write",
-		"config:read", "config:write",
-		"admin_user:read", "admin_user:write", "admin_user:delete",
-	}
+	// TODO: 根据用户角色或具体权限配置返回权限
+	// 目前返回所有权限，后续可以根据用户角色进行过滤
+	return definitions.GetPermissionCodes()
 }
 
 // getAdminMenus 获取管理员菜单
 func (s *authService) getAdminMenus() []types.Menu {
-	return []types.Menu{
-		{
-			ID:   1,
-			Name: "用户管理",
-			Path: "/admin/users",
-			Icon: "user",
-			Sort: 1,
-		},
-		{
-			ID:   2,
-			Name: "系统管理",
-			Path: "/admin/system",
-			Icon: "setting",
-			Sort: 2,
-		},
-		{
-			ID:   3,
-			Name: "管理员管理",
-			Path: "/admin/admin-users",
-			Icon: "admin",
-			Sort: 3,
-		},
-	}
+	// 获取用户权限
+	userPermissions := s.getAdminPermissions()
+
+	// 根据权限过滤菜单
+	return definitions.FilterMenusByPermissions(userPermissions)
 }
