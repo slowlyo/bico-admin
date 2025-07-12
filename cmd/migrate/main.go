@@ -110,7 +110,6 @@ func connectDatabase(cfg *config.Config) (*gorm.DB, error) {
 func migrate(db *gorm.DB) error {
 	models := []interface{}{
 		&model.User{},
-		&model.AdminUser{},
 		// 其他模型...
 	}
 

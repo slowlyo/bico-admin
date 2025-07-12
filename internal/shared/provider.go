@@ -111,7 +111,6 @@ func autoMigrate(db *gorm.DB) error {
 	// 导入模型包
 	models := []interface{}{
 		&model.User{},
-		&model.AdminUser{},
 		// 其他模型...
 	}
 

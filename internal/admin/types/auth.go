@@ -18,12 +18,12 @@ type AdminLoginResponse struct {
 
 // Menu 菜单结构
 type Menu struct {
-	ID       uint   `json:"id"`
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-	Icon     string `json:"icon"`
-	Sort     int    `json:"sort"`
-	Children []Menu `json:"children,omitempty"`
+	Sign     string `json:"sign"`               // 菜单唯一标识
+	Name     string `json:"name"`               // 菜单名称
+	Path     string `json:"path"`               // 路由路径
+	Icon     string `json:"icon"`               // 图标
+	Sort     int    `json:"sort"`               // 排序
+	Children []Menu `json:"children,omitempty"` // 子菜单
 }
 
 // RefreshTokenRequest 刷新令牌请求
