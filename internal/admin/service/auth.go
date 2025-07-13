@@ -10,6 +10,7 @@ import (
 	"bico-admin/internal/admin/definitions"
 	"bico-admin/internal/admin/types"
 	sharedTypes "bico-admin/internal/shared/types"
+	"bico-admin/pkg/cache"
 	"bico-admin/pkg/config"
 	"bico-admin/pkg/jwt"
 	"bico-admin/pkg/logger"
@@ -21,6 +22,7 @@ type AuthService interface {
 	Logout(ctx context.Context, token string) error
 	RefreshToken(ctx context.Context, req *types.RefreshTokenRequest) (*types.AdminLoginResponse, error)
 	GetProfile(ctx context.Context, userID uint) (*types.AdminUserResponse, error)
+	GetProfileWithPermissions(ctx context.Context, userID uint) (*types.AdminProfileResponse, error)
 	UpdateProfile(ctx context.Context, userID uint, req *types.AdminUserUpdateRequest) (*types.AdminUserResponse, error)
 }
 
@@ -31,9 +33,9 @@ type authService struct {
 }
 
 // NewAuthService 创建认证服务
-func NewAuthService(adminUserService AdminUserService) AuthService {
+func NewAuthService(adminUserService AdminUserService, cache cache.Cache) AuthService {
 	cfg := config.Get()
-	jwtManager := jwt.NewJWTManager(cfg.JWT.Secret, cfg.JWT.Issuer, cfg.JWT.ExpireTime)
+	jwtManager := jwt.NewJWTManagerWithCache(cfg.JWT.Secret, cfg.JWT.Issuer, cfg.JWT.ExpireTime, cache)
 
 	return &authService{
 		adminUserService: adminUserService,
@@ -76,9 +78,8 @@ func (s *authService) Login(ctx context.Context, req *types.AdminLoginRequest) (
 		return nil, errors.New("登录失败")
 	}
 
-	// 获取用户权限和菜单
+	// 获取用户权限
 	permissions := s.getAdminPermissions()
-	menus := s.getAdminMenus()
 
 	return &types.AdminLoginResponse{
 		LoginResponse: sharedTypes.LoginResponse{
@@ -87,14 +88,20 @@ func (s *authService) Login(ctx context.Context, req *types.AdminLoginRequest) (
 			UserInfo:  adminUser.ToUserInfo(),
 		},
 		Permissions: permissions,
-		Menus:       menus,
 	}, nil
 }
 
 // Logout 登出
 func (s *authService) Logout(ctx context.Context, token string) error {
-	// TODO: 将令牌加入黑名单
-	logger.Info("用户登出", zap.String("token", token))
+	// 将令牌加入黑名单
+	if err := s.jwtManager.AddToBlacklist(ctx, token); err != nil {
+		logger.Error("将令牌加入黑名单失败",
+			zap.String("token", token),
+			zap.Error(err))
+		return errors.New("登出失败")
+	}
+
+	logger.Info("用户登出成功", zap.String("token", token))
 	return nil
 }
 
@@ -123,9 +130,8 @@ func (s *authService) RefreshToken(ctx context.Context, req *types.RefreshTokenR
 		return nil, errors.New("用户已被禁用")
 	}
 
-	// 获取用户权限和菜单
+	// 获取用户权限
 	permissions := s.getAdminPermissions()
-	menus := s.getAdminMenus()
 
 	return &types.AdminLoginResponse{
 		LoginResponse: sharedTypes.LoginResponse{
@@ -134,7 +140,6 @@ func (s *authService) RefreshToken(ctx context.Context, req *types.RefreshTokenR
 			UserInfo:  adminUser.ToUserInfo(),
 		},
 		Permissions: permissions,
-		Menus:       menus,
 	}, nil
 }
 
@@ -188,18 +193,25 @@ func (s *authService) UpdateProfile(ctx context.Context, userID uint, req *types
 	}, nil
 }
 
+// GetProfileWithPermissions 获取用户资料和权限
+func (s *authService) GetProfileWithPermissions(ctx context.Context, userID uint) (*types.AdminProfileResponse, error) {
+	adminUser, err := s.adminUserService.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取用户权限
+	permissions := s.getAdminPermissions()
+
+	return &types.AdminProfileResponse{
+		UserInfo:    adminUser.ToUserInfo(),
+		Permissions: permissions,
+	}, nil
+}
+
 // getAdminPermissions 获取管理员权限
 func (s *authService) getAdminPermissions() []string {
 	// TODO: 根据用户角色或具体权限配置返回权限
 	// 目前返回所有权限，后续可以根据用户角色进行过滤
 	return definitions.GetPermissionCodes()
-}
-
-// getAdminMenus 获取管理员菜单
-func (s *authService) getAdminMenus() []types.Menu {
-	// 获取用户权限
-	userPermissions := s.getAdminPermissions()
-
-	// 根据权限过滤菜单
-	return definitions.FilterMenusByPermissions(userPermissions)
 }

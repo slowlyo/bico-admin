@@ -6,19 +6,21 @@ type: "always_apply"
 
 ## 概述
 
-本项目采用基于角色的访问控制（RBAC）系统，实现用户、角色、权限、菜单、API的完整关联管理。
+本项目采用基于角色的访问控制（RBAC）系统，实现用户、角色、权限、API的完整关联管理。菜单由前端根据权限动态控制显示。
 
 ## 核心设计理念
 
 ### 权限流转链路
 ```
-用户(AdminUser) → 角色(AdminRole) → 权限(Permission) → 菜单/API/按钮
+用户(AdminUser) → 角色(AdminRole) → 权限(Permission) → API/按钮
+前端菜单 ← 权限控制 ← 用户权限
 ```
 
 ### 设计原则
-- **权限和菜单在程序中静态定义** - 保证系统一致性和安全性
+- **权限在程序中静态定义** - 保证系统一致性和安全性
+- **菜单在前端静态定义** - 通过权限控制显示/隐藏
 - **用户和角色在界面动态管理** - 提供灵活的权限配置
-- **多维度权限控制** - 菜单级别、按钮级别、API级别
+- **多维度权限控制** - 按钮级别、API级别
 - **权限级别分层** - 查看、操作、管理、超级四个级别
 
 ## 数据模型设计
@@ -94,14 +96,12 @@ type AdminRolePermission struct {
 ```go
 // 位置: internal/admin/definitions/permissions.go
 type Permission struct {
-    Code        string   // 权限代码，如 "user:list"
-    Name        string   // 权限名称，如 "查看用户列表"
-    Module      string   // 所属模块，如 "user", "system"
-    Description string   // 权限描述
-    MenuSigns   []string // 关联的菜单标识列表
-    Buttons     []string // 关联的按钮标识列表
-    APIs        []string // 关联的API路径列表
-    Level       int      // 权限级别：1-查看，2-操作，3-管理，4-超级
+    Code    string   // 权限代码，如 "user:list"
+    Name    string   // 权限名称，如 "查看用户列表"
+    Module  string   // 所属模块，如 "user", "system"
+    Buttons []string // 关联的按钮标识列表
+    APIs    []string // 关联的API路径列表
+    Level   int      // 权限级别：1-查看，2-操作，3-管理，4-超级
 }
 ```
 
@@ -123,52 +123,61 @@ const (
   - `admin_user:delete` - 管理员删除
   - `system:config` - 系统配置
 
-## 菜单定义系统
+## 前端菜单控制机制
 
-### 菜单结构 (MenuDefinition)
-```go
-// 位置: internal/admin/definitions/menus.go
-type MenuDefinition struct {
-    Sign        string           // 菜单唯一标识，如 "user.list"
-    Name        string           // 菜单名称
-    Path        string           // 路由路径
-    Icon        string           // 图标
-    Sort        int              // 排序
-    ParentSign  string           // 父菜单标识，空表示顶级菜单
-    Permissions []string         // 访问该菜单需要的权限
-    Children    []MenuDefinition // 子菜单
+### 菜单权限控制原则
+- **菜单在前端静态定义** - 保证路由和菜单的一致性
+- **权限控制菜单显示** - 根据用户权限动态显示/隐藏菜单项
+- **权限粒度控制** - 支持菜单级别和按钮级别的权限控制
+
+### 前端菜单权限检查
+```javascript
+// 检查用户是否有权限访问某个菜单
+function hasMenuPermission(requiredPermissions, userPermissions) {
+    return requiredPermissions.some(permission =>
+        userPermissions.includes(permission)
+    );
+}
+
+// 过滤菜单项
+function filterMenuItems(menuItems, userPermissions) {
+    return menuItems.filter(item => {
+        if (item.permissions && item.permissions.length > 0) {
+            return hasMenuPermission(item.permissions, userPermissions);
+        }
+        return true; // 无权限要求的菜单项默认显示
+    }).map(item => ({
+        ...item,
+        children: item.children ? filterMenuItems(item.children, userPermissions) : []
+    }));
 }
 ```
 
-### 菜单标识规范
-- 顶级菜单：`user`, `admin_user`, `system`
-- 子菜单：`user.list`, `user.detail`, `admin_user.create`
-- 层级关系通过 `.` 分隔
-
-## 权限与菜单关联机制
-
-### 1. 静态关联
-在权限定义中直接指定关联的菜单：
-```go
-{
-    Code:      "user:list",
-    Name:      "查看用户列表",
-    MenuSigns: []string{"user", "user.list"},
-    Buttons:   []string{"search", "filter", "export"},
-    APIs:      []string{"/api/admin/users", "/api/admin/users/stats"},
-}
-```
-
-### 2. 动态过滤
-根据用户权限动态过滤菜单：
-```go
-func FilterMenusByPermissions(userPermissions []string) []types.Menu {
-    // 1. 获取用户权限对应的所有菜单标识
-    allowedMenuSigns := GetMenuSignsByPermissions(userPermissions)
-
-    // 2. 递归过滤菜单树
-    // 3. 返回用户可访问的菜单
-}
+### 菜单权限配置示例
+```javascript
+// 前端菜单配置示例
+const menuConfig = [
+    {
+        key: 'user',
+        name: '用户管理',
+        icon: 'UserOutlined',
+        permissions: ['user:list'], // 需要的权限
+        children: [
+            {
+                key: 'user-list',
+                name: '用户列表',
+                path: '/user/list',
+                permissions: ['user:list']
+            },
+            {
+                key: 'user-create',
+                name: '创建用户',
+                path: '/user/create',
+                permissions: ['user:create']
+            }
+        ]
+    }
+];
 ```
 
 ## API权限控制
@@ -235,9 +244,9 @@ DeleteRole(id uint) error
 GetPermissionTree(roleID *uint) ([]types.PermissionTreeNode, error)
 AssignRolesToUser(req *types.RoleAssignRequest) error
 
-// 用户权限查询
+// 用户权限查询（供前端使用）
 GetUserRoles(userID uint) (*types.UserRoleResponse, error)
-GetUserPermissions(userID uint) ([]string, error)
+GetUserPermissions(userID uint) ([]string, error) // 返回权限代码列表
 ```
 
 ## 使用示例
@@ -250,10 +259,11 @@ if user.HasPermission("user:create") {
 }
 ```
 
-### 2. 过滤用户菜单
+### 2. 获取用户权限（前端使用）
 ```go
+// 后端只提供权限列表，不处理菜单
 userPermissions := user.GetPermissionCodes()
-menus := FilterMenusByPermissions(userPermissions)
+// 返回给前端: ["user:list", "user:create", "admin_user:list"]
 ```
 
 ### 3. API权限验证
@@ -284,6 +294,20 @@ if !HasPermissionForAPI(userPermissions, "/api/admin/users") {
 4. **审计日志** - 记录权限变更和敏感操作
 5. **会话管理** - 权限变更后需要刷新用户会话
 
+## 前后端分工
+
+### 后端职责
+1. **权限定义和管理** - 在代码中定义权限，提供权限管理API
+2. **用户角色管理** - 管理用户和角色的关联关系
+3. **API权限验证** - 验证每个API请求的权限
+4. **权限数据提供** - 向前端提供用户权限列表
+
+### 前端职责
+1. **菜单定义和渲染** - 在前端定义菜单结构和路由
+2. **菜单权限控制** - 根据用户权限动态显示/隐藏菜单
+3. **按钮权限控制** - 根据权限控制页面按钮的显示
+4. **路由权限守卫** - 在路由层面进行权限检查
+
 ## 扩展性设计
 
 1. **模块化权限** - 按业务模块组织权限
@@ -291,3 +315,4 @@ if !HasPermissionForAPI(userPermissions, "/api/admin/users") {
 3. **权限缓存** - 缓存用户权限提高性能
 4. **权限继承** - 支持权限的层级继承
 5. **条件权限** - 支持基于条件的权限控制（如数据权限）
+6. **前端菜单缓存** - 前端缓存菜单配置和权限状态

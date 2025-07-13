@@ -1,17 +1,25 @@
 package middleware
 
 import (
+	"context"
+	"errors"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
+	"bico-admin/pkg/cache"
 	"bico-admin/pkg/config"
 	"bico-admin/pkg/jwt"
 	"bico-admin/pkg/response"
 )
 
-// Auth 认证中间件
+// Auth 认证中间件（向后兼容，不支持黑名单检查）
 func Auth() gin.HandlerFunc {
+	return AuthWithCache(nil)
+}
+
+// AuthWithCache 带缓存支持的认证中间件
+func AuthWithCache(cache cache.Cache) gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
 		// 获取Authorization头
 		authHeader := c.GetHeader("Authorization")
@@ -38,7 +46,7 @@ func Auth() gin.HandlerFunc {
 		}
 
 		// 验证JWT令牌
-		userID, userType, err := validateToken(token)
+		userID, userType, err := validateTokenWithCache(c.Request.Context(), token, cache)
 		if err != nil {
 			response.Unauthorized(c, "认证令牌无效")
 			c.Abort()
@@ -54,10 +62,30 @@ func Auth() gin.HandlerFunc {
 	})
 }
 
-// validateToken 验证令牌
+// validateToken 验证令牌（向后兼容）
 func validateToken(token string) (uint, string, error) {
+	return validateTokenWithCache(context.Background(), token, nil)
+}
+
+// validateTokenWithCache 验证令牌并检查黑名单
+func validateTokenWithCache(ctx context.Context, token string, cache cache.Cache) (uint, string, error) {
 	cfg := config.Get()
-	jwtManager := jwt.NewJWTManager(cfg.JWT.Secret, cfg.JWT.Issuer, cfg.JWT.ExpireTime)
+	var jwtManager *jwt.JWTManager
+
+	if cache != nil {
+		jwtManager = jwt.NewJWTManagerWithCache(cfg.JWT.Secret, cfg.JWT.Issuer, cfg.JWT.ExpireTime, cache)
+
+		// 检查令牌是否在黑名单中
+		isBlacklisted, err := jwtManager.IsBlacklisted(ctx, token)
+		if err != nil {
+			return 0, "", err
+		}
+		if isBlacklisted {
+			return 0, "", errors.New("令牌已失效")
+		}
+	} else {
+		jwtManager = jwt.NewJWTManager(cfg.JWT.Secret, cfg.JWT.Issuer, cfg.JWT.ExpireTime)
+	}
 
 	claims, err := jwtManager.ValidateToken(token)
 	if err != nil {

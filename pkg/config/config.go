@@ -14,6 +14,7 @@ type Config struct {
 	Redis    RedisConfig    `mapstructure:"redis" yaml:"redis"`
 	Log      LogConfig      `mapstructure:"log" yaml:"log"`
 	JWT      JWTConfig      `mapstructure:"jwt" yaml:"jwt"`
+	Cache    CacheConfig    `mapstructure:"cache" yaml:"cache"`
 }
 
 // AppConfig 应用基础配置
@@ -77,6 +78,34 @@ type JWTConfig struct {
 	Secret     string        `mapstructure:"secret" yaml:"secret"`
 	Issuer     string        `mapstructure:"issuer" yaml:"issuer"`
 	ExpireTime time.Duration `mapstructure:"expire_time" yaml:"expire_time"`
+}
+
+// CacheConfig 缓存配置
+type CacheConfig struct {
+	Driver string            `mapstructure:"driver" yaml:"driver"`
+	Memory CacheMemoryConfig `mapstructure:"memory" yaml:"memory"`
+	Redis  CacheRedisConfig  `mapstructure:"redis" yaml:"redis"`
+}
+
+// CacheMemoryConfig 内存缓存配置
+type CacheMemoryConfig struct {
+	MaxSize           int           `mapstructure:"max_size" yaml:"max_size"`
+	DefaultExpiration time.Duration `mapstructure:"default_expiration" yaml:"default_expiration"`
+	CleanupInterval   time.Duration `mapstructure:"cleanup_interval" yaml:"cleanup_interval"`
+}
+
+// CacheRedisConfig Redis缓存配置
+type CacheRedisConfig struct {
+	Host         string        `mapstructure:"host" yaml:"host"`
+	Port         int           `mapstructure:"port" yaml:"port"`
+	Password     string        `mapstructure:"password" yaml:"password"`
+	Database     int           `mapstructure:"database" yaml:"database"`
+	PoolSize     int           `mapstructure:"pool_size" yaml:"pool_size"`
+	MinIdleConns int           `mapstructure:"min_idle_conns" yaml:"min_idle_conns"`
+	DialTimeout  time.Duration `mapstructure:"dial_timeout" yaml:"dial_timeout"`
+	ReadTimeout  time.Duration `mapstructure:"read_timeout" yaml:"read_timeout"`
+	WriteTimeout time.Duration `mapstructure:"write_timeout" yaml:"write_timeout"`
+	KeyPrefix    string        `mapstructure:"key_prefix" yaml:"key_prefix"`
 }
 
 // GetDSN 获取数据库连接字符串

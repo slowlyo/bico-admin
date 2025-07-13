@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"bico-admin/internal/shared/models"
+	"bico-admin/pkg/cache"
 	"bico-admin/pkg/config"
 	"bico-admin/pkg/database"
 	pkgLogger "bico-admin/pkg/logger"
@@ -19,6 +20,8 @@ import (
 var ProviderSet = wire.NewSet(
 	ProvideDatabase,
 	ProvideRedis,
+	ProvideCache,
+	ProvideCacheManager,
 )
 
 // ProvideDatabase 提供数据库连接
@@ -120,4 +123,14 @@ func autoMigrate(db *gorm.DB) error {
 
 	pkgLogger.Info("共享模型数据库迁移完成")
 	return nil
+}
+
+// ProvideCache 提供缓存实例
+func ProvideCache(cfg *config.Config) (cache.Cache, error) {
+	return NewCacheFromConfig(cfg)
+}
+
+// ProvideCacheManager 提供缓存管理器
+func ProvideCacheManager(cfg *config.Config) (*cache.Manager, error) {
+	return NewCacheManagerFromConfig(cfg)
 }

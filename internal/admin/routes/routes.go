@@ -5,10 +5,16 @@ import (
 
 	"bico-admin/internal/admin/handler"
 	"bico-admin/internal/admin/middleware"
+	"bico-admin/pkg/cache"
 )
 
 // RegisterRoutes 注册admin端路由
 func RegisterRoutes(r *gin.Engine, handlers *Handlers) {
+	RegisterRoutesWithCache(r, handlers, nil)
+}
+
+// RegisterRoutesWithCache 注册admin端路由（带缓存支持）
+func RegisterRoutesWithCache(r *gin.Engine, handlers *Handlers, cache cache.Cache) {
 	// admin端路由组
 	adminGroup := r.Group("/admin")
 
@@ -21,7 +27,7 @@ func RegisterRoutes(r *gin.Engine, handlers *Handlers) {
 
 	// 需要认证的路由
 	protectedGroup := adminGroup.Group("")
-	protectedGroup.Use(middleware.Auth()) // 认证中间件
+	protectedGroup.Use(middleware.AuthWithCache(cache)) // 带缓存的认证中间件
 	{
 		// 认证相关
 		protectedGroup.POST("/auth/logout", handlers.AuthHandler.Logout)
@@ -50,6 +56,16 @@ func RegisterRoutes(r *gin.Engine, handlers *Handlers) {
 			adminUserGroup.PUT("/:id", handlers.AdminUserHandler.Update)
 			adminUserGroup.DELETE("/:id", handlers.AdminUserHandler.Delete)
 			adminUserGroup.PATCH("/:id/status", handlers.AdminUserHandler.UpdateStatus)
+		}
+
+		// 角色管理
+		roleGroup := protectedGroup.Group("/roles")
+		{
+			roleGroup.GET("", handlers.AdminRoleHandler.GetRoleList)
+			roleGroup.GET("/:id", handlers.AdminRoleHandler.GetRoleByID)
+			roleGroup.POST("", handlers.AdminRoleHandler.CreateRole)
+			roleGroup.PUT("/:id", handlers.AdminRoleHandler.UpdateRole)
+			roleGroup.DELETE("/:id", handlers.AdminRoleHandler.DeleteRole)
 		}
 
 		// 系统管理
@@ -85,5 +101,6 @@ type Handlers struct {
 	AuthHandler      *handler.AuthHandler
 	UserHandler      *handler.UserHandler
 	AdminUserHandler *handler.AdminUserHandler
+	AdminRoleHandler *handler.AdminRoleHandler
 	SystemHandler    *handler.SystemHandler
 }

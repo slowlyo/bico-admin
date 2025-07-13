@@ -18,6 +18,7 @@ import (
 	masterRoutes "bico-admin/internal/master/routes"
 	"bico-admin/internal/shared"
 	sharedMiddleware "bico-admin/internal/shared/middleware"
+	"bico-admin/pkg/cache"
 	"bico-admin/pkg/config"
 	"bico-admin/pkg/logger"
 )
@@ -47,6 +48,7 @@ func initializeApp(cfg *config.Config) (*gin.Engine, error) {
 func ProvideGinEngine(
 	cfg *config.Config,
 	db *gorm.DB,
+	cache cache.Cache,
 	adminHandlers *adminRoutes.Handlers,
 	masterHandlers *masterRoutes.Handlers,
 	apiHandlers *apiRoutes.Handlers,
@@ -72,7 +74,7 @@ func ProvideGinEngine(
 	r.Use(sharedMiddleware.Logging())
 
 	// 注册路由
-	adminRoutes.RegisterRoutes(r, adminHandlers)
+	adminRoutes.RegisterRoutesWithCache(r, adminHandlers, cache)
 	masterRoutes.RegisterRoutes(r, masterHandlers)
 	apiRoutes.RegisterRoutes(r, apiHandlers)
 

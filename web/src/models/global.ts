@@ -1,11 +1,10 @@
 // 全局共享数据
 import { useState, useCallback } from 'react';
-import { UserInfo, Permission, Menu } from '@/services/auth';
+import { UserInfo } from '@/services/auth';
 
 export interface GlobalState {
   currentUser?: UserInfo;
-  permissions?: Permission[];
-  menus?: Menu[];
+  permissions?: string[]; // 权限代码字符串数组
   isLogin: boolean;
 }
 
@@ -24,18 +23,10 @@ const useGlobal = () => {
   }, []);
 
   // 设置权限
-  const setPermissions = useCallback((permissions: Permission[]) => {
+  const setPermissions = useCallback((permissions: string[]) => {
     setGlobalState(prev => ({
       ...prev,
       permissions,
-    }));
-  }, []);
-
-  // 设置菜单
-  const setMenus = useCallback((menus: Menu[]) => {
-    setGlobalState(prev => ({
-      ...prev,
-      menus,
     }));
   }, []);
 
@@ -48,20 +39,18 @@ const useGlobal = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userInfo');
     localStorage.removeItem('permissions');
-    localStorage.removeItem('menus');
   }, []);
 
   // 检查权限
   const hasPermission = useCallback((permission: string) => {
     if (!globalState.permissions) return false;
-    return globalState.permissions.some(p => p.sign === permission);
+    return globalState.permissions.includes(permission);
   }, [globalState.permissions]);
 
   return {
     ...globalState,
     setCurrentUser,
     setPermissions,
-    setMenus,
     logout,
     hasPermission,
   };

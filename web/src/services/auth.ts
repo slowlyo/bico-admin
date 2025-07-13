@@ -26,23 +26,8 @@ export interface UserInfo {
   login_count: number;
 }
 
-// 权限信息
-export interface Permission {
-  sign: string;
-  name: string;
-  type: string;
-}
-
-// 菜单信息
-export interface Menu {
-  sign: string;
-  name: string;
-  path?: string;
-  icon?: string;
-  parent_sign?: string;
-  sort: number;
-  children?: Menu[];
-}
+// 权限信息 - 后端返回的是权限代码字符串数组
+// 例如: ["user:list", "user:create", "admin_user:list"]
 
 // 登录响应
 export interface LoginResponse {

@@ -1,38 +1,72 @@
 // 运行时配置
 import { history } from '@umijs/max';
 import { message } from 'antd';
-import { UserInfo, Permission, Menu, logout as logoutApi } from '@/services/auth';
+import { UserInfo, logout as logoutApi } from '@/services/auth';
 
 // 全局状态更新函数，用于在退出登录时同步更新状态
 let globalSetInitialState: ((initialState: any) => void) | null = null;
 
 export interface InitialState {
   currentUser?: UserInfo;
-  permissions?: Permission[];
-  menus?: Menu[];
-  fetchUserInfo?: () => Promise<UserInfo | undefined>;
+  permissions?: string[]; // 权限代码字符串数组
+  fetchUserInfo?: () => Promise<{ userInfo?: UserInfo; permissions?: string[] }>;
   // 添加umi layout需要的字段
   name?: string;
   avatar?: string;
 }
 
-// 获取用户信息
-const fetchUserInfo = async (): Promise<UserInfo | undefined> => {
+// 获取用户信息和权限
+const fetchUserInfo = async (): Promise<{ userInfo?: UserInfo; permissions?: string[] }> => {
   try {
     const token = localStorage.getItem('token');
     if (!token) {
-      return undefined;
+      return {};
     }
 
-    const userInfoStr = localStorage.getItem('userInfo');
-    if (userInfoStr) {
-      return JSON.parse(userInfoStr);
+    // 调用后端API获取最新的用户信息和权限
+    const response = await fetch('/admin/auth/profile', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.code === 200) {
+        // 更新本地存储
+        localStorage.setItem('userInfo', JSON.stringify(data.data.user_info));
+        localStorage.setItem('permissions', JSON.stringify(data.data.permissions));
+
+        return {
+          userInfo: data.data.user_info,
+          permissions: data.data.permissions,
+        };
+      }
     }
 
-    return undefined;
+    // 如果API调用失败，清除本地存储
+    localStorage.removeItem('token');
+    localStorage.removeItem('userInfo');
+    localStorage.removeItem('permissions');
+    return {};
   } catch (error) {
     console.error('获取用户信息失败:', error);
-    return undefined;
+    // 发生错误时，尝试从本地存储读取作为降级方案
+    try {
+      const userInfoStr = localStorage.getItem('userInfo');
+      const permissionsStr = localStorage.getItem('permissions');
+
+      if (userInfoStr && permissionsStr) {
+        return {
+          userInfo: JSON.parse(userInfoStr),
+          permissions: JSON.parse(permissionsStr),
+        };
+      }
+    } catch (parseError) {
+      console.error('解析本地存储失败:', parseError);
+    }
+
+    return {};
   }
 };
 
@@ -40,11 +74,11 @@ const fetchUserInfo = async (): Promise<UserInfo | undefined> => {
 export async function getInitialState(): Promise<InitialState> {
   const { location } = history;
 
-  // 同步获取用户信息，避免异步导致的状态不一致
-  const currentUser = await fetchUserInfo();
+  // 获取最新的用户信息和权限
+  const { userInfo, permissions } = await fetchUserInfo();
 
   // 如果用户已登录但在登录页，静默跳转到首页
-  if (currentUser && location.pathname === '/login') {
+  if (userInfo && location.pathname === '/login') {
     // 使用 setTimeout 确保在下一个事件循环中执行，避免阻塞渲染
     setTimeout(() => {
       history.replace('/');
@@ -52,18 +86,14 @@ export async function getInitialState(): Promise<InitialState> {
   }
 
   // 如果用户已登录，返回用户信息
-  if (currentUser) {
-    const permissionsStr = localStorage.getItem('permissions');
-    const menusStr = localStorage.getItem('menus');
-
+  if (userInfo) {
     return {
-      currentUser,
-      permissions: permissionsStr ? JSON.parse(permissionsStr) : [],
-      menus: menusStr ? JSON.parse(menusStr) : [],
+      currentUser: userInfo,
+      permissions: permissions || [],
       fetchUserInfo,
       // 添加name和avatar字段供umi layout使用
-      name: currentUser.nickname,
-      avatar: currentUser.avatar,
+      name: userInfo.nickname,
+      avatar: userInfo.avatar,
     };
   }
 
@@ -87,7 +117,6 @@ const handleLogout = async () => {
       localStorage.removeItem('token');
       localStorage.removeItem('userInfo');
       localStorage.removeItem('permissions');
-      localStorage.removeItem('menus');
 
       // 更新全局状态
       if (globalSetInitialState) {
@@ -126,7 +155,6 @@ export const request = {
           localStorage.removeItem('token');
           localStorage.removeItem('userInfo');
           localStorage.removeItem('permissions');
-          localStorage.removeItem('menus');
 
           // 更新全局状态
           if (globalSetInitialState) {
@@ -141,7 +169,7 @@ export const request = {
   ],
 };
 
-export const layout = (initialState: InitialState, setInitialState: any) => {
+export const layout = (_initialState: InitialState, setInitialState: any) => {
   // 保存全局状态更新函数
   globalSetInitialState = setInitialState;
 

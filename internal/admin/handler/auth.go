@@ -97,13 +97,13 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	response.Success(c, result)
 }
 
-// GetProfile 获取当前用户信息
-// @Summary 获取当前用户信息
-// @Description 获取当前登录用户的详细信息
+// GetProfile 获取当前用户信息和权限
+// @Summary 获取当前用户信息和权限
+// @Description 获取当前登录用户的详细信息和权限列表
 // @Tags 认证
 // @Produce json
 // @Security ApiKeyAuth
-// @Success 200 {object} response.ApiResponse{data=types.AdminUserResponse}
+// @Success 200 {object} response.ApiResponse{data=types.AdminProfileResponse}
 // @Failure 401 {object} response.ApiResponse
 // @Router /admin/auth/profile [get]
 func (h *AuthHandler) GetProfile(c *gin.Context) {
@@ -113,7 +113,7 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	profile, err := h.authService.GetProfile(c.Request.Context(), userID.(uint))
+	profile, err := h.authService.GetProfileWithPermissions(c.Request.Context(), userID.(uint))
 	if err != nil {
 		response.ErrorWithMessage(c, response.CodeNotFound, err.Error())
 		return

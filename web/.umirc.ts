@@ -33,21 +33,37 @@ export default defineConfig({
       name: "首页",
       path: "/home",
       component: "./Home",
+      icon: "HomeOutlined",
+    },
+    {
+      name: "系统管理",
+      path: "/system",
+      icon: "SettingOutlined",
+      routes: [
+        {
+          name: "管理员",
+          path: "/system/admin-users",
+          component: "./AdminUser",
+          access: "canViewAdminUsers",
+        },
+        {
+          name: "角色",
+          path: "/system/roles",
+          component: "./Role",
+          access: "canViewRoles",
+        },
+      ],
     },
     {
       name: "权限演示",
       path: "/access",
       component: "./Access",
+      hideInMenu: true,
     },
     {
-      name: " CRUD 示例",
-      path: "/table",
-      component: "./Table",
-    },
-    {
-      name: "管理员用户管理",
-      path: "/admin-users",
-      component: "./AdminUser",
+      path: "*",
+      component: "./404",
+      layout: false,
     },
   ],
 

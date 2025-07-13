@@ -277,7 +277,6 @@ func (s *AdminRoleService) GetPermissionTree(roleID *uint) ([]types.PermissionTr
 				Name:      permission.Name,
 				Level:     permission.Level,
 				LevelText: s.getLevelText(permission.Level),
-				MenuSigns: permission.MenuSigns,
 				Buttons:   permission.Buttons,
 				APIs:      permission.APIs,
 				Selected:  rolePermissions != nil && rolePermissions[permission.Code],

@@ -189,4 +189,19 @@ func setDefaults(v *viper.Viper) {
 	// JWT defaults
 	v.SetDefault("jwt.issuer", "bico-admin")
 	v.SetDefault("jwt.expire_time", "24h")
+
+	// Cache defaults
+	v.SetDefault("cache.driver", "memory")
+	v.SetDefault("cache.memory.max_size", 10000)
+	v.SetDefault("cache.memory.default_expiration", "30m")
+	v.SetDefault("cache.memory.cleanup_interval", "10m")
+	v.SetDefault("cache.redis.host", "localhost")
+	v.SetDefault("cache.redis.port", 6379)
+	v.SetDefault("cache.redis.database", 1)
+	v.SetDefault("cache.redis.pool_size", 10)
+	v.SetDefault("cache.redis.min_idle_conns", 5)
+	v.SetDefault("cache.redis.dial_timeout", "5s")
+	v.SetDefault("cache.redis.read_timeout", "3s")
+	v.SetDefault("cache.redis.write_timeout", "3s")
+	v.SetDefault("cache.redis.key_prefix", "bico:cache:")
 }

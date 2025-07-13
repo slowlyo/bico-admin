@@ -48,7 +48,7 @@ database:
 redis:
   host: "localhost"     # Redis服务器地址
   port: 6379            # Redis服务器端口
-  password: ""          # Redis密码(为空表示无密码)
+  password: "redis"     # Redis密码(为空表示无密码)
   database: 0           # Redis数据库编号(0-15)
   pool_size: 10         # 连接池大小
   min_idle_conns: 5     # 最小空闲连接数
@@ -70,6 +70,26 @@ jwt:
   secret: "your-secret-key-change-in-production"  # JWT密钥(生产环境必须更改)
   issuer: "bico-admin"      # JWT签发者
   expire_time: "24h"        # JWT过期时间(支持: 1h, 24h, 7d等格式)
+
+cache:
+  driver: "memory"          # 缓存驱动: memory(内存) 或 redis
+  memory:
+    max_size: 10000         # 最大缓存条目数，0表示无限制
+    default_expiration: "30m"  # 默认过期时间
+    cleanup_interval: "10m"    # 清理过期条目的间隔时间
+
+  # Redis 缓存配置示例（当driver为redis时使用）
+  # redis:
+  #   host: "localhost"
+  #   port: 6379
+  #   password: ""
+  #   database: 1
+  #   pool_size: 10
+  #   min_idle_conns: 5
+  #   dial_timeout: "5s"
+  #   read_timeout: "3s"
+  #   write_timeout: "3s"
+  #   key_prefix: "bico:cache:"
 
 # 配置使用说明:
 # 1. 环境变量优先级高于配置文件，格式: BICO_<配置路径>
