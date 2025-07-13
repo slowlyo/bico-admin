@@ -1,6 +1,9 @@
 package types
 
-import "bico-admin/internal/shared/types"
+import (
+	"bico-admin/internal/shared/types"
+	"time"
+)
 
 // AdminLoginRequest 管理员登录请求
 type AdminLoginRequest struct {
@@ -56,11 +59,18 @@ type AdminUserUpdateRequest struct {
 
 // AdminUserResponse 管理员用户响应
 type AdminUserResponse struct {
-	ID        uint   `json:"id"`
-	Username  string `json:"username"`
-	Name      string `json:"name"`
-	Avatar    string `json:"avatar"`
-	Enabled   bool   `json:"enabled"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	ID          uint       `json:"id"`
+	Username    string     `json:"username"`
+	Name        string     `json:"name"`
+	Avatar      string     `json:"avatar"`
+	Email       string     `json:"email"`
+	Phone       string     `json:"phone"`
+	Status      int        `json:"status"`
+	StatusText  string     `json:"status_text"`
+	LastLoginAt *time.Time `json:"last_login_at"`
+	LastLoginIP string     `json:"last_login_ip"`
+	LoginCount  int        `json:"login_count"`
+	Remark      string     `json:"remark"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }

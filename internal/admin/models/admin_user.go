@@ -115,3 +115,16 @@ func (u *AdminUser) GetRoleNames() []string {
 	}
 	return names
 }
+
+// ToUserInfo 转换为用户信息
+func (u *AdminUser) ToUserInfo() types.UserInfo {
+	return types.UserInfo{
+		ID:       u.ID,
+		Username: u.Username,
+		Nickname: u.Name, // AdminUser 使用 Name 字段作为昵称
+		Email:    u.Email,
+		Avatar:   u.Avatar,
+		UserType: types.UserTypeAdmin, // 管理员用户类型
+		Status:   u.Status,
+	}
+}

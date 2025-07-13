@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -39,7 +38,7 @@ func NewAdminRoleHandler(roleService *service.AdminRoleService) *AdminRoleHandle
 func (h *AdminRoleHandler) GetRoleList(ctx *gin.Context) {
 	var req types.RoleListRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		response.Error(ctx, http.StatusBadRequest, "参数错误", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeBadRequest, err.Error())
 		return
 	}
 
@@ -53,11 +52,11 @@ func (h *AdminRoleHandler) GetRoleList(ctx *gin.Context) {
 
 	result, err := h.roleService.GetRoleList(&req)
 	if err != nil {
-		response.Error(ctx, http.StatusInternalServerError, "获取角色列表失败", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
 	}
 
-	response.Success(ctx, "获取角色列表成功", result)
+	response.Success(ctx, result)
 }
 
 // CreateRole 创建角色
@@ -72,17 +71,17 @@ func (h *AdminRoleHandler) GetRoleList(ctx *gin.Context) {
 func (h *AdminRoleHandler) CreateRole(ctx *gin.Context) {
 	var req types.RoleCreateRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.Error(ctx, http.StatusBadRequest, "参数错误", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeBadRequest, err.Error())
 		return
 	}
 
 	result, err := h.roleService.CreateRole(&req)
 	if err != nil {
-		response.Error(ctx, http.StatusInternalServerError, "创建角色失败", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
 	}
 
-	response.Success(ctx, "创建角色成功", result)
+	response.Success(ctx, result)
 }
 
 // UpdateRole 更新角色
@@ -99,23 +98,23 @@ func (h *AdminRoleHandler) UpdateRole(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		response.Error(ctx, http.StatusBadRequest, "参数错误", "无效的角色ID")
+		response.ErrorWithMessage(ctx, response.CodeBadRequest, "无效的角色ID")
 		return
 	}
 
 	var req types.RoleUpdateRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.Error(ctx, http.StatusBadRequest, "参数错误", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeBadRequest, err.Error())
 		return
 	}
 
 	result, err := h.roleService.UpdateRole(uint(id), &req)
 	if err != nil {
-		response.Error(ctx, http.StatusInternalServerError, "更新角色失败", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
 	}
 
-	response.Success(ctx, "更新角色成功", result)
+	response.Success(ctx, result)
 }
 
 // DeleteRole 删除角色
@@ -131,16 +130,16 @@ func (h *AdminRoleHandler) DeleteRole(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		response.Error(ctx, http.StatusBadRequest, "参数错误", "无效的角色ID")
+		response.ErrorWithMessage(ctx, response.CodeBadRequest, "无效的角色ID")
 		return
 	}
 
 	if err := h.roleService.DeleteRole(uint(id)); err != nil {
-		response.Error(ctx, http.StatusInternalServerError, "删除角色失败", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
 	}
 
-	response.Success(ctx, "删除角色成功", nil)
+	response.Success(ctx, nil)
 }
 
 // GetRoleByID 根据ID获取角色
@@ -156,17 +155,17 @@ func (h *AdminRoleHandler) GetRoleByID(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		response.Error(ctx, http.StatusBadRequest, "参数错误", "无效的角色ID")
+		response.ErrorWithMessage(ctx, response.CodeBadRequest, "无效的角色ID")
 		return
 	}
 
 	result, err := h.roleService.GetRoleByID(uint(id))
 	if err != nil {
-		response.Error(ctx, http.StatusInternalServerError, "获取角色详情失败", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
 	}
 
-	response.Success(ctx, "获取角色详情成功", result)
+	response.Success(ctx, result)
 }
 
 // GetPermissionTree 获取权限树
@@ -189,11 +188,11 @@ func (h *AdminRoleHandler) GetPermissionTree(ctx *gin.Context) {
 
 	result, err := h.roleService.GetPermissionTree(roleID)
 	if err != nil {
-		response.Error(ctx, http.StatusInternalServerError, "获取权限树失败", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
 	}
 
-	response.Success(ctx, "获取权限树成功", result)
+	response.Success(ctx, result)
 }
 
 // AssignRolesToUser 为用户分配角色
@@ -208,16 +207,16 @@ func (h *AdminRoleHandler) GetPermissionTree(ctx *gin.Context) {
 func (h *AdminRoleHandler) AssignRolesToUser(ctx *gin.Context) {
 	var req types.RoleAssignRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.Error(ctx, http.StatusBadRequest, "参数错误", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeBadRequest, err.Error())
 		return
 	}
 
 	if err := h.roleService.AssignRolesToUser(&req); err != nil {
-		response.Error(ctx, http.StatusInternalServerError, "分配角色失败", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
 	}
 
-	response.Success(ctx, "分配角色成功", nil)
+	response.Success(ctx, nil)
 }
 
 // GetUserRoles 获取用户角色
@@ -233,17 +232,17 @@ func (h *AdminRoleHandler) GetUserRoles(ctx *gin.Context) {
 	userIDStr := ctx.Param("user_id")
 	userID, err := strconv.ParseUint(userIDStr, 10, 32)
 	if err != nil {
-		response.Error(ctx, http.StatusBadRequest, "参数错误", "无效的用户ID")
+		response.ErrorWithMessage(ctx, response.CodeBadRequest, "无效的用户ID")
 		return
 	}
 
 	result, err := h.roleService.GetUserRoles(uint(userID))
 	if err != nil {
-		response.Error(ctx, http.StatusInternalServerError, "获取用户角色失败", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
 	}
 
-	response.Success(ctx, "获取用户角色成功", result)
+	response.Success(ctx, result)
 }
 
 // GetRoleStats 获取角色统计
@@ -257,9 +256,9 @@ func (h *AdminRoleHandler) GetUserRoles(ctx *gin.Context) {
 func (h *AdminRoleHandler) GetRoleStats(ctx *gin.Context) {
 	result, err := h.roleService.GetRoleStats()
 	if err != nil {
-		response.Error(ctx, http.StatusInternalServerError, "获取角色统计失败", err.Error())
+		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
 	}
 
-	response.Success(ctx, "获取角色统计成功", result)
+	response.Success(ctx, result)
 }

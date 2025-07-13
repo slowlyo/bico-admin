@@ -6,21 +6,21 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"bico-admin/internal/admin/models"
 	"bico-admin/internal/admin/repository"
 	"bico-admin/internal/admin/types"
-	"bico-admin/internal/shared/model"
 	sharedTypes "bico-admin/internal/shared/types"
 )
 
 // AdminUserService 管理员用户服务接口
 type AdminUserService interface {
-	GetByID(ctx context.Context, id uint) (*model.AdminUser, error)
-	GetByUsername(ctx context.Context, username string) (*model.AdminUser, error)
-	Create(ctx context.Context, req *types.AdminUserCreateRequest) (*model.AdminUser, error)
-	Update(ctx context.Context, id uint, req *types.AdminUserUpdateRequest) (*model.AdminUser, error)
+	GetByID(ctx context.Context, id uint) (*models.AdminUser, error)
+	GetByUsername(ctx context.Context, username string) (*models.AdminUser, error)
+	Create(ctx context.Context, req *types.AdminUserCreateRequest) (*models.AdminUser, error)
+	Update(ctx context.Context, id uint, req *types.AdminUserUpdateRequest) (*models.AdminUser, error)
 	Delete(ctx context.Context, id uint) error
 	UpdateStatus(ctx context.Context, id uint, enabled bool) error
-	List(ctx context.Context, req *sharedTypes.BasePageQuery) ([]*model.AdminUser, int64, error)
+	List(ctx context.Context, req *sharedTypes.BasePageQuery) ([]*models.AdminUser, int64, error)
 }
 
 // adminUserService 管理员用户服务实现
@@ -36,17 +36,17 @@ func NewAdminUserService(adminUserRepo repository.AdminUserRepository) AdminUser
 }
 
 // GetByID 根据ID获取管理员用户
-func (s *adminUserService) GetByID(ctx context.Context, id uint) (*model.AdminUser, error) {
+func (s *adminUserService) GetByID(ctx context.Context, id uint) (*models.AdminUser, error) {
 	return s.adminUserRepo.GetByID(ctx, id)
 }
 
 // GetByUsername 根据用户名获取管理员用户
-func (s *adminUserService) GetByUsername(ctx context.Context, username string) (*model.AdminUser, error) {
+func (s *adminUserService) GetByUsername(ctx context.Context, username string) (*models.AdminUser, error) {
 	return s.adminUserRepo.GetByUsername(ctx, username)
 }
 
 // Create 创建管理员用户
-func (s *adminUserService) Create(ctx context.Context, req *types.AdminUserCreateRequest) (*model.AdminUser, error) {
+func (s *adminUserService) Create(ctx context.Context, req *types.AdminUserCreateRequest) (*models.AdminUser, error) {
 	// 检查用户名是否已存在
 	if exists, err := s.adminUserRepo.ExistsByUsername(ctx, req.Username); err != nil {
 		return nil, err
@@ -60,12 +60,18 @@ func (s *adminUserService) Create(ctx context.Context, req *types.AdminUserCreat
 		return nil, errors.New("密码加密失败")
 	}
 
-	adminUser := &model.AdminUser{
+	// 转换 Enabled 字段为 Status
+	status := sharedTypes.StatusInactive
+	if req.Enabled {
+		status = sharedTypes.StatusActive
+	}
+
+	adminUser := &models.AdminUser{
 		Username: req.Username,
 		Password: string(hashedPassword),
 		Name:     req.Name,
 		Avatar:   req.Avatar,
-		Enabled:  req.Enabled,
+		Status:   status,
 	}
 
 	if err := s.adminUserRepo.Create(ctx, adminUser); err != nil {
@@ -76,7 +82,7 @@ func (s *adminUserService) Create(ctx context.Context, req *types.AdminUserCreat
 }
 
 // Update 更新管理员用户
-func (s *adminUserService) Update(ctx context.Context, id uint, req *types.AdminUserUpdateRequest) (*model.AdminUser, error) {
+func (s *adminUserService) Update(ctx context.Context, id uint, req *types.AdminUserUpdateRequest) (*models.AdminUser, error) {
 	adminUser, err := s.adminUserRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -95,7 +101,13 @@ func (s *adminUserService) Update(ctx context.Context, id uint, req *types.Admin
 	adminUser.Username = req.Username
 	adminUser.Name = req.Name
 	adminUser.Avatar = req.Avatar
-	adminUser.Enabled = req.Enabled
+
+	// 转换 Enabled 字段为 Status
+	if req.Enabled {
+		adminUser.Status = sharedTypes.StatusActive
+	} else {
+		adminUser.Status = sharedTypes.StatusInactive
+	}
 
 	// 如果提供了新密码，则更新密码
 	if req.Password != "" {
@@ -124,6 +136,6 @@ func (s *adminUserService) UpdateStatus(ctx context.Context, id uint, enabled bo
 }
 
 // List 获取管理员用户列表
-func (s *adminUserService) List(ctx context.Context, req *sharedTypes.BasePageQuery) ([]*model.AdminUser, int64, error) {
+func (s *adminUserService) List(ctx context.Context, req *sharedTypes.BasePageQuery) ([]*models.AdminUser, int64, error) {
 	return s.adminUserRepo.List(ctx, req)
 }

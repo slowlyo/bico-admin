@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"bico-admin/internal/shared/model"
+	"bico-admin/internal/shared/models"
 	"bico-admin/pkg/config"
 	"bico-admin/pkg/database"
 
@@ -108,12 +108,12 @@ func connectDatabase(cfg *config.Config) (*gorm.DB, error) {
 
 // migrate 执行迁移
 func migrate(db *gorm.DB) error {
-	models := []interface{}{
-		&model.User{},
-		// 其他模型...
+	// 只迁移共享模型，admin模块自己处理
+	modelList := []interface{}{
+		&models.User{},
 	}
 
-	return db.AutoMigrate(models...)
+	return db.AutoMigrate(modelList...)
 }
 
 // rollback 回滚迁移 (简单实现，删除表)

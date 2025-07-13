@@ -58,3 +58,5 @@ config/app.*.yml
 
 # Cache
 .cache/
+
+node_modules

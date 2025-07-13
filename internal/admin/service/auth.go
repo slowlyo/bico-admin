@@ -146,13 +146,20 @@ func (s *authService) GetProfile(ctx context.Context, userID uint) (*types.Admin
 	}
 
 	return &types.AdminUserResponse{
-		ID:        adminUser.ID,
-		Username:  adminUser.Username,
-		Name:      adminUser.Name,
-		Avatar:    adminUser.Avatar,
-		Enabled:   adminUser.Enabled,
-		CreatedAt: adminUser.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt: adminUser.UpdatedAt.Format("2006-01-02 15:04:05"),
+		ID:          adminUser.ID,
+		Username:    adminUser.Username,
+		Name:        adminUser.Name,
+		Avatar:      adminUser.Avatar,
+		Email:       adminUser.Email,
+		Phone:       adminUser.Phone,
+		Status:      adminUser.Status,
+		StatusText:  adminUser.GetStatusText(),
+		LastLoginAt: adminUser.LastLoginAt,
+		LastLoginIP: adminUser.LastLoginIP,
+		LoginCount:  adminUser.LoginCount,
+		Remark:      adminUser.Remark,
+		CreatedAt:   adminUser.CreatedAt,
+		UpdatedAt:   adminUser.UpdatedAt,
 	}, nil
 }
 
@@ -164,13 +171,20 @@ func (s *authService) UpdateProfile(ctx context.Context, userID uint, req *types
 	}
 
 	return &types.AdminUserResponse{
-		ID:        adminUser.ID,
-		Username:  adminUser.Username,
-		Name:      adminUser.Name,
-		Avatar:    adminUser.Avatar,
-		Enabled:   adminUser.Enabled,
-		CreatedAt: adminUser.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt: adminUser.UpdatedAt.Format("2006-01-02 15:04:05"),
+		ID:          adminUser.ID,
+		Username:    adminUser.Username,
+		Name:        adminUser.Name,
+		Avatar:      adminUser.Avatar,
+		Email:       adminUser.Email,
+		Phone:       adminUser.Phone,
+		Status:      adminUser.Status,
+		StatusText:  adminUser.GetStatusText(),
+		LastLoginAt: adminUser.LastLoginAt,
+		LastLoginIP: adminUser.LastLoginIP,
+		LoginCount:  adminUser.LoginCount,
+		Remark:      adminUser.Remark,
+		CreatedAt:   adminUser.CreatedAt,
+		UpdatedAt:   adminUser.UpdatedAt,
 	}, nil
 }
 

@@ -3,7 +3,6 @@ package models
 import (
 	"time"
 
-	"bico-admin/internal/shared/model"
 	"bico-admin/internal/shared/types"
 )
 
@@ -24,7 +23,7 @@ type AdminRole struct {
 
 // AdminRolePermission 管理员角色权限关联模型
 type AdminRolePermission struct {
-	ID             uint      `json:"id" gorm:"primarykey"`
+	ID             uint      `json:"id" gorm:"primaryKey"`
 	RoleID         uint      `json:"role_id" gorm:"not null;comment:角色ID"`
 	PermissionCode string    `json:"permission_code" gorm:"size:100;not null;comment:权限代码"`
 	CreatedAt      time.Time `json:"created_at"`
@@ -35,14 +34,14 @@ type AdminRolePermission struct {
 
 // AdminUserRole 管理员用户角色关联模型
 type AdminUserRole struct {
-	ID        uint      `json:"id" gorm:"primarykey"`
+	ID        uint      `json:"id" gorm:"primaryKey"`
 	UserID    uint      `json:"user_id" gorm:"not null;comment:用户ID"`
 	RoleID    uint      `json:"role_id" gorm:"not null;comment:角色ID"`
 	CreatedAt time.Time `json:"created_at"`
 
 	// 关联关系
-	User model.AdminUser `json:"user" gorm:"foreignKey:UserID"`
-	Role AdminRole       `json:"role" gorm:"foreignKey:RoleID"`
+	User AdminUser `json:"user" gorm:"foreignKey:UserID"`
+	Role AdminRole `json:"role" gorm:"foreignKey:RoleID"`
 }
 
 // TableName 指定表名

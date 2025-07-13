@@ -143,21 +143,6 @@ func FilterMenusByPermissions(userPermissions []string) []types.Menu {
 	return filteredMenus
 }
 
-// hasPermission 检查是否有权限访问菜单
-func hasPermission(requiredPermissions []string, userPermissions map[string]bool) bool {
-	if len(requiredPermissions) == 0 {
-		return true // 无权限要求，所有人都可访问
-	}
-
-	// 只要有一个权限匹配就可以访问
-	for _, perm := range requiredPermissions {
-		if userPermissions[perm] {
-			return true
-		}
-	}
-	return false
-}
-
 // hasPermissionLegacy 兼容旧版权限检查（使用字符串切片）
 func hasPermissionLegacy(requiredPermissions []string, userPermissions []string) bool {
 	if len(requiredPermissions) == 0 {

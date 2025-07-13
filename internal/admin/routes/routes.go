@@ -11,7 +11,7 @@ import (
 func RegisterRoutes(r *gin.Engine, handlers *Handlers) {
 	// admin端路由组
 	adminGroup := r.Group("/admin")
-	
+
 	// 认证相关路由（无需认证）
 	authGroup := adminGroup.Group("/auth")
 	{
@@ -39,6 +39,17 @@ func RegisterRoutes(r *gin.Engine, handlers *Handlers) {
 			userGroup.DELETE("/:id", handlers.UserHandler.Delete)
 			userGroup.PATCH("/:id/status", handlers.UserHandler.UpdateStatus)
 			userGroup.PATCH("/:id/password", handlers.UserHandler.ResetPassword)
+		}
+
+		// 管理员用户管理
+		adminUserGroup := protectedGroup.Group("/admin-users")
+		{
+			adminUserGroup.GET("", handlers.AdminUserHandler.GetList)
+			adminUserGroup.GET("/:id", handlers.AdminUserHandler.GetByID)
+			adminUserGroup.POST("", handlers.AdminUserHandler.Create)
+			adminUserGroup.PUT("/:id", handlers.AdminUserHandler.Update)
+			adminUserGroup.DELETE("/:id", handlers.AdminUserHandler.Delete)
+			adminUserGroup.PATCH("/:id/status", handlers.AdminUserHandler.UpdateStatus)
 		}
 
 		// 系统管理
@@ -71,7 +82,8 @@ func RegisterRoutes(r *gin.Engine, handlers *Handlers) {
 
 // Handlers 处理器集合
 type Handlers struct {
-	AuthHandler   *handler.AuthHandler
-	UserHandler   *handler.UserHandler
-	SystemHandler *handler.SystemHandler
+	AuthHandler      *handler.AuthHandler
+	UserHandler      *handler.UserHandler
+	AdminUserHandler *handler.AdminUserHandler
+	SystemHandler    *handler.SystemHandler
 }

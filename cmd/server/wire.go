@@ -8,6 +8,7 @@ import (
 	"github.com/google/wire"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"gorm.io/gorm"
 
 	"bico-admin/internal/admin"
 	adminRoutes "bico-admin/internal/admin/routes"
@@ -18,6 +19,7 @@ import (
 	"bico-admin/internal/shared"
 	sharedMiddleware "bico-admin/internal/shared/middleware"
 	"bico-admin/pkg/config"
+	"bico-admin/pkg/logger"
 )
 
 // initializeApp 初始化应用
@@ -44,10 +46,17 @@ func initializeApp(cfg *config.Config) (*gin.Engine, error) {
 // ProvideGinEngine 提供Gin引擎
 func ProvideGinEngine(
 	cfg *config.Config,
+	db *gorm.DB,
 	adminHandlers *adminRoutes.Handlers,
 	masterHandlers *masterRoutes.Handlers,
 	apiHandlers *apiRoutes.Handlers,
 ) *gin.Engine {
+	// 执行Admin模块数据库迁移
+	if err := admin.AutoMigrateAdminModels(db); err != nil {
+		logger.Error("Admin模块数据库迁移失败")
+		panic(err)
+	}
+
 	// 设置Gin模式
 	if cfg.App.IsProduction() {
 		gin.SetMode(gin.ReleaseMode)

@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"bico-admin/internal/shared/model"
+	"bico-admin/internal/shared/models"
 	"bico-admin/pkg/config"
 	"bico-admin/pkg/database"
 	pkgLogger "bico-admin/pkg/logger"
@@ -108,17 +108,16 @@ func ProvideRedis(cfg *config.Config) (*redis.Client, error) {
 
 // autoMigrate 自动迁移数据库表
 func autoMigrate(db *gorm.DB) error {
-	// 导入模型包
-	models := []interface{}{
-		&model.User{},
-		// 其他模型...
+	// 只处理共享模型
+	modelList := []interface{}{
+		&models.User{},
 	}
 
-	// 执行自动迁移
-	if err := db.AutoMigrate(models...); err != nil {
-		return fmt.Errorf("数据库迁移失败: %w", err)
+	// 执行共享模型自动迁移
+	if err := db.AutoMigrate(modelList...); err != nil {
+		return fmt.Errorf("共享模型数据库迁移失败: %w", err)
 	}
 
-	pkgLogger.Info("数据库迁移完成")
+	pkgLogger.Info("共享模型数据库迁移完成")
 	return nil
 }

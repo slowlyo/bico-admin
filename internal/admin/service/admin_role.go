@@ -23,7 +23,7 @@ func NewAdminRoleService(db *gorm.DB) *AdminRoleService {
 }
 
 // GetRoleList 获取角色列表
-func (s *AdminRoleService) GetRoleList(req *types.RoleListRequest) (*sharedTypes.PageResponse[types.RoleResponse], error) {
+func (s *AdminRoleService) GetRoleList(req *types.RoleListRequest) (*sharedTypes.PageResult, error) {
 	var roles []models.AdminRole
 	var total int64
 
@@ -62,12 +62,7 @@ func (s *AdminRoleService) GetRoleList(req *types.RoleListRequest) (*sharedTypes
 		roleResponses = append(roleResponses, roleResponse)
 	}
 
-	return &sharedTypes.PageResponse[types.RoleResponse]{
-		List:     roleResponses,
-		Total:    total,
-		Page:     req.Page,
-		PageSize: req.PageSize,
-	}, nil
+	return sharedTypes.NewPageResult(roleResponses, total, req.Page, req.PageSize), nil
 }
 
 // CreateRole 创建角色
@@ -278,15 +273,14 @@ func (s *AdminRoleService) GetPermissionTree(roleID *uint) ([]types.PermissionTr
 
 		for _, permission := range group.Permissions {
 			item := types.PermissionTreeItem{
-				Code:        permission.Code,
-				Name:        permission.Name,
-				Description: permission.Description,
-				Level:       permission.Level,
-				LevelText:   s.getLevelText(permission.Level),
-				MenuSigns:   permission.MenuSigns,
-				Buttons:     permission.Buttons,
-				APIs:        permission.APIs,
-				Selected:    rolePermissions != nil && rolePermissions[permission.Code],
+				Code:      permission.Code,
+				Name:      permission.Name,
+				Level:     permission.Level,
+				LevelText: s.getLevelText(permission.Level),
+				MenuSigns: permission.MenuSigns,
+				Buttons:   permission.Buttons,
+				APIs:      permission.APIs,
+				Selected:  rolePermissions != nil && rolePermissions[permission.Code],
 			}
 			node.Permissions = append(node.Permissions, item)
 		}
