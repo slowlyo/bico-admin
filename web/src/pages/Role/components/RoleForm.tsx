@@ -1,33 +1,39 @@
 import { ModalForm, ProFormText, ProFormTextArea, ProFormSelect } from '@ant-design/pro-components';
 import { Form } from 'antd';
 import React, { useEffect } from 'react';
-import { Role, RoleUpdateRequest } from '@/services/role';
+import { Role, RoleCreateRequest, RoleUpdateRequest } from '@/services/role';
 
-export interface UpdateFormProps {
+export interface RoleFormProps {
   modalVisible: boolean;
-  values: Role;
   onCancel: () => void;
-  onSubmit: (values: RoleUpdateRequest) => Promise<void>;
+  onSubmit: (values: RoleCreateRequest | RoleUpdateRequest) => Promise<void>;
+  values?: Role; // 编辑时传入，新建时为 undefined
+  isEdit?: boolean; // 是否为编辑模式
 }
 
-const UpdateForm: React.FC<UpdateFormProps> = (props) => {
-  const { modalVisible, values, onCancel, onSubmit } = props;
+const RoleForm: React.FC<RoleFormProps> = (props) => {
+  const { modalVisible, onCancel, onSubmit, values, isEdit = false } = props;
   const [form] = Form.useForm();
 
   useEffect(() => {
-    if (modalVisible && values) {
+    if (modalVisible && isEdit && values) {
       form.setFieldsValue({
         code: values.code,
         name: values.name,
         description: values.description,
         status: values.status,
       });
+    } else if (modalVisible && !isEdit) {
+      // 新建时设置默认值
+      form.setFieldsValue({
+        status: 1, // 默认启用
+      });
     }
-  }, [modalVisible, values, form]);
+  }, [modalVisible, values, form, isEdit]);
 
   return (
     <ModalForm
-      title="编辑角色"
+      title={isEdit ? '编辑角色' : '新建角色'}
       width="400px"
       form={form}
       open={modalVisible}
@@ -37,7 +43,10 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
         }
       }}
       onFinish={async (value) => {
-        await onSubmit(value);
+        await onSubmit(value as RoleCreateRequest | RoleUpdateRequest);
+        if (!isEdit) {
+          form.resetFields();
+        }
       }}
       modalProps={{
         destroyOnClose: true,
@@ -47,6 +56,7 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
         name="code"
         label="角色代码"
         placeholder="请输入角色代码"
+        disabled={isEdit} // 编辑时禁用角色代码修改
         rules={[
           {
             required: true,
@@ -120,4 +130,4 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
   );
 };
 
-export default UpdateForm;
+export default RoleForm;

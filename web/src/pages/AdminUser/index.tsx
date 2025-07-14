@@ -1,10 +1,10 @@
 import {
   ActionType,
   PageContainer,
-  ProDescriptionsItemProps,
+  ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Divider, message, Popconfirm, Switch, Tag } from 'antd';
+import { Button, Divider, message, Popconfirm, Switch } from 'antd';
 import React, { useRef, useState } from 'react';
 import {
   getAdminUserList,
@@ -16,8 +16,7 @@ import {
   AdminUserCreateRequest,
   AdminUserUpdateRequest,
 } from '@/services/adminUser';
-import CreateForm from './components/CreateForm';
-import UpdateForm from './components/UpdateForm';
+import AdminUserForm from './components/AdminUserForm';
 
 /**
  * 添加管理员用户
@@ -113,7 +112,7 @@ const AdminUserList: React.FC = () => {
   const [stepFormValues, setStepFormValues] = useState<AdminUser | undefined>();
   const actionRef = useRef<ActionType>();
 
-  const columns: ProDescriptionsItemProps<AdminUser>[] = [
+  const columns: ProColumns<AdminUser>[] = [
     {
       title: 'ID',
       dataIndex: 'id',
@@ -189,12 +188,7 @@ const AdminUserList: React.FC = () => {
         />
       ),
     },
-    {
-      title: '登录次数',
-      dataIndex: 'login_count',
-      hideInForm: true,
-      hideInSearch: true,
-    },
+
     {
       title: '最后登录时间',
       dataIndex: 'last_login_at',
@@ -292,11 +286,12 @@ const AdminUserList: React.FC = () => {
         columns={columns}
       />
       
-      <CreateForm
+      <AdminUserForm
         onCancel={() => handleModalVisible(false)}
         modalVisible={createModalVisible}
+        isEdit={false}
         onSubmit={async (value) => {
-          const success = await handleAdd(value);
+          const success = await handleAdd(value as AdminUserCreateRequest);
           if (success) {
             handleModalVisible(false);
             if (actionRef.current) {
@@ -305,11 +300,11 @@ const AdminUserList: React.FC = () => {
           }
         }}
       />
-      
+
       {stepFormValues && (
-        <UpdateForm
+        <AdminUserForm
           onSubmit={async (value) => {
-            const success = await handleUpdate(stepFormValues.id, value);
+            const success = await handleUpdate(stepFormValues.id, value as AdminUserUpdateRequest);
             if (success) {
               handleUpdateModalVisible(false);
               setStepFormValues(undefined);
@@ -324,6 +319,7 @@ const AdminUserList: React.FC = () => {
           }}
           modalVisible={updateModalVisible}
           values={stepFormValues}
+          isEdit={true}
         />
       )}
     </PageContainer>

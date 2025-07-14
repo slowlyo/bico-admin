@@ -1,7 +1,7 @@
 import {
   ActionType,
   PageContainer,
-  ProDescriptionsItemProps,
+  ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
 import { Button, Divider, message, Popconfirm, Switch, Tag } from 'antd';
@@ -16,8 +16,7 @@ import {
   RoleCreateRequest,
   RoleUpdateRequest,
 } from '@/services/role';
-import CreateForm from './components/CreateForm';
-import UpdateForm from './components/UpdateForm';
+import RoleForm from './components/RoleForm';
 
 /**
  * 添加角色
@@ -113,7 +112,7 @@ const RoleList: React.FC = () => {
   const [stepFormValues, setStepFormValues] = useState<Role | undefined>();
   const actionRef = useRef<ActionType>();
 
-  const columns: ProDescriptionsItemProps<Role>[] = [
+  const columns: ProColumns<Role>[] = [
     {
       title: 'ID',
       dataIndex: 'id',
@@ -281,11 +280,12 @@ const RoleList: React.FC = () => {
         columns={columns}
       />
       
-      <CreateForm
+      <RoleForm
         onCancel={() => handleModalVisible(false)}
         modalVisible={createModalVisible}
+        isEdit={false}
         onSubmit={async (value) => {
-          const success = await handleAdd(value);
+          const success = await handleAdd(value as RoleCreateRequest);
           if (success) {
             handleModalVisible(false);
             if (actionRef.current) {
@@ -294,11 +294,11 @@ const RoleList: React.FC = () => {
           }
         }}
       />
-      
+
       {stepFormValues && (
-        <UpdateForm
+        <RoleForm
           onSubmit={async (value) => {
-            const success = await handleUpdate(stepFormValues.id, value);
+            const success = await handleUpdate(stepFormValues.id, value as RoleUpdateRequest);
             if (success) {
               handleUpdateModalVisible(false);
               setStepFormValues(undefined);
@@ -313,6 +313,7 @@ const RoleList: React.FC = () => {
           }}
           modalVisible={updateModalVisible}
           values={stepFormValues}
+          isEdit={true}
         />
       )}
     </PageContainer>

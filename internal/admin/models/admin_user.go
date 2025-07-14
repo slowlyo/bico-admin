@@ -17,8 +17,6 @@ type AdminUser struct {
 	Phone       string     `json:"phone" gorm:"size:20;comment:手机号"`
 	Status      int        `json:"status" gorm:"default:1;comment:状态：1-启用，0-禁用"`
 	LastLoginAt *time.Time `json:"last_login_at" gorm:"comment:最后登录时间"`
-	LastLoginIP string     `json:"last_login_ip" gorm:"size:45;comment:最后登录IP"`
-	LoginCount  int        `json:"login_count" gorm:"default:0;comment:登录次数"`
 	Remark      string     `json:"remark" gorm:"size:500;comment:备注"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`

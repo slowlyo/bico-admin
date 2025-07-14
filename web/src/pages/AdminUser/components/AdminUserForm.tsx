@@ -1,19 +1,21 @@
 import { ModalForm, ProFormText, ProFormSwitch } from '@ant-design/pro-components';
 import React from 'react';
-import { AdminUserCreateRequest } from '@/services/adminUser';
+import { AdminUser, AdminUserCreateRequest, AdminUserUpdateRequest } from '@/services/adminUser';
 
-export interface CreateFormProps {
+export interface AdminUserFormProps {
   modalVisible: boolean;
   onCancel: () => void;
-  onSubmit: (values: AdminUserCreateRequest) => Promise<void>;
+  onSubmit: (values: AdminUserCreateRequest | AdminUserUpdateRequest) => Promise<void>;
+  values?: AdminUser; // 编辑时传入，新建时为 undefined
+  isEdit?: boolean; // 是否为编辑模式
 }
 
-const CreateForm: React.FC<CreateFormProps> = (props) => {
-  const { modalVisible, onCancel, onSubmit } = props;
+const AdminUserForm: React.FC<AdminUserFormProps> = (props) => {
+  const { modalVisible, onCancel, onSubmit, values, isEdit = false } = props;
 
   return (
     <ModalForm
-      title="新建管理员用户"
+      title={isEdit ? '编辑管理员用户' : '新建管理员用户'}
       width="400px"
       open={modalVisible}
       onOpenChange={(visible) => {
@@ -21,8 +23,25 @@ const CreateForm: React.FC<CreateFormProps> = (props) => {
           onCancel();
         }
       }}
+      initialValues={
+        isEdit && values
+          ? {
+              username: values.username,
+              name: values.name,
+              email: values.email,
+              phone: values.phone,
+              avatar: values.avatar,
+              enabled: values.status === 1,
+            }
+          : {
+              enabled: true, // 新建时默认启用
+            }
+      }
       onFinish={async (value) => {
-        await onSubmit(value as AdminUserCreateRequest);
+        await onSubmit(value as AdminUserCreateRequest | AdminUserUpdateRequest);
+      }}
+      modalProps={{
+        destroyOnClose: true,
       }}
     >
       <ProFormText
@@ -47,7 +66,7 @@ const CreateForm: React.FC<CreateFormProps> = (props) => {
         label="密码"
         rules={[
           {
-            required: true,
+            required: !isEdit, // 新建时必填，编辑时可选
             message: '密码为必填项',
           },
           {
@@ -56,7 +75,7 @@ const CreateForm: React.FC<CreateFormProps> = (props) => {
             message: '密码长度为6-100个字符',
           },
         ]}
-        placeholder="请输入密码"
+        placeholder={isEdit ? '留空则不修改密码' : '请输入密码'}
       />
       
       <ProFormText
@@ -108,10 +127,9 @@ const CreateForm: React.FC<CreateFormProps> = (props) => {
       <ProFormSwitch
         name="enabled"
         label="启用状态"
-        initialValue={true}
       />
     </ModalForm>
   );
 };
 
-export default CreateForm;
+export default AdminUserForm;

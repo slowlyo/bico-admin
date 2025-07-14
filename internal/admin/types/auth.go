@@ -63,8 +63,6 @@ type AdminUserResponse struct {
 	Status      int        `json:"status"`
 	StatusText  string     `json:"status_text"`
 	LastLoginAt *time.Time `json:"last_login_at"`
-	LastLoginIP string     `json:"last_login_ip"`
-	LoginCount  int        `json:"login_count"`
 	Remark      string     `json:"remark"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`

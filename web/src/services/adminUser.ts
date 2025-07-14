@@ -11,8 +11,6 @@ export interface AdminUser {
   status: number;
   status_text: string;
   last_login_at?: string;
-  last_login_ip?: string;
-  login_count: number;
   remark?: string;
   created_at: string;
   updated_at: string;

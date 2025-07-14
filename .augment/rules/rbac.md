@@ -38,8 +38,6 @@ type AdminUser struct {
     Phone       string     // 手机号
     Status      int        // 状态：1-启用，0-禁用
     LastLoginAt *time.Time // 最后登录时间
-    LastLoginIP string     // 最后登录IP
-    LoginCount  int        // 登录次数
     Remark      string     // 备注
 
     // 关联关系
