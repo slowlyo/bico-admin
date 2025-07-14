@@ -17,6 +17,7 @@ import {
   RoleUpdateRequest,
 } from '@/services/role';
 import RoleForm from './components/RoleForm';
+import PermissionDrawer from './components/PermissionDrawer';
 
 /**
  * 添加角色
@@ -109,7 +110,9 @@ const handleStatusChange = async (id: number, status: number) => {
 const RoleList: React.FC = () => {
   const [createModalVisible, handleModalVisible] = useState<boolean>(false);
   const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
+  const [permissionDrawerVisible, setPermissionDrawerVisible] = useState<boolean>(false);
   const [stepFormValues, setStepFormValues] = useState<Role | undefined>();
+  const [selectedRole, setSelectedRole] = useState<Role | undefined>();
   const actionRef = useRef<ActionType>();
 
   const columns: ProColumns<Role>[] = [
@@ -212,6 +215,17 @@ const RoleList: React.FC = () => {
             编辑
           </Button>
           <Divider type="vertical" />
+          <Button
+            size="small"
+            type="link"
+            onClick={() => {
+              setSelectedRole(record);
+              setPermissionDrawerVisible(true);
+            }}
+          >
+            权限配置
+          </Button>
+          <Divider type="vertical" />
           <Popconfirm
             title="确定要删除这个角色吗？"
             onConfirm={async () => {
@@ -310,6 +324,20 @@ const RoleList: React.FC = () => {
           }
 
           if (success && actionRef.current) {
+            actionRef.current.reload();
+          }
+        }}
+      />
+
+      <PermissionDrawer
+        visible={permissionDrawerVisible}
+        role={selectedRole || null}
+        onClose={() => {
+          setPermissionDrawerVisible(false);
+          setSelectedRole(undefined);
+        }}
+        onSuccess={() => {
+          if (actionRef.current) {
             actionRef.current.reload();
           }
         }}

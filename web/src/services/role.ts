@@ -28,6 +28,29 @@ export interface RoleUpdateRequest {
   status?: number;
 }
 
+// 权限树节点
+export interface PermissionTreeNode {
+  module: string;
+  name: string;
+  permissions: PermissionTreeItem[];
+}
+
+// 权限树项目
+export interface PermissionTreeItem {
+  code: string;
+  name: string;
+  level: number;
+  level_text: string;
+  buttons: string[];
+  apis: string[];
+  selected: boolean;
+}
+
+// 角色权限更新请求
+export interface RolePermissionUpdateRequest {
+  permissions: string[];
+}
+
 // 角色列表请求参数
 export interface RoleListRequest {
   page?: number;
@@ -107,5 +130,25 @@ export async function updateRoleStatus(id: number, status: number): Promise<ApiR
   return request(`/admin/roles/${id}/status`, {
     method: 'PATCH',
     data: { status },
+  });
+}
+
+/**
+ * 获取权限树
+ */
+export async function getPermissionTree(roleId?: number): Promise<ApiResponse<PermissionTreeNode[]>> {
+  return request('/admin/roles/permissions', {
+    method: 'GET',
+    params: roleId ? { role_id: roleId } : {},
+  });
+}
+
+/**
+ * 更新角色权限
+ */
+export async function updateRolePermissions(id: number, data: RolePermissionUpdateRequest): Promise<ApiResponse<null>> {
+  return request(`/admin/roles/${id}/permissions`, {
+    method: 'PUT',
+    data,
   });
 }

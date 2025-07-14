@@ -62,10 +62,13 @@ func RegisterRoutesWithCache(r *gin.Engine, handlers *Handlers, cache cache.Cach
 		roleGroup := protectedGroup.Group("/roles")
 		{
 			roleGroup.GET("", handlers.AdminRoleHandler.GetRoleList)
+			roleGroup.GET("/permissions", handlers.AdminRoleHandler.GetPermissionTree)
 			roleGroup.GET("/:id", handlers.AdminRoleHandler.GetRoleByID)
 			roleGroup.POST("", handlers.AdminRoleHandler.CreateRole)
 			roleGroup.PUT("/:id", handlers.AdminRoleHandler.UpdateRole)
+			roleGroup.PUT("/:id/permissions", handlers.AdminRoleHandler.UpdateRolePermissions)
 			roleGroup.DELETE("/:id", handlers.AdminRoleHandler.DeleteRole)
+			roleGroup.POST("/assign", handlers.AdminRoleHandler.AssignRolesToUser)
 		}
 
 		// 系统管理

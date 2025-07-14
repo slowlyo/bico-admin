@@ -33,16 +33,16 @@ type RoleUpdateRequest struct {
 
 // RoleResponse 角色响应
 type RoleResponse struct {
-	ID          uint                    `json:"id"`
-	Name        string                  `json:"name"`
-	Code        string                  `json:"code"`
-	Description string                  `json:"description"`
-	Status      int                     `json:"status"`
-	StatusText  string                  `json:"status_text"`
+	ID          uint                     `json:"id"`
+	Name        string                   `json:"name"`
+	Code        string                   `json:"code"`
+	Description string                   `json:"description"`
+	Status      int                      `json:"status"`
+	StatusText  string                   `json:"status_text"`
 	Permissions []RolePermissionResponse `json:"permissions"`
-	UserCount   int64                   `json:"user_count"` // 拥有该角色的用户数量
-	CreatedAt   time.Time               `json:"created_at"`
-	UpdatedAt   time.Time               `json:"updated_at"`
+	UserCount   int64                    `json:"user_count"` // 拥有该角色的用户数量
+	CreatedAt   time.Time                `json:"created_at"`
+	UpdatedAt   time.Time                `json:"updated_at"`
 }
 
 // RolePermissionResponse 角色权限响应
@@ -59,6 +59,11 @@ type RoleAssignRequest struct {
 	RoleIDs []uint `json:"role_ids" binding:"required,min=1"`
 }
 
+// RolePermissionUpdateRequest 更新角色权限请求
+type RolePermissionUpdateRequest struct {
+	Permissions []string `json:"permissions" binding:"required"` // 权限代码列表
+}
+
 // UserRoleResponse 用户角色响应
 type UserRoleResponse struct {
 	UserID    uint           `json:"user_id"`
@@ -70,9 +75,9 @@ type UserRoleResponse struct {
 
 // PermissionTreeNode 权限树节点
 type PermissionTreeNode struct {
-	Module      string                `json:"module"`
-	Name        string                `json:"name"`
-	Permissions []PermissionTreeItem  `json:"permissions"`
+	Module      string               `json:"module"`
+	Name        string               `json:"name"`
+	Permissions []PermissionTreeItem `json:"permissions"`
 }
 
 // PermissionTreeItem 权限树项目

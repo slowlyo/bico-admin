@@ -19,6 +19,7 @@ type AdminRoleService interface {
 	DeleteRole(ctx context.Context, id uint) error
 	GetRoleByID(ctx context.Context, id uint) (*types.RoleResponse, error)
 	GetPermissionTree(ctx context.Context, roleID *uint) ([]types.PermissionTreeNode, error)
+	UpdateRolePermissions(ctx context.Context, id uint, req *types.RolePermissionUpdateRequest) error
 	AssignRolesToUser(ctx context.Context, req *types.RoleAssignRequest) error
 	GetUserRoles(ctx context.Context, userID uint) (*types.UserRoleResponse, error)
 	GetUserPermissions(ctx context.Context, userID uint) ([]string, error)
@@ -225,6 +226,32 @@ func (s *adminRoleService) GetPermissionTree(ctx context.Context, roleID *uint) 
 	}
 
 	return treeNodes, nil
+}
+
+// UpdateRolePermissions 更新角色权限
+func (s *adminRoleService) UpdateRolePermissions(ctx context.Context, id uint, req *types.RolePermissionUpdateRequest) error {
+	// 检查角色是否存在
+	_, err := s.adminRoleRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// 验证权限代码
+	if err := s.validatePermissions(req.Permissions); err != nil {
+		return err
+	}
+
+	// 删除旧的权限关联
+	if err := s.adminRoleRepo.DeleteRolePermissions(ctx, nil, id); err != nil {
+		return err
+	}
+
+	// 创建新的权限关联
+	if err := s.adminRoleRepo.CreateRolePermissions(ctx, nil, id, req.Permissions); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // AssignRolesToUser 为管理员用户分配角色

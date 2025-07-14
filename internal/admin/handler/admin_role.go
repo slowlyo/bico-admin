@@ -195,6 +195,38 @@ func (h *AdminRoleHandler) GetPermissionTree(ctx *gin.Context) {
 	response.Success(ctx, result)
 }
 
+// UpdateRolePermissions 更新角色权限
+// @Summary 更新角色权限
+// @Description 更新角色的权限配置
+// @Tags 角色管理
+// @Accept json
+// @Produce json
+// @Param id path int true "角色ID"
+// @Param permissions body types.RolePermissionUpdateRequest true "权限信息"
+// @Success 200 {object} response.Response
+// @Router /api/admin/roles/{id}/permissions [put]
+func (h *AdminRoleHandler) UpdateRolePermissions(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.ErrorWithMessage(ctx, response.CodeBadRequest, "无效的角色ID")
+		return
+	}
+
+	var req types.RolePermissionUpdateRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.ErrorWithMessage(ctx, response.CodeBadRequest, err.Error())
+		return
+	}
+
+	if err := h.roleService.UpdateRolePermissions(ctx.Request.Context(), uint(id), &req); err != nil {
+		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(ctx, nil)
+}
+
 // AssignRolesToUser 为用户分配角色
 // @Summary 为用户分配角色
 // @Description 为管理员用户分配角色
