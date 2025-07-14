@@ -37,93 +37,33 @@ type AdminUserRepository interface {
 
 // adminUserRepository 管理员用户仓储实现
 type adminUserRepository struct {
-	db *gorm.DB
+	*BaseRepository[models.AdminUser]
 }
 
 // NewAdminUserRepository 创建管理员用户仓储
 func NewAdminUserRepository(db *gorm.DB) AdminUserRepository {
 	return &adminUserRepository{
-		db: db,
+		BaseRepository: NewBaseRepository[models.AdminUser](db),
 	}
-}
-
-// Create 创建管理员用户
-func (r *adminUserRepository) Create(ctx context.Context, user *models.AdminUser) error {
-	return r.db.WithContext(ctx).Create(user).Error
-}
-
-// GetByID 根据ID获取管理员用户
-func (r *adminUserRepository) GetByID(ctx context.Context, id uint) (*models.AdminUser, error) {
-	var user models.AdminUser
-	err := r.db.WithContext(ctx).First(&user, id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
 }
 
 // GetByUsername 根据用户名获取管理员用户
 func (r *adminUserRepository) GetByUsername(ctx context.Context, username string) (*models.AdminUser, error) {
 	var user models.AdminUser
-	err := r.db.WithContext(ctx).Where("username = ?", username).First(&user).Error
+	err := r.BaseRepository.db.WithContext(ctx).Where("username = ?", username).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
 	return &user, nil
 }
 
-// Update 更新管理员用户
-func (r *adminUserRepository) Update(ctx context.Context, user *models.AdminUser) error {
-	return r.db.WithContext(ctx).Save(user).Error
-}
-
-// Delete 删除管理员用户
-func (r *adminUserRepository) Delete(ctx context.Context, id uint) error {
-	return r.db.WithContext(ctx).Delete(&models.AdminUser{}, id).Error
-}
-
-// List 分页获取管理员用户列表
-func (r *adminUserRepository) List(ctx context.Context, req *types.BasePageQuery) ([]*models.AdminUser, int64, error) {
-	var users []*models.AdminUser
-	var total int64
-
-	db := r.db.WithContext(ctx).Model(&models.AdminUser{})
-
-	// 计算总数
-	if err := db.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	// 分页查询
-	offset := req.GetOffset()
-	pageSize := req.GetPageSize()
-	err := db.Offset(offset).Limit(pageSize).
-		Order("created_at DESC").
-		Find(&users).Error
-
-	return users, total, err
-}
-
 // ListByStatus 根据状态分页获取管理员用户列表
 func (r *adminUserRepository) ListByStatus(ctx context.Context, enabled bool, req *types.BasePageQuery) ([]*models.AdminUser, int64, error) {
-	var users []*models.AdminUser
-	var total int64
-
-	db := r.db.WithContext(ctx).Model(&models.AdminUser{}).Where("status = ?", enabled)
-
-	// 计算总数
-	if err := db.Count(&total).Error; err != nil {
-		return nil, 0, err
+	status := types.StatusInactive
+	if enabled {
+		status = types.StatusActive
 	}
-
-	// 分页查询
-	offset := req.GetOffset()
-	pageSize := req.GetPageSize()
-	err := db.Offset(offset).Limit(pageSize).
-		Order("created_at DESC").
-		Find(&users).Error
-
-	return users, total, err
+	return r.BaseRepository.ListByStatus(ctx, status, req)
 }
 
 // UpdateStatus 更新管理员用户状态
@@ -132,9 +72,7 @@ func (r *adminUserRepository) UpdateStatus(ctx context.Context, id uint, enabled
 	if enabled {
 		status = types.StatusActive
 	}
-	return r.db.WithContext(ctx).Model(&models.AdminUser{}).
-		Where("id = ?", id).
-		Update("status", status).Error
+	return r.BaseRepository.UpdateStatus(ctx, id, status)
 }
 
 // BatchUpdateStatus 批量更新管理员用户状态
@@ -143,45 +81,24 @@ func (r *adminUserRepository) BatchUpdateStatus(ctx context.Context, ids []uint,
 	if enabled {
 		status = types.StatusActive
 	}
-	return r.db.WithContext(ctx).Model(&models.AdminUser{}).
-		Where("id IN ?", ids).
-		Update("status", status).Error
-}
-
-// Count 统计管理员用户总数
-func (r *adminUserRepository) Count(ctx context.Context) (int64, error) {
-	var count int64
-	err := r.db.WithContext(ctx).Model(&models.AdminUser{}).Count(&count).Error
-	return count, err
+	return r.BaseRepository.BatchUpdateStatus(ctx, ids, status)
 }
 
 // CountByStatus 根据状态统计管理员用户数量
 func (r *adminUserRepository) CountByStatus(ctx context.Context, enabled bool) (int64, error) {
-	var count int64
 	status := types.StatusInactive
 	if enabled {
 		status = types.StatusActive
 	}
-	err := r.db.WithContext(ctx).Model(&models.AdminUser{}).
-		Where("status = ?", status).
-		Count(&count).Error
-	return count, err
+	return r.BaseRepository.CountByStatus(ctx, status)
 }
 
 // ExistsByUsername 检查用户名是否存在
 func (r *adminUserRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
-	var count int64
-	err := r.db.WithContext(ctx).Model(&models.AdminUser{}).
-		Where("username = ?", username).
-		Count(&count).Error
-	return count > 0, err
+	return r.BaseRepository.ExistsByField(ctx, "username", username)
 }
 
 // ExistsByUsernameExcludeID 检查用户名是否存在（排除指定ID）
 func (r *adminUserRepository) ExistsByUsernameExcludeID(ctx context.Context, username string, excludeID uint) (bool, error) {
-	var count int64
-	err := r.db.WithContext(ctx).Model(&models.AdminUser{}).
-		Where("username = ? AND id != ?", username, excludeID).
-		Count(&count).Error
-	return count > 0, err
+	return r.BaseRepository.ExistsByFieldExcludeID(ctx, "username", username, excludeID)
 }
