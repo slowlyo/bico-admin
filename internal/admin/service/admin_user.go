@@ -21,6 +21,7 @@ type AdminUserService interface {
 	Delete(ctx context.Context, id uint) error
 	UpdateStatus(ctx context.Context, id uint, enabled bool) error
 	List(ctx context.Context, req *sharedTypes.BasePageQuery) ([]*models.AdminUser, int64, error)
+	ListWithFilter(ctx context.Context, req *types.AdminUserListRequest) ([]*models.AdminUser, int64, error)
 }
 
 // adminUserService 管理员用户服务实现
@@ -138,4 +139,9 @@ func (s *adminUserService) UpdateStatus(ctx context.Context, id uint, enabled bo
 // List 获取管理员用户列表
 func (s *adminUserService) List(ctx context.Context, req *sharedTypes.BasePageQuery) ([]*models.AdminUser, int64, error) {
 	return s.adminUserRepo.List(ctx, req)
+}
+
+// ListWithFilter 获取管理员用户列表（带筛选）
+func (s *adminUserService) ListWithFilter(ctx context.Context, req *types.AdminUserListRequest) ([]*models.AdminUser, int64, error) {
+	return s.adminUserRepo.ListWithFilter(ctx, req)
 }

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"bico-admin/internal/admin/definitions"
 	"bico-admin/internal/admin/models"
@@ -185,7 +186,7 @@ func (s *adminRoleService) GetRoleByID(ctx context.Context, id uint) (*types.Rol
 // GetPermissionTree 获取权限树
 func (s *adminRoleService) GetPermissionTree(ctx context.Context, roleID *uint) ([]types.PermissionTreeNode, error) {
 	// 获取所有权限定义
-	permissionGroups := definitions.GetAllPermissions()
+	permissionTree := definitions.GetAllPermissions()
 
 	// 如果指定了角色ID，获取该角色的权限
 	var rolePermissions map[string]bool
@@ -201,31 +202,61 @@ func (s *adminRoleService) GetPermissionTree(ctx context.Context, roleID *uint) 
 		}
 	}
 
-	// 构建权限树
+	// 构建权限树（转换为旧的PermissionTreeNode格式以保持兼容性）
 	var treeNodes []types.PermissionTreeNode
-	for _, group := range permissionGroups {
+	for _, rootPerm := range permissionTree {
 		node := types.PermissionTreeNode{
-			Module: group.Module,
-			Name:   group.Name,
+			Module: rootPerm.Code,
+			Name:   rootPerm.Name,
 		}
 
-		for _, permission := range group.Permissions {
-			item := types.PermissionTreeItem{
-				Code:      permission.Code,
-				Name:      permission.Name,
-				Level:     permission.Level,
-				LevelText: s.getLevelText(permission.Level),
-				Buttons:   permission.Buttons,
-				APIs:      permission.APIs,
-				Selected:  rolePermissions != nil && rolePermissions[permission.Code],
+		// 递归收集所有子权限
+		allPermissions := s.flattenPermissionChildren(rootPerm)
+		for _, permission := range allPermissions {
+			// 只添加操作类型的权限到树中
+			if permission.Type == definitions.PermissionTypeAction {
+				item := types.PermissionTreeItem{
+					Code:      permission.Code,
+					Name:      permission.Name,
+					Level:     permission.Level,
+					LevelText: s.getLevelText(permission.Level),
+					Buttons:   permission.Buttons,
+					APIs:      permission.APIs,
+					Selected:  rolePermissions != nil && rolePermissions[permission.Code],
+				}
+				node.Permissions = append(node.Permissions, item)
 			}
-			node.Permissions = append(node.Permissions, item)
 		}
 
 		treeNodes = append(treeNodes, node)
 	}
 
 	return treeNodes, nil
+}
+
+// flattenPermissionChildren 递归展平权限的所有子权限
+func (s *adminRoleService) flattenPermissionChildren(perm definitions.Permission) []definitions.Permission {
+	var result []definitions.Permission
+
+	// 添加当前权限
+	result = append(result, perm)
+
+	// 递归添加子权限
+	for _, child := range perm.Children {
+		result = append(result, s.flattenPermissionChildren(child)...)
+	}
+
+	return result
+}
+
+// extractModuleFromPermissionCode 从权限代码中提取模块信息
+func (s *adminRoleService) extractModuleFromPermissionCode(code string) string {
+	// 权限代码格式：system.admin_user:list -> 返回 system.admin_user
+	// 或者 system -> 返回 system
+	if idx := strings.Index(code, ":"); idx != -1 {
+		return code[:idx]
+	}
+	return code
 }
 
 // UpdateRolePermissions 更新角色权限
@@ -378,10 +409,12 @@ func (s *adminRoleService) convertToRoleResponse(ctx context.Context, role model
 	var permissions []types.RolePermissionResponse
 	for _, permission := range role.Permissions {
 		if permissionDef := definitions.GetPermissionByCode(permission.PermissionCode); permissionDef != nil {
+			// 从权限代码中提取模块信息
+			module := s.extractModuleFromPermissionCode(permissionDef.Code)
 			permissions = append(permissions, types.RolePermissionResponse{
 				PermissionCode: permission.PermissionCode,
 				PermissionName: permissionDef.Name,
-				Module:         permissionDef.Module,
+				Module:         module,
 				Level:          permissionDef.Level,
 			})
 		}

@@ -4,7 +4,7 @@ import {
   ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Divider, message, Popconfirm, Switch, Tag } from 'antd';
+import { Button, Divider, message, Popconfirm, Switch } from 'antd';
 import React, { useRef, useState } from 'react';
 import {
   getRoleList,
@@ -120,6 +120,7 @@ const RoleList: React.FC = () => {
       title: 'ID',
       dataIndex: 'id',
       hideInForm: true,
+      hideInSearch: true,
       width: 80,
     },
     {
@@ -177,6 +178,11 @@ const RoleList: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       hideInForm: true,
+      valueType: 'select',
+      valueEnum: {
+        1: { text: '启用', status: 'Success' },
+        0: { text: '禁用', status: 'Default' },
+      },
       render: (_, record) => (
         <Switch
           checked={record.status === 1}
@@ -274,6 +280,7 @@ const RoleList: React.FC = () => {
             page_size: params.pageSize || 10,
             code: params.code,
             name: params.name,
+            status: params.status,
           });
           
           if (response.code === 200) {

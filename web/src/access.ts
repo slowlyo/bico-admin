@@ -25,17 +25,17 @@ export default (initialState: InitialState) => {
     canSeeAdmin: isLogin,
 
     // 管理员管理权限
-    canViewAdminUsers: hasPermission('admin_user:list'),
-    canCreateAdminUser: hasPermission('admin_user:create'),
-    canEditAdminUser: hasPermission('admin_user:update'),
-    canDeleteAdminUser: hasPermission('admin_user:delete'),
-    canResetAdminPassword: hasPermission('admin_user:reset_password'),
+    canViewAdminUsers: hasPermission('system.admin_user:list'),
+    canCreateAdminUser: hasPermission('system.admin_user:create'),
+    canEditAdminUser: hasPermission('system.admin_user:update'),
+    canDeleteAdminUser: hasPermission('system.admin_user:delete'),
+    canResetAdminPassword: hasPermission('system.admin_user:reset_password'),
 
     // 角色管理权限
-    canViewRoles: hasPermission('role:list'),
-    canCreateRole: hasPermission('role:create'),
-    canEditRole: hasPermission('role:update'),
-    canDeleteRole: hasPermission('role:delete'),
+    canViewRoles: hasPermission('system.role:list'),
+    canCreateRole: hasPermission('system.role:create'),
+    canEditRole: hasPermission('system.role:update'),
+    canDeleteRole: hasPermission('system.role:delete'),
 
     // 通用权限检查函数，供组件使用
     hasPermission,

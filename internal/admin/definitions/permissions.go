@@ -1,24 +1,22 @@
 package definitions
 
-import (
-	"strings"
-)
+import "strings"
 
 // Permission 权限定义（静态配置，程序中定义）
 type Permission struct {
-	Code    string   `json:"code"`    // 权限代码，如 "user:list"
-	Name    string   `json:"name"`    // 权限名称，如 "查看用户列表"
-	Module  string   `json:"module"`  // 所属模块，如 "user", "system"
-	Buttons []string `json:"buttons"` // 关联的按钮标识列表，如 ["create", "edit", "delete"]
-	APIs    []string `json:"apis"`    // 关联的API路径列表，如 ["/api/admin/users", "/api/admin/users/:id"]
-	Level   int      `json:"level"`   // 权限级别：1-查看，2-操作，3-管理，4-超级
+	Code     string       `json:"code"`      // 权限代码，如 "system.admin_user:list"
+	Name     string       `json:"name"`      // 权限名称，如 "查看管理员列表"
+	ParentID string       `json:"parent_id"` // 父权限ID，空表示根权限
+	Type     string       `json:"type"`      // 权限类型：module(模块), action(操作)
+	Buttons  []string     `json:"buttons"`   // 关联的按钮标识列表
+	APIs     []string     `json:"apis"`      // 关联的API路径列表
+	Level    int          `json:"level"`     // 权限级别：1-查看，2-操作，3-管理，4-超级
+	Children []Permission `json:"children"`  // 子权限列表
 }
 
-// PermissionGroup 权限组（按模块分组）
-type PermissionGroup struct {
-	Module      string       `json:"module"`      // 模块名称
-	Name        string       `json:"name"`        // 模块显示名称
-	Permissions []Permission `json:"permissions"` // 该模块下的权限列表
+// PermissionTree 权限树结构
+type PermissionTree struct {
+	Permissions []Permission `json:"permissions"` // 权限树
 }
 
 // 权限级别常量
@@ -29,39 +27,39 @@ const (
 	PermissionLevelSuper  = 4 // 超级权限
 )
 
-// PermissionDef 权限定义的简化结构（用于生成完整权限）
+// 权限类型常量
+const (
+	PermissionTypeModule = "module" // 模块权限
+	PermissionTypeAction = "action" // 操作权限
+)
+
+// PermissionDef 权限定义的简化结构
 type PermissionDef struct {
 	Code    string
 	Name    string
+	Parent  string
+	Type    string
 	Level   int
 	Buttons string // 逗号分隔
 	APIs    string // 逗号分隔
 }
 
-// ModuleDef 模块定义
-type ModuleDef struct {
-	Module      string
-	Name        string
-	Permissions []PermissionDef
-}
+// 权限定义数据（扁平化，程序自动构建树形结构）
+var permissionDefs = []PermissionDef{
+	// 系统管理
+	{"system", "系统管理", "", "module", 1, "", ""},
+	{"system.admin_user", "管理员管理", "system", "module", 1, "", ""},
+	{"system.admin_user:list", "查看管理员列表", "system.admin_user", "action", 1, "search,filter", "/api/admin/admin-users"},
+	{"system.admin_user:create", "创建管理员", "system.admin_user", "action", 3, "create", "/api/admin/admin-users"},
+	{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/api/admin/admin-users/:id"},
+	{"system.admin_user:delete", "删除管理员", "system.admin_user", "action", 4, "delete", "/api/admin/admin-users/:id"},
+	{"system.admin_user:reset_password", "重置管理员密码", "system.admin_user", "action", 3, "reset_password", "/api/admin/admin-users/:id/password"},
 
-// 权限定义数据（大幅简化的格式）
-var permissionData = []ModuleDef{
-
-	{"admin_user", "管理员管理", []PermissionDef{
-		{"admin_user:list", "查看管理员列表", 1, "search,filter", "/api/admin/admin-users"},
-		{"admin_user:create", "创建管理员", 3, "create", "/api/admin/admin-users"},
-		{"admin_user:update", "编辑管理员", 3, "edit,save", "/api/admin/admin-users/:id"},
-		{"admin_user:delete", "删除管理员", 4, "delete", "/api/admin/admin-users/:id"},
-		{"admin_user:reset_password", "重置管理员密码", 3, "reset_password", "/api/admin/admin-users/:id/password"},
-	}},
-
-	{"role", "角色管理", []PermissionDef{
-		{"role:list", "查看角色列表", 1, "search,filter", "/api/admin/roles"},
-		{"role:create", "创建角色", 3, "create", "/api/admin/roles"},
-		{"role:update", "编辑角色", 3, "edit,save,assign_permissions", "/api/admin/roles/:id,/api/admin/roles/:id/permissions"},
-		{"role:delete", "删除角色", 4, "delete", "/api/admin/roles/:id"},
-	}},
+	{"system.role", "角色管理", "system", "module", 1, "", ""},
+	{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/api/admin/roles"},
+	{"system.role:create", "创建角色", "system.role", "action", 3, "create", "/api/admin/roles"},
+	{"system.role:update", "编辑角色", "system.role", "action", 3, "edit,save,assign_permissions", "/api/admin/roles/:id,/api/admin/roles/:id/permissions"},
+	{"system.role:delete", "删除角色", "system.role", "action", 4, "delete", "/api/admin/roles/:id"},
 }
 
 // splitString 分割字符串并去除空白
@@ -79,69 +77,127 @@ func splitString(s string) []string {
 	return result
 }
 
-// buildPermission 从简化定义构建完整权限
-func buildPermission(module string, def PermissionDef) Permission {
-	return Permission{
-		Code:    def.Code,
-		Name:    def.Name,
-		Module:  module,
-		Buttons: splitString(def.Buttons),
-		APIs:    splitString(def.APIs),
-		Level:   def.Level,
+// buildPermissionTree 从扁平化定义构建权限树
+func buildPermissionTree() []Permission {
+	// 先构建所有权限的映射
+	permMap := make(map[string]*Permission)
+	for _, def := range permissionDefs {
+		perm := &Permission{
+			Code:     def.Code,
+			Name:     def.Name,
+			ParentID: def.Parent,
+			Type:     def.Type,
+			Level:    def.Level,
+			Buttons:  splitString(def.Buttons),
+			APIs:     splitString(def.APIs),
+			Children: []Permission{},
+		}
+		permMap[def.Code] = perm
 	}
+
+	// 构建树形结构
+	var roots []Permission
+	for _, perm := range permMap {
+		if perm.ParentID == "" {
+			roots = append(roots, *perm)
+		} else if parent, exists := permMap[perm.ParentID]; exists {
+			parent.Children = append(parent.Children, *perm)
+		}
+	}
+
+	return roots
+}
+
+// 权限数据（懒加载）
+var permissionData []Permission
+
+// 初始化权限数据
+func init() {
+	permissionData = buildPermissionTree()
 }
 
 // GetAllPermissions 获取所有权限定义（静态配置）
-func GetAllPermissions() []PermissionGroup {
-	groups := make([]PermissionGroup, 0, len(permissionData))
+func GetAllPermissions() []Permission {
+	return permissionData
+}
 
-	for _, moduleDef := range permissionData {
-		permissions := make([]Permission, 0, len(moduleDef.Permissions))
-		for _, permDef := range moduleDef.Permissions {
-			permissions = append(permissions, buildPermission(moduleDef.Module, permDef))
-		}
-
-		groups = append(groups, PermissionGroup{
-			Module:      moduleDef.Module,
-			Name:        moduleDef.Name,
-			Permissions: permissions,
-		})
+// GetPermissionTree 获取权限树
+func GetPermissionTree() PermissionTree {
+	return PermissionTree{
+		Permissions: permissionData,
 	}
+}
 
-	return groups
+// flattenPermissions 递归展平权限树，获取所有权限的扁平列表
+func flattenPermissions(permissions []Permission) []Permission {
+	var result []Permission
+	for _, perm := range permissions {
+		result = append(result, perm)
+		if len(perm.Children) > 0 {
+			result = append(result, flattenPermissions(perm.Children)...)
+		}
+	}
+	return result
+}
+
+// GetAllPermissionsFlat 获取所有权限的扁平列表
+func GetAllPermissionsFlat() []Permission {
+	return flattenPermissions(permissionData)
 }
 
 // GetPermissionCodes 获取所有权限代码列表
 func GetPermissionCodes() []string {
 	var codes []string
-	for _, group := range GetAllPermissions() {
-		for _, permission := range group.Permissions {
-			codes = append(codes, permission.Code)
-		}
+	allPermissions := GetAllPermissionsFlat()
+	for _, permission := range allPermissions {
+		codes = append(codes, permission.Code)
 	}
 	return codes
 }
 
 // GetPermissionByCode 根据权限代码获取权限详情
 func GetPermissionByCode(code string) *Permission {
-	for _, group := range GetAllPermissions() {
-		for _, permission := range group.Permissions {
-			if permission.Code == code {
-				return &permission
+	return findPermissionByCode(permissionData, code)
+}
+
+// findPermissionByCode 递归查找权限
+func findPermissionByCode(permissions []Permission, code string) *Permission {
+	for _, perm := range permissions {
+		if perm.Code == code {
+			return &perm
+		}
+		if len(perm.Children) > 0 {
+			if found := findPermissionByCode(perm.Children, code); found != nil {
+				return found
 			}
 		}
 	}
 	return nil
 }
 
-// GetPermissionsByModule 根据模块获取权限
-func GetPermissionsByModule(module string) []Permission {
-	for _, group := range GetAllPermissions() {
-		if group.Module == module {
-			return group.Permissions
-		}
+// GetPermissionsByParent 根据父权限ID获取子权限
+func GetPermissionsByParent(parentID string) []Permission {
+	if parentID == "" {
+		return permissionData // 返回根权限
+	}
+
+	parent := GetPermissionByCode(parentID)
+	if parent != nil {
+		return parent.Children
 	}
 	return nil
+}
+
+// GetPermissionsByType 根据权限类型获取权限
+func GetPermissionsByType(permType string) []Permission {
+	var result []Permission
+	allPermissions := GetAllPermissionsFlat()
+	for _, perm := range allPermissions {
+		if perm.Type == permType {
+			result = append(result, perm)
+		}
+	}
+	return result
 }
 
 // GetAPIPathsByPermissions 根据权限列表获取所有关联的API路径

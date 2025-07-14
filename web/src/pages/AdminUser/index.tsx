@@ -117,6 +117,7 @@ const AdminUserList: React.FC = () => {
       title: 'ID',
       dataIndex: 'id',
       hideInForm: true,
+      hideInSearch: true,
       width: 80,
     },
     {
@@ -174,6 +175,11 @@ const AdminUserList: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       hideInForm: true,
+      valueType: 'select',
+      valueEnum: {
+        1: { text: '启用', status: 'Success' },
+        0: { text: '禁用', status: 'Default' },
+      },
       render: (_, record) => (
         <Switch
           checked={record.status === 1}
@@ -266,6 +272,9 @@ const AdminUserList: React.FC = () => {
           const response = await getAdminUserList({
             page: params.current || 1,
             page_size: params.pageSize || 10,
+            username: params.username,
+            name: params.name,
+            status: params.status,
           });
           
           if (response.code === 200) {

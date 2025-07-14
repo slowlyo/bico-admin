@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Drawer, Tree, Button, message, Spin, Space, Input } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import React, { useEffect, useState } from 'react';
+import { Drawer, Tree, Button, message, Spin, Space } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import {
   getPermissionTree,
@@ -24,10 +23,9 @@ const PermissionDrawer: React.FC<PermissionDrawerProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [originalTreeData, setOriginalTreeData] = useState<DataNode[]>([]);
+  const [treeData, setTreeData] = useState<DataNode[]>([]);
   const [checkedKeys, setCheckedKeys] = useState<React.Key[]>([]);
   const [allPermissionKeys, setAllPermissionKeys] = useState<string[]>([]);
-  const [searchValue, setSearchValue] = useState<string>('');
 
   // 转换权限树数据为Tree组件需要的格式
   const convertToTreeData = (permissions: PermissionTreeNode[]): DataNode[] => {
@@ -50,7 +48,7 @@ const PermissionDrawer: React.FC<PermissionDrawerProps> = ({
     });
 
     setAllPermissionKeys(allKeys);
-    setOriginalTreeData(treeData);
+    setTreeData(treeData);
     return treeData;
   };
 
@@ -112,35 +110,7 @@ const PermissionDrawer: React.FC<PermissionDrawerProps> = ({
     setCheckedKeys([]);
   };
 
-  // 筛选树数据
-  const filteredTreeData = useMemo(() => {
-    if (!searchValue.trim()) {
-      return originalTreeData;
-    }
 
-    const filterTree = (nodes: DataNode[]): DataNode[] => {
-      return nodes.map(node => {
-        const children = node.children ? filterTree(node.children) : [];
-        const titleStr = typeof node.title === 'string' ? node.title : '';
-        const matchesSearch = titleStr.toLowerCase().includes(searchValue.toLowerCase());
-
-        if (matchesSearch || children.length > 0) {
-          return {
-            ...node,
-            children: children.length > 0 ? children : node.children,
-          };
-        }
-        return null;
-      }).filter(Boolean) as DataNode[];
-    };
-
-    return filterTree(originalTreeData);
-  }, [originalTreeData, searchValue]);
-
-  // 处理搜索
-  const handleSearch = (value: string) => {
-    setSearchValue(value);
-  };
 
   // 提交权限配置
   const handleSubmit = async () => {
@@ -201,14 +171,6 @@ const PermissionDrawer: React.FC<PermissionDrawerProps> = ({
     >
       <Spin spinning={loading}>
         <div style={{ marginBottom: 16 }}>
-          <Input
-            placeholder="搜索权限..."
-            prefix={<SearchOutlined />}
-            value={searchValue}
-            onChange={(e) => handleSearch(e.target.value)}
-            style={{ marginBottom: 12 }}
-            allowClear
-          />
           <Space>
             <Button size="small" onClick={handleSelectAll}>
               全选
@@ -234,9 +196,7 @@ const PermissionDrawer: React.FC<PermissionDrawerProps> = ({
             checkedKeys={checkedKeys}
             onCheck={handleCheck}
             height={400}
-            treeData={filteredTreeData}
-            expandedKeys={searchValue ? allPermissionKeys : undefined}
-            autoExpandParent={!!searchValue}
+            treeData={treeData}
           />
         </div>
       </Spin>

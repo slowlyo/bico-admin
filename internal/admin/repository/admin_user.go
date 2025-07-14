@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 
 	"bico-admin/internal/admin/models"
+	adminTypes "bico-admin/internal/admin/types"
 	"bico-admin/internal/shared/types"
 )
 
@@ -21,6 +22,7 @@ type AdminUserRepository interface {
 	// 查询方法
 	List(ctx context.Context, req *types.BasePageQuery) ([]*models.AdminUser, int64, error)
 	ListByStatus(ctx context.Context, enabled bool, req *types.BasePageQuery) ([]*models.AdminUser, int64, error)
+	ListWithFilter(ctx context.Context, req *adminTypes.AdminUserListRequest) ([]*models.AdminUser, int64, error)
 
 	// 状态管理
 	UpdateStatus(ctx context.Context, id uint, enabled bool) error
@@ -101,4 +103,37 @@ func (r *adminUserRepository) ExistsByUsername(ctx context.Context, username str
 // ExistsByUsernameExcludeID 检查用户名是否存在（排除指定ID）
 func (r *adminUserRepository) ExistsByUsernameExcludeID(ctx context.Context, username string, excludeID uint) (bool, error) {
 	return r.BaseRepository.ExistsByFieldExcludeID(ctx, "username", username, excludeID)
+}
+
+// ListWithFilter 根据条件分页获取管理员用户列表
+func (r *adminUserRepository) ListWithFilter(ctx context.Context, req *adminTypes.AdminUserListRequest) ([]*models.AdminUser, int64, error) {
+	var users []*models.AdminUser
+	var total int64
+
+	db := r.BaseRepository.db.WithContext(ctx).Model(&models.AdminUser{})
+
+	// 条件过滤
+	if req.Username != "" {
+		db = db.Where("username LIKE ?", "%"+req.Username+"%")
+	}
+	if req.Name != "" {
+		db = db.Where("name LIKE ?", "%"+req.Name+"%")
+	}
+	if req.Status != nil {
+		db = db.Where("status = ?", *req.Status)
+	}
+
+	// 计算总数
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// 分页查询
+	offset := req.GetOffset()
+	pageSize := req.GetPageSize()
+	err := db.Offset(offset).Limit(pageSize).
+		Order("created_at DESC").
+		Find(&users).Error
+
+	return users, total, err
 }

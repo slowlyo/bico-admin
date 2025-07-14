@@ -52,6 +52,14 @@ type AdminUserUpdateRequest struct {
 	Enabled  bool   `json:"enabled"`
 }
 
+// AdminUserListRequest 管理员用户列表请求
+type AdminUserListRequest struct {
+	types.BasePageQuery
+	Username string `form:"username" json:"username"` // 用户名
+	Name     string `form:"name" json:"name"`         // 姓名
+	Status   *int   `form:"status" json:"status"`     // 状态
+}
+
 // AdminUserResponse 管理员用户响应
 type AdminUserResponse struct {
 	ID          uint       `json:"id"`

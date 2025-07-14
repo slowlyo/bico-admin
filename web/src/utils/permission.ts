@@ -34,18 +34,23 @@ export function hasAllPermissions(userPermissions: string[], permissions: string
  * 权限常量定义
  */
 export const PERMISSIONS = {
+  // 系统管理
+  SYSTEM: 'system',
+
   // 管理员管理
-  ADMIN_USER_LIST: 'admin_user:list',
-  ADMIN_USER_CREATE: 'admin_user:create',
-  ADMIN_USER_UPDATE: 'admin_user:update',
-  ADMIN_USER_DELETE: 'admin_user:delete',
-  ADMIN_USER_RESET_PASSWORD: 'admin_user:reset_password',
+  ADMIN_USER_MODULE: 'system.admin_user',
+  ADMIN_USER_LIST: 'system.admin_user:list',
+  ADMIN_USER_CREATE: 'system.admin_user:create',
+  ADMIN_USER_UPDATE: 'system.admin_user:update',
+  ADMIN_USER_DELETE: 'system.admin_user:delete',
+  ADMIN_USER_RESET_PASSWORD: 'system.admin_user:reset_password',
 
   // 角色管理
-  ROLE_LIST: 'role:list',
-  ROLE_CREATE: 'role:create',
-  ROLE_UPDATE: 'role:update',
-  ROLE_DELETE: 'role:delete',
+  ROLE_MODULE: 'system.role',
+  ROLE_LIST: 'system.role:list',
+  ROLE_CREATE: 'system.role:create',
+  ROLE_UPDATE: 'system.role:update',
+  ROLE_DELETE: 'system.role:delete',
 } as const;
 
 /**

@@ -29,17 +29,20 @@ func NewAdminUserHandler(adminUserService service.AdminUserService) *AdminUserHa
 // @Security ApiKeyAuth
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页数量" default(10)
+// @Param username query string false "用户名"
+// @Param name query string false "姓名"
+// @Param status query int false "状态"
 // @Success 200 {object} response.PageResponse{list=[]types.AdminUserResponse}
 // @Failure 400 {object} response.ApiResponse
 // @Router /admin/admin-users [get]
 func (h *AdminUserHandler) GetList(c *gin.Context) {
-	var req sharedTypes.BasePageQuery
+	var req types.AdminUserListRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
 		response.ValidationError(c, err.Error())
 		return
 	}
 
-	users, total, err := h.adminUserService.List(c.Request.Context(), &req)
+	users, total, err := h.adminUserService.ListWithFilter(c.Request.Context(), &req)
 	if err != nil {
 		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
 		return

@@ -35,6 +35,9 @@ export interface AdminUserUpdateRequest {
 export interface AdminUserListParams {
   page?: number;
   page_size?: number;
+  username?: string;
+  name?: string;
+  status?: number;
 }
 
 export interface AdminUserListResponse {
