@@ -287,41 +287,39 @@ const AdminUserList: React.FC = () => {
       />
       
       <AdminUserForm
-        onCancel={() => handleModalVisible(false)}
-        modalVisible={createModalVisible}
-        isEdit={false}
-        onSubmit={async (value) => {
-          const success = await handleAdd(value as AdminUserCreateRequest);
-          if (success) {
+        modalVisible={createModalVisible || updateModalVisible}
+        isEdit={!!stepFormValues}
+        values={stepFormValues}
+        onCancel={() => {
+          if (createModalVisible) {
             handleModalVisible(false);
-            if (actionRef.current) {
-              actionRef.current.reload();
-            }
+          } else {
+            handleUpdateModalVisible(false);
+            setStepFormValues(undefined);
           }
         }}
-      />
-
-      {stepFormValues && (
-        <AdminUserForm
-          onSubmit={async (value) => {
-            const success = await handleUpdate(stepFormValues.id, value as AdminUserUpdateRequest);
+        onSubmit={async (value) => {
+          let success = false;
+          if (stepFormValues) {
+            // 编辑模式
+            success = await handleUpdate(stepFormValues.id, value as AdminUserUpdateRequest);
             if (success) {
               handleUpdateModalVisible(false);
               setStepFormValues(undefined);
-              if (actionRef.current) {
-                actionRef.current.reload();
-              }
             }
-          }}
-          onCancel={() => {
-            handleUpdateModalVisible(false);
-            setStepFormValues(undefined);
-          }}
-          modalVisible={updateModalVisible}
-          values={stepFormValues}
-          isEdit={true}
-        />
-      )}
+          } else {
+            // 创建模式
+            success = await handleAdd(value as AdminUserCreateRequest);
+            if (success) {
+              handleModalVisible(false);
+            }
+          }
+
+          if (success && actionRef.current) {
+            actionRef.current.reload();
+          }
+        }}
+      />
     </PageContainer>
   );
 };
