@@ -12,11 +12,11 @@ import (
 
 // AdminRoleHandler 管理员角色处理器
 type AdminRoleHandler struct {
-	roleService *service.AdminRoleService
+	roleService service.AdminRoleService
 }
 
 // NewAdminRoleHandler 创建管理员角色处理器
-func NewAdminRoleHandler(roleService *service.AdminRoleService) *AdminRoleHandler {
+func NewAdminRoleHandler(roleService service.AdminRoleService) *AdminRoleHandler {
 	return &AdminRoleHandler{
 		roleService: roleService,
 	}
@@ -50,7 +50,7 @@ func (h *AdminRoleHandler) GetRoleList(ctx *gin.Context) {
 		req.PageSize = 10
 	}
 
-	result, err := h.roleService.GetRoleList(&req)
+	result, err := h.roleService.GetRoleList(ctx.Request.Context(), &req)
 	if err != nil {
 		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
@@ -75,7 +75,7 @@ func (h *AdminRoleHandler) CreateRole(ctx *gin.Context) {
 		return
 	}
 
-	result, err := h.roleService.CreateRole(&req)
+	result, err := h.roleService.CreateRole(ctx.Request.Context(), &req)
 	if err != nil {
 		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
@@ -108,7 +108,7 @@ func (h *AdminRoleHandler) UpdateRole(ctx *gin.Context) {
 		return
 	}
 
-	result, err := h.roleService.UpdateRole(uint(id), &req)
+	result, err := h.roleService.UpdateRole(ctx.Request.Context(), uint(id), &req)
 	if err != nil {
 		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
@@ -134,7 +134,7 @@ func (h *AdminRoleHandler) DeleteRole(ctx *gin.Context) {
 		return
 	}
 
-	if err := h.roleService.DeleteRole(uint(id)); err != nil {
+	if err := h.roleService.DeleteRole(ctx.Request.Context(), uint(id)); err != nil {
 		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
 	}
@@ -159,7 +159,7 @@ func (h *AdminRoleHandler) GetRoleByID(ctx *gin.Context) {
 		return
 	}
 
-	result, err := h.roleService.GetRoleByID(uint(id))
+	result, err := h.roleService.GetRoleByID(ctx.Request.Context(), uint(id))
 	if err != nil {
 		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
@@ -186,7 +186,7 @@ func (h *AdminRoleHandler) GetPermissionTree(ctx *gin.Context) {
 		}
 	}
 
-	result, err := h.roleService.GetPermissionTree(roleID)
+	result, err := h.roleService.GetPermissionTree(ctx.Request.Context(), roleID)
 	if err != nil {
 		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
@@ -211,7 +211,7 @@ func (h *AdminRoleHandler) AssignRolesToUser(ctx *gin.Context) {
 		return
 	}
 
-	if err := h.roleService.AssignRolesToUser(&req); err != nil {
+	if err := h.roleService.AssignRolesToUser(ctx.Request.Context(), &req); err != nil {
 		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
 	}
@@ -236,7 +236,7 @@ func (h *AdminRoleHandler) GetUserRoles(ctx *gin.Context) {
 		return
 	}
 
-	result, err := h.roleService.GetUserRoles(uint(userID))
+	result, err := h.roleService.GetUserRoles(ctx.Request.Context(), uint(userID))
 	if err != nil {
 		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
@@ -254,7 +254,7 @@ func (h *AdminRoleHandler) GetUserRoles(ctx *gin.Context) {
 // @Success 200 {object} response.Response{data=types.RoleStatsResponse}
 // @Router /api/admin/roles/stats [get]
 func (h *AdminRoleHandler) GetRoleStats(ctx *gin.Context) {
-	result, err := h.roleService.GetRoleStats()
+	result, err := h.roleService.GetRoleStats(ctx.Request.Context())
 	if err != nil {
 		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
 		return
