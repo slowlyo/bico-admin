@@ -63,6 +63,7 @@ func RegisterRoutes(r *gin.Engine, handlers *Handlers, cache cache.Cache, permis
 		roleGroup := protectedGroup.Group("/roles")
 		{
 			roleGroup.GET("", handlers.AdminRoleHandler.GetRoleList)
+			roleGroup.GET("/options", handlers.AdminRoleHandler.GetRoleOptions)
 			roleGroup.GET("/permissions", handlers.AdminRoleHandler.GetPermissionTree)
 			roleGroup.GET("/:id", handlers.AdminRoleHandler.GetRoleByID)
 			roleGroup.POST("", handlers.AdminRoleHandler.CreateRole)

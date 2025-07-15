@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -26,6 +27,7 @@ type AdminUserRepository interface {
 
 	// 状态管理
 	UpdateStatus(ctx context.Context, id uint, enabled bool) error
+	UpdateLastLoginTime(ctx context.Context, id uint) error
 	BatchUpdateStatus(ctx context.Context, ids []uint, enabled bool) error
 
 	// 统计方法
@@ -96,6 +98,15 @@ func (r *adminUserRepository) UpdateStatus(ctx context.Context, id uint, enabled
 	return r.BaseRepository.UpdateStatus(ctx, id, status)
 }
 
+// UpdateLastLoginTime 更新最后登录时间
+func (r *adminUserRepository) UpdateLastLoginTime(ctx context.Context, id uint) error {
+	now := time.Now()
+	return r.BaseRepository.db.WithContext(ctx).
+		Model(&models.AdminUser{}).
+		Where("id = ?", id).
+		Update("last_login_at", now).Error
+}
+
 // BatchUpdateStatus 批量更新管理员用户状态
 func (r *adminUserRepository) BatchUpdateStatus(ctx context.Context, ids []uint, enabled bool) error {
 	status := types.StatusInactive
@@ -141,6 +152,11 @@ func (r *adminUserRepository) ListWithFilter(ctx context.Context, req *adminType
 	if req.Status != nil {
 		db = db.Where("status = ?", *req.Status)
 	}
+	if req.RoleID != nil {
+		// 通过角色筛选用户
+		db = db.Joins("JOIN admin_user_roles ON admin_users.id = admin_user_roles.user_id").
+			Where("admin_user_roles.role_id = ?", *req.RoleID)
+	}
 
 	// 计算总数
 	if err := db.Count(&total).Error; err != nil {
@@ -151,7 +167,7 @@ func (r *adminUserRepository) ListWithFilter(ctx context.Context, req *adminType
 	offset := req.GetOffset()
 	pageSize := req.GetPageSize()
 	err := db.Offset(offset).Limit(pageSize).
-		Order("created_at DESC").
+		Order("admin_users.created_at DESC").
 		Find(&users).Error
 
 	return users, total, err

@@ -234,6 +234,7 @@ const RoleList: React.FC = () => {
           <Button
             size="small"
             type="link"
+            disabled={!record.can_edit}
             onClick={() => {
               setSelectedRole(record);
               setPermissionDrawerVisible(true);
@@ -275,7 +276,6 @@ const RoleList: React.FC = () => {
       }}
     >
       <ProTable<Role>
-        headerTitle="角色列表"
         actionRef={actionRef}
         rowKey="id"
         search={{
@@ -315,6 +315,12 @@ const RoleList: React.FC = () => {
           }
         }}
         columns={columns}
+        pagination={{
+          defaultPageSize: 20,
+          showQuickJumper: true,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50', '100'],
+        }}
       />
       
       <RoleForm

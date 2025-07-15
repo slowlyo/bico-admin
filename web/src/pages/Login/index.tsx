@@ -94,10 +94,29 @@ const Login: React.FC = () => {
   const { status, message: errorMessage } = userLoginState;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center pt-16">
-      <div className="w-full max-w-md -mt-28">
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#f5f5f5',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingTop: '64px'
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '448px',
+        marginTop: '-112px'
+      }}>
         <LoginForm
-          logo={<div className="text-2xl font-bold text-blue-600">Bico</div>}
+          logo={
+            <div style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#1890ff'
+            }}>
+              Bico
+            </div>
+          }
           title="Bico Admin"
           subTitle="管理后台"
           onFinish={async (values) => {
@@ -112,7 +131,7 @@ const Login: React.FC = () => {
             name="username"
             fieldProps={{
               size: 'large',
-              prefix: <UserOutlined className="text-blue-500" />,
+              prefix: <UserOutlined style={{ color: '#1890ff' }} />,
             }}
             placeholder="用户名（3-50位）"
             rules={[
@@ -131,7 +150,7 @@ const Login: React.FC = () => {
             name="password"
             fieldProps={{
               size: 'large',
-              prefix: <LockOutlined className="text-blue-500" />,
+              prefix: <LockOutlined style={{ color: '#1890ff' }} />,
             }}
             placeholder="密码（最少6位）"
             rules={[

@@ -16,6 +16,7 @@ import {
   AdminUserCreateRequest,
   AdminUserUpdateRequest,
 } from '@/services/adminUser';
+import { getActiveRoles, Role } from '@/services/role';
 import AdminUserForm from './components/AdminUserForm';
 
 /**
@@ -107,10 +108,28 @@ const handleStatusChange = async (id: number, status: number) => {
 };
 
 const AdminUserList: React.FC = () => {
-  const [createModalVisible, handleModalVisible] = useState<boolean>(false);
-  const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
+  const [createDrawerVisible, handleDrawerVisible] = useState<boolean>(false);
+  const [updateDrawerVisible, handleUpdateDrawerVisible] = useState<boolean>(false);
   const [stepFormValues, setStepFormValues] = useState<AdminUser | undefined>();
+  const [roles, setRoles] = useState<Role[]>([]);
   const actionRef = useRef<ActionType>();
+
+  // 加载角色列表用于筛选
+  const loadRoles = async () => {
+    try {
+      const response = await getActiveRoles();
+      if (response.code === 200) {
+        setRoles(response.data);
+      }
+    } catch (error) {
+      console.error('获取角色列表失败:', error);
+    }
+  };
+
+  // 组件挂载时加载角色列表
+  React.useEffect(() => {
+    loadRoles();
+  }, []);
 
   const columns: ProColumns<AdminUser>[] = [
     {
@@ -202,6 +221,38 @@ const AdminUserList: React.FC = () => {
       hideInForm: true,
       ellipsis: true,
     },
+    {
+      title: '角色',
+      dataIndex: 'role_id',
+      hideInForm: true,
+      valueType: 'select',
+      fieldProps: {
+        placeholder: '请选择角色',
+        showSearch: true,
+        filterOption: (input: string, option: any) =>
+          option?.label?.toLowerCase().includes(input.toLowerCase()),
+        options: roles.map(role => ({
+          label: role.name,
+          value: role.id,
+        })),
+      },
+      render: (_, record) => (
+        <div>
+          {record.roles?.map(role => (
+            <span key={role.id} style={{
+              display: 'inline-block',
+              background: '#f0f0f0',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              margin: '2px',
+              fontSize: '12px'
+            }}>
+              {role.name}
+            </span>
+          ))}
+        </div>
+      ),
+    },
 
     {
       title: '最后登录时间',
@@ -227,7 +278,7 @@ const AdminUserList: React.FC = () => {
             size="small"
             type="link"
             onClick={() => {
-              handleUpdateModalVisible(true);
+              handleUpdateDrawerVisible(true);
               setStepFormValues(record);
             }}
           >
@@ -267,7 +318,6 @@ const AdminUserList: React.FC = () => {
       }}
     >
       <ProTable<AdminUser>
-        headerTitle="管理员用户列表"
         actionRef={actionRef}
         rowKey="id"
         search={{
@@ -277,7 +327,7 @@ const AdminUserList: React.FC = () => {
           <Button
             key="1"
             type="primary"
-            onClick={() => handleModalVisible(true)}
+            onClick={() => handleDrawerVisible(true)}
           >
             新建管理员
           </Button>,
@@ -289,6 +339,7 @@ const AdminUserList: React.FC = () => {
             username: params.username,
             name: params.name,
             status: params.status,
+            role_id: params.role_id,
           });
           
           if (response.code === 200) {
@@ -307,17 +358,23 @@ const AdminUserList: React.FC = () => {
           }
         }}
         columns={columns}
+        pagination={{
+          defaultPageSize: 20,
+          showQuickJumper: true,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50', '100'],
+        }}
       />
       
       <AdminUserForm
-        modalVisible={createModalVisible || updateModalVisible}
+        drawerVisible={createDrawerVisible || updateDrawerVisible}
         isEdit={!!stepFormValues}
         values={stepFormValues}
         onCancel={() => {
-          if (createModalVisible) {
-            handleModalVisible(false);
+          if (createDrawerVisible) {
+            handleDrawerVisible(false);
           } else {
-            handleUpdateModalVisible(false);
+            handleUpdateDrawerVisible(false);
             setStepFormValues(undefined);
           }
         }}
@@ -327,14 +384,14 @@ const AdminUserList: React.FC = () => {
             // 编辑模式
             success = await handleUpdate(stepFormValues.id, value as AdminUserUpdateRequest);
             if (success) {
-              handleUpdateModalVisible(false);
+              handleUpdateDrawerVisible(false);
               setStepFormValues(undefined);
             }
           } else {
             // 创建模式
             success = await handleAdd(value as AdminUserCreateRequest);
             if (success) {
-              handleModalVisible(false);
+              handleDrawerVisible(false);
             }
           }
 

@@ -70,6 +70,12 @@ func (s *authService) Login(ctx context.Context, req *types.AdminLoginRequest) (
 		return nil, errors.New("用户已被禁用")
 	}
 
+	// 更新最后登录时间
+	if err := s.adminUserService.UpdateLastLoginTime(ctx, adminUser.ID); err != nil {
+		logger.Error("更新最后登录时间失败", zap.Error(err))
+		// 不影响登录流程，只记录错误
+	}
+
 	// 生成JWT令牌
 	token, expiresAt, err := s.jwtManager.GenerateToken(adminUser.ID, adminUser.Username, sharedTypes.UserTypeAdmin)
 	if err != nil {

@@ -1,9 +1,11 @@
-import { ModalForm, ProFormText, ProFormSwitch } from '@ant-design/pro-components';
-import React from 'react';
+import { DrawerForm, ProFormText, ProFormSwitch, ProFormSelect, ProFormTextArea } from '@ant-design/pro-components';
+import React, { useEffect, useState } from 'react';
+import { message } from 'antd';
 import { AdminUser, AdminUserCreateRequest, AdminUserUpdateRequest } from '@/services/adminUser';
+import { getActiveRoles, Role } from '@/services/role';
 
 export interface AdminUserFormProps {
-  modalVisible: boolean;
+  drawerVisible: boolean;
   onCancel: () => void;
   onSubmit: (values: AdminUserCreateRequest | AdminUserUpdateRequest) => Promise<void>;
   values?: AdminUser; // 编辑时传入，新建时为 undefined
@@ -11,13 +13,38 @@ export interface AdminUserFormProps {
 }
 
 const AdminUserForm: React.FC<AdminUserFormProps> = (props) => {
-  const { modalVisible, onCancel, onSubmit, values, isEdit = false } = props;
+  const { drawerVisible, onCancel, onSubmit, values, isEdit = false } = props;
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // 加载角色列表
+  const loadRoles = async () => {
+    setLoading(true);
+    try {
+      const response = await getActiveRoles();
+      if (response.code === 200) {
+        setRoles(response.data);
+      } else {
+        message.error(response.message || '获取角色列表失败');
+      }
+    } catch (error) {
+      message.error('获取角色列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (drawerVisible) {
+      loadRoles();
+    }
+  }, [drawerVisible]);
 
   return (
-    <ModalForm
+    <DrawerForm
       title={isEdit ? '编辑管理员用户' : '新建管理员用户'}
-      width="400px"
-      open={modalVisible}
+      width={600}
+      open={drawerVisible}
       onOpenChange={(visible) => {
         if (!visible) {
           onCancel();
@@ -33,15 +60,17 @@ const AdminUserForm: React.FC<AdminUserFormProps> = (props) => {
               avatar: values.avatar,
               remark: values.remark,
               enabled: values.status === 1,
+              role_ids: values.roles?.map(role => role.id) || [],
             }
           : {
               enabled: true, // 新建时默认启用
+              role_ids: [],
             }
       }
       onFinish={async (value) => {
         await onSubmit(value as AdminUserCreateRequest | AdminUserUpdateRequest);
       }}
-      modalProps={{
+      drawerProps={{
         destroyOnClose: true,
       }}
     >
@@ -125,7 +154,7 @@ const AdminUserForm: React.FC<AdminUserFormProps> = (props) => {
         placeholder="请输入头像URL（可选）"
       />
       
-      <ProFormText
+      <ProFormTextArea
         name="remark"
         label="备注"
         rules={[
@@ -135,13 +164,39 @@ const AdminUserForm: React.FC<AdminUserFormProps> = (props) => {
           },
         ]}
         placeholder="请输入备注（可选）"
+        fieldProps={{
+          rows: 3,
+        }}
+      />
+
+      <ProFormSelect
+        name="role_ids"
+        label="角色"
+        mode="multiple"
+        options={roles.map(role => ({
+          label: role.name,
+          value: role.id,
+        }))}
+        placeholder="请选择角色"
+        fieldProps={{
+          loading: loading,
+          showSearch: true,
+          filterOption: (input: string, option: any) =>
+            option?.label?.toLowerCase().includes(input.toLowerCase()),
+        }}
+        rules={[
+          {
+            required: true,
+            message: '请至少选择一个角色',
+          },
+        ]}
       />
 
       <ProFormSwitch
         name="enabled"
         label="启用状态"
       />
-    </ModalForm>
+    </DrawerForm>
   );
 };
 

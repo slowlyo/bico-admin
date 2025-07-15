@@ -1,5 +1,13 @@
 import { request } from '@umijs/max';
 
+// 管理员用户角色信息
+export interface AdminUserRole {
+  id: number;
+  name: string;
+  code: string;
+  description?: string;
+}
+
 // 管理员用户类型定义
 export interface AdminUser {
   id: number;
@@ -14,6 +22,7 @@ export interface AdminUser {
   remark?: string;
   can_delete: boolean;   // 是否可删除
   can_disable: boolean;  // 是否可禁用
+  roles: AdminUserRole[]; // 用户角色列表
   created_at: string;
   updated_at: string;
 }
@@ -27,6 +36,7 @@ export interface AdminUserCreateRequest {
   phone?: string;
   remark?: string;
   enabled: boolean;
+  role_ids?: number[]; // 角色ID列表
 }
 
 export interface AdminUserUpdateRequest {
@@ -38,6 +48,7 @@ export interface AdminUserUpdateRequest {
   phone?: string;
   remark?: string;
   enabled: boolean;
+  role_ids?: number[]; // 角色ID列表
 }
 
 export interface AdminUserListParams {
@@ -46,6 +57,7 @@ export interface AdminUserListParams {
   username?: string;
   name?: string;
   status?: number;
+  role_id?: number; // 角色筛选
 }
 
 export interface AdminUserListResponse {

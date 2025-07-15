@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/gin-gonic/gin"
 
+	"bico-admin/internal/admin/models"
 	"bico-admin/internal/admin/service"
 	"bico-admin/internal/admin/types"
 	sharedTypes "bico-admin/internal/shared/types"
@@ -12,12 +13,14 @@ import (
 // AdminUserHandler 管理员用户处理器
 type AdminUserHandler struct {
 	adminUserService service.AdminUserService
+	adminRoleService service.AdminRoleService
 }
 
 // NewAdminUserHandler 创建管理员用户处理器
-func NewAdminUserHandler(adminUserService service.AdminUserService) *AdminUserHandler {
+func NewAdminUserHandler(adminUserService service.AdminUserService, adminRoleService service.AdminRoleService) *AdminUserHandler {
 	return &AdminUserHandler{
 		adminUserService: adminUserService,
+		adminRoleService: adminRoleService,
 	}
 }
 
@@ -51,26 +54,7 @@ func (h *AdminUserHandler) GetList(c *gin.Context) {
 	// 转换为响应格式
 	var userResponses []types.AdminUserResponse
 	for _, user := range users {
-		// 检查权限
-		canDelete, _ := h.adminUserService.CanUserBeDeleted(c.Request.Context(), user.ID)
-		canDisable, _ := h.adminUserService.CanUserBeDisabled(c.Request.Context(), user.ID)
-
-		userResponses = append(userResponses, types.AdminUserResponse{
-			ID:          user.ID,
-			Username:    user.Username,
-			Name:        user.Name,
-			Avatar:      user.Avatar,
-			Email:       user.Email,
-			Phone:       user.Phone,
-			Status:      user.Status,
-			StatusText:  user.GetStatusText(),
-			LastLoginAt: user.LastLoginAt,
-			Remark:      user.Remark,
-			CanDelete:   canDelete,
-			CanDisable:  canDisable,
-			CreatedAt:   user.CreatedAt,
-			UpdatedAt:   user.UpdatedAt,
-		})
+		userResponses = append(userResponses, h.convertToAdminUserResponse(c, user))
 	}
 
 	response.Page(c, userResponses, total, req.Page, req.PageSize)
@@ -99,11 +83,30 @@ func (h *AdminUserHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	// 检查权限
-	canDelete, _ := h.adminUserService.CanUserBeDeleted(c.Request.Context(), user.ID)
-	canDisable, _ := h.adminUserService.CanUserBeDisabled(c.Request.Context(), user.ID)
+	userResponse := h.convertToAdminUserResponse(c, user)
+	response.Success(c, userResponse)
+}
 
-	userResponse := types.AdminUserResponse{
+// convertToAdminUserResponse 转换为管理员用户响应
+func (h *AdminUserHandler) convertToAdminUserResponse(ctx *gin.Context, user *models.AdminUser) types.AdminUserResponse {
+	// 检查权限
+	canDelete, _ := h.adminUserService.CanUserBeDeleted(ctx.Request.Context(), user.ID)
+	canDisable, _ := h.adminUserService.CanUserBeDisabled(ctx.Request.Context(), user.ID)
+
+	// 获取用户角色
+	var roles []types.AdminUserRoleResponse
+	if userRoles, err := h.adminRoleService.GetUserRoles(ctx.Request.Context(), user.ID); err == nil {
+		for _, role := range userRoles.Roles {
+			roles = append(roles, types.AdminUserRoleResponse{
+				ID:          role.ID,
+				Name:        role.Name,
+				Code:        role.Code,
+				Description: role.Description,
+			})
+		}
+	}
+
+	return types.AdminUserResponse{
 		ID:          user.ID,
 		Username:    user.Username,
 		Name:        user.Name,
@@ -116,11 +119,10 @@ func (h *AdminUserHandler) GetByID(c *gin.Context) {
 		Remark:      user.Remark,
 		CanDelete:   canDelete,
 		CanDisable:  canDisable,
+		Roles:       roles,
 		CreatedAt:   user.CreatedAt,
 		UpdatedAt:   user.UpdatedAt,
 	}
-
-	response.Success(c, userResponse)
 }
 
 // Create 创建管理员用户
@@ -147,27 +149,7 @@ func (h *AdminUserHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// 检查权限
-	canDelete, _ := h.adminUserService.CanUserBeDeleted(c.Request.Context(), user.ID)
-	canDisable, _ := h.adminUserService.CanUserBeDisabled(c.Request.Context(), user.ID)
-
-	userResponse := types.AdminUserResponse{
-		ID:          user.ID,
-		Username:    user.Username,
-		Name:        user.Name,
-		Avatar:      user.Avatar,
-		Email:       user.Email,
-		Phone:       user.Phone,
-		Status:      user.Status,
-		StatusText:  user.GetStatusText(),
-		LastLoginAt: user.LastLoginAt,
-		Remark:      user.Remark,
-		CanDelete:   canDelete,
-		CanDisable:  canDisable,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
-	}
-
+	userResponse := h.convertToAdminUserResponse(c, user)
 	response.Success(c, userResponse)
 }
 
@@ -202,27 +184,7 @@ func (h *AdminUserHandler) Update(c *gin.Context) {
 		return
 	}
 
-	// 检查权限
-	canDelete, _ := h.adminUserService.CanUserBeDeleted(c.Request.Context(), user.ID)
-	canDisable, _ := h.adminUserService.CanUserBeDisabled(c.Request.Context(), user.ID)
-
-	userResponse := types.AdminUserResponse{
-		ID:          user.ID,
-		Username:    user.Username,
-		Name:        user.Name,
-		Avatar:      user.Avatar,
-		Email:       user.Email,
-		Phone:       user.Phone,
-		Status:      user.Status,
-		StatusText:  user.GetStatusText(),
-		LastLoginAt: user.LastLoginAt,
-		Remark:      user.Remark,
-		CanDelete:   canDelete,
-		CanDisable:  canDisable,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
-	}
-
+	userResponse := h.convertToAdminUserResponse(c, user)
 	response.Success(c, userResponse)
 }
 

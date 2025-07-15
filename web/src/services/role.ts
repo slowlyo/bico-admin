@@ -41,22 +41,13 @@ export interface RoleUpdateRequest {
   permissions?: string[];  // 权限代码列表
 }
 
-// 权限树节点
+// 权限树节点（无限极树结构）
 export interface PermissionTreeNode {
-  module: string;
-  name: string;
-  permissions: PermissionTreeItem[];
-}
-
-// 权限树项目
-export interface PermissionTreeItem {
-  code: string;
-  name: string;
-  level: number;
-  level_text: string;
-  buttons: string[];
-  apis: string[];
+  key: string;
+  title: string;
+  type: string;
   selected: boolean;
+  children: PermissionTreeNode[];
 }
 
 // 角色权限更新请求
@@ -205,6 +196,15 @@ export async function getUserRoles(userId: number): Promise<ApiResponse<UserRole
  */
 export async function getRoleStats(): Promise<ApiResponse<any>> {
   return request('/admin/roles/stats', {
+    method: 'GET',
+  });
+}
+
+/**
+ * 获取所有启用的角色（用于下拉选择）
+ */
+export async function getActiveRoles(): Promise<ApiResponse<Role[]>> {
+  return request('/admin/roles/options', {
     method: 'GET',
   });
 }

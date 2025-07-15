@@ -353,3 +353,32 @@ func (h *AdminRoleHandler) GetRoleStats(ctx *gin.Context) {
 
 	response.Success(ctx, result)
 }
+
+// GetRoleOptions 获取角色选项（用于下拉选择）
+// @Summary 获取角色选项
+// @Description 获取所有启用的角色选项，用于下拉选择
+// @Tags 角色管理
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.Response{data=[]types.RoleOptionResponse}
+// @Router /admin/roles/options [get]
+func (h *AdminRoleHandler) GetRoleOptions(c *gin.Context) {
+	roles, err := h.roleService.GetActiveRoles(c.Request.Context())
+	if err != nil {
+		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
+		return
+	}
+
+	// 转换为简化的选项格式
+	var options []types.RoleOptionResponse
+	for _, role := range roles {
+		options = append(options, types.RoleOptionResponse{
+			ID:          role.ID,
+			Name:        role.Name,
+			Code:        role.Code,
+			Description: role.Description,
+		})
+	}
+
+	response.Success(c, options)
+}

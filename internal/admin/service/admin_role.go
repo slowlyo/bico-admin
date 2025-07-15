@@ -25,6 +25,7 @@ type AdminRoleService interface {
 	GetUserRoles(ctx context.Context, userID uint) (*types.UserRoleResponse, error)
 	GetUserPermissions(ctx context.Context, userID uint) ([]string, error)
 	GetRoleStats(ctx context.Context) (*types.RoleStatsResponse, error)
+	GetActiveRoles(ctx context.Context) ([]*models.AdminRole, error)
 }
 
 // adminRoleService 管理员角色服务实现
@@ -212,51 +213,33 @@ func (s *adminRoleService) GetPermissionTree(ctx context.Context, roleID *uint) 
 		}
 	}
 
-	// 构建权限树（转换为旧的PermissionTreeNode格式以保持兼容性）
+	// 构建无限极权限树
 	var treeNodes []types.PermissionTreeNode
 	for _, rootPerm := range permissionTree {
-		node := types.PermissionTreeNode{
-			Module: rootPerm.Code,
-			Name:   rootPerm.Name,
-		}
-
-		// 递归收集所有子权限
-		allPermissions := s.flattenPermissionChildren(rootPerm)
-		for _, permission := range allPermissions {
-			// 只添加操作类型的权限到树中
-			if permission.Type == definitions.PermissionTypeAction {
-				item := types.PermissionTreeItem{
-					Code:      permission.Code,
-					Name:      permission.Name,
-					Level:     permission.Level,
-					LevelText: s.getLevelText(permission.Level),
-					Buttons:   permission.Buttons,
-					APIs:      permission.APIs,
-					Selected:  rolePermissions != nil && rolePermissions[permission.Code],
-				}
-				node.Permissions = append(node.Permissions, item)
-			}
-		}
-
+		node := s.buildPermissionTreeNode(rootPerm, rolePermissions)
 		treeNodes = append(treeNodes, node)
 	}
 
 	return treeNodes, nil
 }
 
-// flattenPermissionChildren 递归展平权限的所有子权限
-func (s *adminRoleService) flattenPermissionChildren(perm definitions.Permission) []definitions.Permission {
-	var result []definitions.Permission
-
-	// 添加当前权限
-	result = append(result, perm)
-
-	// 递归添加子权限
-	for _, child := range perm.Children {
-		result = append(result, s.flattenPermissionChildren(child)...)
+// buildPermissionTreeNode 递归构建权限树节点
+func (s *adminRoleService) buildPermissionTreeNode(perm definitions.Permission, rolePermissions map[string]bool) types.PermissionTreeNode {
+	node := types.PermissionTreeNode{
+		Key:      perm.Code,
+		Title:    perm.Name,
+		Type:     string(perm.Type),
+		Selected: rolePermissions != nil && rolePermissions[perm.Code],
+		Children: make([]types.PermissionTreeNode, 0),
 	}
 
-	return result
+	// 递归处理子权限
+	for _, child := range perm.Children {
+		childNode := s.buildPermissionTreeNode(child, rolePermissions)
+		node.Children = append(node.Children, childNode)
+	}
+
+	return node
 }
 
 // extractModuleFromPermissionCode 从权限代码中提取模块信息
@@ -480,4 +463,9 @@ func (s *adminRoleService) getLevelText(level int) string {
 	default:
 		return "未知"
 	}
+}
+
+// GetActiveRoles 获取所有启用的角色
+func (s *adminRoleService) GetActiveRoles(ctx context.Context) ([]*models.AdminRole, error) {
+	return s.adminRoleRepo.ListActiveRoles(ctx)
 }

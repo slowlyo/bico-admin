@@ -20,6 +20,7 @@ type AdminUserService interface {
 	Update(ctx context.Context, id uint, req *types.AdminUserUpdateRequest) (*models.AdminUser, error)
 	Delete(ctx context.Context, id uint) error
 	UpdateStatus(ctx context.Context, id uint, enabled bool) error
+	UpdateLastLoginTime(ctx context.Context, id uint) error
 	List(ctx context.Context, req *sharedTypes.BasePageQuery) ([]*models.AdminUser, int64, error)
 	ListWithFilter(ctx context.Context, req *types.AdminUserListRequest) ([]*models.AdminUser, int64, error)
 
@@ -31,12 +32,14 @@ type AdminUserService interface {
 // adminUserService 管理员用户服务实现
 type adminUserService struct {
 	adminUserRepo repository.AdminUserRepository
+	adminRoleRepo repository.AdminRoleRepository
 }
 
 // NewAdminUserService 创建管理员用户服务
-func NewAdminUserService(adminUserRepo repository.AdminUserRepository) AdminUserService {
+func NewAdminUserService(adminUserRepo repository.AdminUserRepository, adminRoleRepo repository.AdminRoleRepository) AdminUserService {
 	return &adminUserService{
 		adminUserRepo: adminUserRepo,
+		adminRoleRepo: adminRoleRepo,
 	}
 }
 
@@ -76,11 +79,23 @@ func (s *adminUserService) Create(ctx context.Context, req *types.AdminUserCreat
 		Password: string(hashedPassword),
 		Name:     req.Name,
 		Avatar:   req.Avatar,
+		Email:    req.Email,
+		Phone:    req.Phone,
+		Remark:   req.Remark,
 		Status:   status,
 	}
 
 	if err := s.adminUserRepo.Create(ctx, adminUser); err != nil {
 		return nil, err
+	}
+
+	// 分配角色
+	if len(req.RoleIDs) > 0 {
+		if err := s.adminRoleRepo.AssignRolesToUser(ctx, nil, adminUser.ID, req.RoleIDs); err != nil {
+			// 如果角色分配失败，删除已创建的用户
+			s.adminUserRepo.Delete(ctx, adminUser.ID)
+			return nil, err
+		}
 	}
 
 	return adminUser, nil
@@ -106,6 +121,9 @@ func (s *adminUserService) Update(ctx context.Context, id uint, req *types.Admin
 	adminUser.Username = req.Username
 	adminUser.Name = req.Name
 	adminUser.Avatar = req.Avatar
+	adminUser.Email = req.Email
+	adminUser.Phone = req.Phone
+	adminUser.Remark = req.Remark
 
 	// 转换 Enabled 字段为 Status
 	// 如果要禁用超级管理员，需要检查是否会导致系统没有可用的超管
@@ -139,6 +157,21 @@ func (s *adminUserService) Update(ctx context.Context, id uint, req *types.Admin
 
 	if err := s.adminUserRepo.Update(ctx, adminUser); err != nil {
 		return nil, err
+	}
+
+	// 更新角色分配
+	if req.RoleIDs != nil {
+		// 删除用户现有角色
+		if err := s.adminRoleRepo.DeleteUserRoles(ctx, nil, id); err != nil {
+			return nil, err
+		}
+
+		// 分配新角色
+		if len(req.RoleIDs) > 0 {
+			if err := s.adminRoleRepo.AssignRolesToUser(ctx, nil, id, req.RoleIDs); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return adminUser, nil
@@ -192,6 +225,11 @@ func (s *adminUserService) UpdateStatus(ctx context.Context, id uint, enabled bo
 	}
 
 	return s.adminUserRepo.UpdateStatus(ctx, id, enabled)
+}
+
+// UpdateLastLoginTime 更新最后登录时间
+func (s *adminUserService) UpdateLastLoginTime(ctx context.Context, id uint) error {
+	return s.adminUserRepo.UpdateLastLoginTime(ctx, id)
 }
 
 // List 获取管理员用户列表

@@ -75,24 +75,13 @@ type UserRoleResponse struct {
 	CreatedAt time.Time      `json:"created_at"`
 }
 
-// PermissionTreeNode 权限树节点
+// PermissionTreeNode 权限树节点（无限极树结构）
 type PermissionTreeNode struct {
-	Module      string               `json:"module"`
-	Name        string               `json:"name"`
-	Permissions []PermissionTreeItem `json:"permissions"`
-}
-
-// PermissionTreeItem 权限树项目
-type PermissionTreeItem struct {
-	Code        string   `json:"code"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Level       int      `json:"level"`
-	LevelText   string   `json:"level_text"`
-	MenuSigns   []string `json:"menu_signs"`
-	Buttons     []string `json:"buttons"`
-	APIs        []string `json:"apis"`
-	Selected    bool     `json:"selected"` // 是否已选中
+	Key      string               `json:"key"`      // 权限代码或模块代码
+	Title    string               `json:"title"`    // 显示名称
+	Type     string               `json:"type"`     // 类型：module 或 action
+	Selected bool                 `json:"selected"` // 是否选中
+	Children []PermissionTreeNode `json:"children"` // 子节点
 }
 
 // RoleStatsResponse 角色统计响应
@@ -103,6 +92,14 @@ type RoleStatsResponse struct {
 	TotalUsers    int64 `json:"total_users"`
 }
 
+// RoleOptionResponse 角色选项响应（用于下拉选择）
+type RoleOptionResponse struct {
+	ID          uint   `json:"id"`
+	Name        string `json:"name"`
+	Code        string `json:"code"`
+	Description string `json:"description"`
+}
+
 // GetStatusText 获取状态文本
 func (r *RoleResponse) GetStatusText() string {
 	switch r.Status {
@@ -110,22 +107,6 @@ func (r *RoleResponse) GetStatusText() string {
 		return "启用"
 	case types.StatusInactive:
 		return "禁用"
-	default:
-		return "未知"
-	}
-}
-
-// GetLevelText 获取权限级别文本
-func (p *PermissionTreeItem) GetLevelText() string {
-	switch p.Level {
-	case 1:
-		return "查看"
-	case 2:
-		return "操作"
-	case 3:
-		return "管理"
-	case 4:
-		return "超级"
 	default:
 		return "未知"
 	}

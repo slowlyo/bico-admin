@@ -26,42 +26,54 @@ const PermissionDrawer: React.FC<PermissionDrawerProps> = ({
   const [treeData, setTreeData] = useState<DataNode[]>([]);
   const [checkedKeys, setCheckedKeys] = useState<React.Key[]>([]);
   const [allPermissionKeys, setAllPermissionKeys] = useState<string[]>([]);
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
 
   // 转换权限树数据为Tree组件需要的格式
   const convertToTreeData = (permissions: PermissionTreeNode[]): DataNode[] => {
     const allKeys: string[] = [];
+    const firstLevelKeys: string[] = [];
 
-    const treeData = permissions.map(group => {
-      const children = group.permissions.map(permission => {
-        allKeys.push(permission.code);
-        return {
-          title: permission.name,
-          key: permission.code,
-        };
-      });
+    const convertNode = (node: PermissionTreeNode): DataNode => {
+      // 只有action类型的权限才加入到allKeys中（用于权限提交）
+      if (node.type === 'action') {
+        allKeys.push(node.key);
+      }
 
       return {
-        title: group.name,
-        key: group.module,
-        children,
+        title: node.title,
+        key: node.key,
+        children: node.children.map(child => convertNode(child)),
       };
+    };
+
+    const treeData = permissions.map(node => {
+      // 收集第一层的keys用于默认展开
+      firstLevelKeys.push(node.key);
+      return convertNode(node);
     });
 
     setAllPermissionKeys(allKeys);
+    setExpandedKeys(firstLevelKeys);
     setTreeData(treeData);
     return treeData;
   };
 
-  // 获取已选中的权限
+  // 递归获取已选中的权限
   const getSelectedPermissions = (permissions: PermissionTreeNode[]): string[] => {
     const selected: string[] = [];
-    permissions.forEach(group => {
-      group.permissions.forEach(permission => {
-        if (permission.selected) {
-          selected.push(permission.code);
+
+    const collectSelected = (nodes: PermissionTreeNode[]) => {
+      nodes.forEach(node => {
+        if (node.selected && node.type === 'action') {
+          selected.push(node.key);
+        }
+        if (node.children && node.children.length > 0) {
+          collectSelected(node.children);
         }
       });
-    });
+    };
+
+    collectSelected(permissions);
     return selected;
   };
 
@@ -118,9 +130,9 @@ const PermissionDrawer: React.FC<PermissionDrawerProps> = ({
 
     setSubmitting(true);
     try {
-      // 过滤出权限代码（排除模块节点）
+      // 过滤出action类型的权限代码（只有action类型的权限才需要提交）
       const permissionCodes = checkedKeys.filter(key => {
-        return typeof key === 'string' && key.includes(':');
+        return typeof key === 'string' && allPermissionKeys.includes(key as string);
       }) as string[];
 
       const response = await updateRolePermissions(role.id, {
@@ -145,6 +157,11 @@ const PermissionDrawer: React.FC<PermissionDrawerProps> = ({
   useEffect(() => {
     if (visible && role) {
       loadPermissionTree();
+    } else if (!visible) {
+      // 抽屉关闭时重置状态
+      setExpandedKeys([]);
+      setCheckedKeys([]);
+      setTreeData([]);
     }
   }, [visible, role]);
 
@@ -197,6 +214,8 @@ const PermissionDrawer: React.FC<PermissionDrawerProps> = ({
             onCheck={handleCheck}
             height={400}
             treeData={treeData}
+            expandedKeys={expandedKeys}
+            onExpand={setExpandedKeys}
           />
         </div>
       </Spin>
