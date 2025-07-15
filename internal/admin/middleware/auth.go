@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"bico-admin/internal/admin/service"
 	"bico-admin/pkg/cache"
 	"bico-admin/pkg/config"
 	"bico-admin/pkg/jwt"
@@ -62,11 +63,6 @@ func AuthWithCache(cache cache.Cache) gin.HandlerFunc {
 	})
 }
 
-// validateToken 验证令牌（向后兼容）
-func validateToken(token string) (uint, string, error) {
-	return validateTokenWithCache(context.Background(), token, nil)
-}
-
 // validateTokenWithCache 验证令牌并检查黑名单
 func validateTokenWithCache(ctx context.Context, token string, cache cache.Cache) (uint, string, error) {
 	cfg := config.Get()
@@ -97,7 +93,19 @@ func validateTokenWithCache(ctx context.Context, token string, cache cache.Cache
 
 // RequirePermission 权限检查中间件
 func RequirePermission(permission string) gin.HandlerFunc {
+	return RequirePermissionWithService(permission, nil)
+}
+
+// RequirePermissionWithService 带服务的权限检查中间件
+func RequirePermissionWithService(permission string, adminUserService service.AdminUserService) gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
+		userID, exists := c.Get("user_id")
+		if !exists {
+			response.Unauthorized(c, "用户未登录")
+			c.Abort()
+			return
+		}
+
 		userType, exists := c.Get("user_type")
 		if !exists {
 			response.Unauthorized(c, "用户未登录")
@@ -105,18 +113,28 @@ func RequirePermission(permission string) gin.HandlerFunc {
 			return
 		}
 
-		// TODO: 实现真正的权限检查
-		// 这里是临时的简单实现
-		if userType == "admin" {
-			c.Next()
-			return
-		}
+		// 如果有AdminUserService，使用真正的权限检查
+		if adminUserService != nil && userType == "admin" {
+			adminUser, err := adminUserService.GetByID(c.Request.Context(), userID.(uint))
+			if err != nil {
+				response.Forbidden(c, "权限验证失败")
+				c.Abort()
+				return
+			}
 
-		// 检查用户是否有指定权限
-		if !hasPermission(userType.(string), permission) {
-			response.Forbidden(c, "权限不足")
-			c.Abort()
-			return
+			// 检查用户是否有指定权限（超级管理员会自动通过）
+			if !adminUser.HasPermission(permission) {
+				response.Forbidden(c, "权限不足")
+				c.Abort()
+				return
+			}
+		} else {
+			// 回退到简单的权限检查
+			if !hasPermission(userType.(string), permission) {
+				response.Forbidden(c, "权限不足")
+				c.Abort()
+				return
+			}
 		}
 
 		c.Next()

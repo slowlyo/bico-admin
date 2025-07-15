@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
-	"bico-admin/internal/admin/definitions"
 	"bico-admin/internal/admin/types"
 	sharedTypes "bico-admin/internal/shared/types"
 	"bico-admin/pkg/cache"
@@ -78,8 +77,8 @@ func (s *authService) Login(ctx context.Context, req *types.AdminLoginRequest) (
 		return nil, errors.New("登录失败")
 	}
 
-	// 获取用户权限
-	permissions := s.getAdminPermissions()
+	// 获取用户权限（超级管理员会自动获得所有权限）
+	permissions := adminUser.GetPermissionCodes()
 
 	return &types.AdminLoginResponse{
 		LoginResponse: sharedTypes.LoginResponse{
@@ -130,8 +129,8 @@ func (s *authService) RefreshToken(ctx context.Context, req *types.RefreshTokenR
 		return nil, errors.New("用户已被禁用")
 	}
 
-	// 获取用户权限
-	permissions := s.getAdminPermissions()
+	// 获取用户权限（超级管理员会自动获得所有权限）
+	permissions := adminUser.GetPermissionCodes()
 
 	return &types.AdminLoginResponse{
 		LoginResponse: sharedTypes.LoginResponse{
@@ -150,6 +149,10 @@ func (s *authService) GetProfile(ctx context.Context, userID uint) (*types.Admin
 		return nil, err
 	}
 
+	// 检查权限
+	canDelete, _ := s.adminUserService.CanUserBeDeleted(ctx, adminUser.ID)
+	canDisable, _ := s.adminUserService.CanUserBeDisabled(ctx, adminUser.ID)
+
 	return &types.AdminUserResponse{
 		ID:          adminUser.ID,
 		Username:    adminUser.Username,
@@ -161,6 +164,8 @@ func (s *authService) GetProfile(ctx context.Context, userID uint) (*types.Admin
 		StatusText:  adminUser.GetStatusText(),
 		LastLoginAt: adminUser.LastLoginAt,
 		Remark:      adminUser.Remark,
+		CanDelete:   canDelete,
+		CanDisable:  canDisable,
 		CreatedAt:   adminUser.CreatedAt,
 		UpdatedAt:   adminUser.UpdatedAt,
 	}, nil
@@ -173,6 +178,10 @@ func (s *authService) UpdateProfile(ctx context.Context, userID uint, req *types
 		return nil, err
 	}
 
+	// 检查权限
+	canDelete, _ := s.adminUserService.CanUserBeDeleted(ctx, adminUser.ID)
+	canDisable, _ := s.adminUserService.CanUserBeDisabled(ctx, adminUser.ID)
+
 	return &types.AdminUserResponse{
 		ID:          adminUser.ID,
 		Username:    adminUser.Username,
@@ -184,6 +193,8 @@ func (s *authService) UpdateProfile(ctx context.Context, userID uint, req *types
 		StatusText:  adminUser.GetStatusText(),
 		LastLoginAt: adminUser.LastLoginAt,
 		Remark:      adminUser.Remark,
+		CanDelete:   canDelete,
+		CanDisable:  canDisable,
 		CreatedAt:   adminUser.CreatedAt,
 		UpdatedAt:   adminUser.UpdatedAt,
 	}, nil
@@ -196,18 +207,11 @@ func (s *authService) GetProfileWithPermissions(ctx context.Context, userID uint
 		return nil, err
 	}
 
-	// 获取用户权限
-	permissions := s.getAdminPermissions()
+	// 获取用户权限（超级管理员会自动获得所有权限）
+	permissions := adminUser.GetPermissionCodes()
 
 	return &types.AdminProfileResponse{
 		UserInfo:    adminUser.ToUserInfo(),
 		Permissions: permissions,
 	}, nil
-}
-
-// getAdminPermissions 获取管理员权限
-func (s *authService) getAdminPermissions() []string {
-	// TODO: 根据用户角色或具体权限配置返回权限
-	// 目前返回所有权限，后续可以根据用户角色进行过滤
-	return definitions.GetPermissionCodes()
 }

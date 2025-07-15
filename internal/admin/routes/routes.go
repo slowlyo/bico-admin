@@ -9,12 +9,7 @@ import (
 )
 
 // RegisterRoutes 注册admin端路由
-func RegisterRoutes(r *gin.Engine, handlers *Handlers) {
-	RegisterRoutesWithCache(r, handlers, nil)
-}
-
-// RegisterRoutesWithCache 注册admin端路由（带缓存支持）
-func RegisterRoutesWithCache(r *gin.Engine, handlers *Handlers, cache cache.Cache) {
+func RegisterRoutes(r *gin.Engine, handlers *Handlers, cache cache.Cache, permissionMiddleware gin.HandlerFunc) {
 	// admin端路由组
 	adminGroup := r.Group("/admin")
 
@@ -28,6 +23,12 @@ func RegisterRoutesWithCache(r *gin.Engine, handlers *Handlers, cache cache.Cach
 	// 需要认证的路由
 	protectedGroup := adminGroup.Group("")
 	protectedGroup.Use(middleware.AuthWithCache(cache)) // 带缓存的认证中间件
+
+	// 如果提供了权限中间件，则使用它进行权限检查
+	if permissionMiddleware != nil {
+		protectedGroup.Use(permissionMiddleware)
+	}
+
 	{
 		// 认证相关
 		protectedGroup.POST("/auth/logout", handlers.AuthHandler.Logout)

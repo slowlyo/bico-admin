@@ -50,6 +50,7 @@ func ProvideGinEngine(
 	db *gorm.DB,
 	cache cache.Cache,
 	adminHandlers *adminRoutes.Handlers,
+	adminPermissionMiddleware gin.HandlerFunc,
 	masterHandlers *masterRoutes.Handlers,
 	apiHandlers *apiRoutes.Handlers,
 ) *gin.Engine {
@@ -74,7 +75,7 @@ func ProvideGinEngine(
 	r.Use(sharedMiddleware.Logging())
 
 	// 注册路由
-	adminRoutes.RegisterRoutesWithCache(r, adminHandlers, cache)
+	adminRoutes.RegisterRoutes(r, adminHandlers, cache, adminPermissionMiddleware)
 	masterRoutes.RegisterRoutes(r, masterHandlers)
 	apiRoutes.RegisterRoutes(r, apiHandlers)
 

@@ -35,6 +35,10 @@ type AdminUserRepository interface {
 	// 验证方法
 	ExistsByUsername(ctx context.Context, username string) (bool, error)
 	ExistsByUsernameExcludeID(ctx context.Context, username string, excludeID uint) (bool, error)
+
+	// 超级管理员相关
+	CountSuperAdmins(ctx context.Context) (int64, error)
+	CountSuperAdminsExcludeID(ctx context.Context, excludeID uint) (int64, error)
 }
 
 // adminUserRepository 管理员用户仓储实现
@@ -136,4 +140,29 @@ func (r *adminUserRepository) ListWithFilter(ctx context.Context, req *adminType
 		Find(&users).Error
 
 	return users, total, err
+}
+
+// CountSuperAdmins 统计超级管理员数量
+func (r *adminUserRepository) CountSuperAdmins(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Table("admin_users").
+		Joins("JOIN admin_user_roles ON admin_users.id = admin_user_roles.user_id").
+		Joins("JOIN admin_roles ON admin_user_roles.role_id = admin_roles.id").
+		Where("admin_roles.code = ? AND admin_users.status = ?", models.RoleCodeSuperAdmin, types.StatusActive).
+		Count(&count).Error
+	return count, err
+}
+
+// CountSuperAdminsExcludeID 统计超级管理员数量（排除指定ID）
+func (r *adminUserRepository) CountSuperAdminsExcludeID(ctx context.Context, excludeID uint) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Table("admin_users").
+		Joins("JOIN admin_user_roles ON admin_users.id = admin_user_roles.user_id").
+		Joins("JOIN admin_roles ON admin_user_roles.role_id = admin_roles.id").
+		Where("admin_roles.code = ? AND admin_users.status = ? AND admin_users.id != ?",
+			models.RoleCodeSuperAdmin, types.StatusActive, excludeID).
+		Count(&count).Error
+	return count, err
 }

@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"bico-admin/internal/admin/definitions"
 	"bico-admin/internal/shared/types"
 )
 
@@ -60,6 +61,11 @@ func (u *AdminUser) GetRoleCodes() []string {
 
 // GetPermissionCodes 获取用户的所有权限代码
 func (u *AdminUser) GetPermissionCodes() []string {
+	// 超级管理员拥有所有权限
+	if u.IsSuperAdmin() {
+		return definitions.GetPermissionCodes()
+	}
+
 	permissionSet := make(map[string]bool)
 
 	for _, userRole := range u.Roles {
@@ -90,6 +96,11 @@ func (u *AdminUser) HasRole(roleCode string) bool {
 
 // HasPermission 检查用户是否有指定权限
 func (u *AdminUser) HasPermission(permissionCode string) bool {
+	// 超级管理员拥有所有权限
+	if u.IsSuperAdmin() {
+		return true
+	}
+
 	for _, userRole := range u.Roles {
 		if userRole.Role.IsEnabled() && userRole.Role.HasPermission(permissionCode) {
 			return true
@@ -101,6 +112,34 @@ func (u *AdminUser) HasPermission(permissionCode string) bool {
 // IsSuperAdmin 检查是否为超级管理员
 func (u *AdminUser) IsSuperAdmin() bool {
 	return u.HasRole(RoleCodeSuperAdmin)
+}
+
+// IsSystemSuperAdmin 检查是否为系统默认超级管理员（不可删除）
+func (u *AdminUser) IsSystemSuperAdmin() bool {
+	return u.Username == "admin" && u.IsSuperAdmin()
+}
+
+// CanBeDeleted 检查用户是否可以被删除
+func (u *AdminUser) CanBeDeleted() bool {
+	// 系统默认超级管理员不可删除
+	return !u.IsSystemSuperAdmin()
+}
+
+// CanBeModified 检查用户是否可以被修改（某些字段）
+func (u *AdminUser) CanBeModified() bool {
+	// 系统默认超级管理员的用户名和角色不可修改
+	return !u.IsSystemSuperAdmin()
+}
+
+// CanBeDisabled 检查用户是否可以被禁用（需要运行时检查）
+func (u *AdminUser) CanBeDisabled() bool {
+	// 如果不是超级管理员，可以禁用
+	if !u.IsSuperAdmin() {
+		return true
+	}
+	// 超级管理员需要运行时检查是否还有其他超管
+	// 这里返回false，具体检查在service层进行
+	return false
 }
 
 // GetRoleNames 获取用户的所有角色名称

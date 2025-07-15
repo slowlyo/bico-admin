@@ -72,6 +72,8 @@ type AdminUserResponse struct {
 	StatusText  string     `json:"status_text"`
 	LastLoginAt *time.Time `json:"last_login_at"`
 	Remark      string     `json:"remark"`
+	CanDelete   bool       `json:"can_delete"`  // 是否可删除
+	CanDisable  bool       `json:"can_disable"` // 是否可禁用
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 }

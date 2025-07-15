@@ -51,14 +51,14 @@ var permissionDefs = []PermissionDef{
 	{"system.admin_user", "管理员管理", "system", "module", 1, "", ""},
 	{"system.admin_user:list", "查看管理员列表", "system.admin_user", "action", 1, "search,filter", "/api/admin/admin-users"},
 	{"system.admin_user:create", "创建管理员", "system.admin_user", "action", 3, "create", "/api/admin/admin-users"},
-	{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/api/admin/admin-users/:id"},
+	{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/api/admin/admin-users/:id,/api/admin/admin-users/:id/status"},
 	{"system.admin_user:delete", "删除管理员", "system.admin_user", "action", 4, "delete", "/api/admin/admin-users/:id"},
 	{"system.admin_user:reset_password", "重置管理员密码", "system.admin_user", "action", 3, "reset_password", "/api/admin/admin-users/:id/password"},
 
 	{"system.role", "角色管理", "system", "module", 1, "", ""},
-	{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/api/admin/roles"},
+	{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/api/admin/roles,/api/admin/roles/:id,/api/admin/roles/permissions"},
 	{"system.role:create", "创建角色", "system.role", "action", 3, "create", "/api/admin/roles"},
-	{"system.role:update", "编辑角色", "system.role", "action", 3, "edit,save,assign_permissions", "/api/admin/roles/:id,/api/admin/roles/:id/permissions"},
+	{"system.role:update", "编辑角色", "system.role", "action", 3, "edit,save,assign_permissions", "/api/admin/roles/:id,/api/admin/roles/:id/permissions,/api/admin/roles/assign"},
 	{"system.role:delete", "删除角色", "system.role", "action", 4, "delete", "/api/admin/roles/:id"},
 }
 

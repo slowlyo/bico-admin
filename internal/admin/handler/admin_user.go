@@ -51,6 +51,10 @@ func (h *AdminUserHandler) GetList(c *gin.Context) {
 	// 转换为响应格式
 	var userResponses []types.AdminUserResponse
 	for _, user := range users {
+		// 检查权限
+		canDelete, _ := h.adminUserService.CanUserBeDeleted(c.Request.Context(), user.ID)
+		canDisable, _ := h.adminUserService.CanUserBeDisabled(c.Request.Context(), user.ID)
+
 		userResponses = append(userResponses, types.AdminUserResponse{
 			ID:          user.ID,
 			Username:    user.Username,
@@ -62,6 +66,8 @@ func (h *AdminUserHandler) GetList(c *gin.Context) {
 			StatusText:  user.GetStatusText(),
 			LastLoginAt: user.LastLoginAt,
 			Remark:      user.Remark,
+			CanDelete:   canDelete,
+			CanDisable:  canDisable,
 			CreatedAt:   user.CreatedAt,
 			UpdatedAt:   user.UpdatedAt,
 		})
@@ -93,6 +99,10 @@ func (h *AdminUserHandler) GetByID(c *gin.Context) {
 		return
 	}
 
+	// 检查权限
+	canDelete, _ := h.adminUserService.CanUserBeDeleted(c.Request.Context(), user.ID)
+	canDisable, _ := h.adminUserService.CanUserBeDisabled(c.Request.Context(), user.ID)
+
 	userResponse := types.AdminUserResponse{
 		ID:          user.ID,
 		Username:    user.Username,
@@ -104,6 +114,8 @@ func (h *AdminUserHandler) GetByID(c *gin.Context) {
 		StatusText:  user.GetStatusText(),
 		LastLoginAt: user.LastLoginAt,
 		Remark:      user.Remark,
+		CanDelete:   canDelete,
+		CanDisable:  canDisable,
 		CreatedAt:   user.CreatedAt,
 		UpdatedAt:   user.UpdatedAt,
 	}
@@ -135,6 +147,10 @@ func (h *AdminUserHandler) Create(c *gin.Context) {
 		return
 	}
 
+	// 检查权限
+	canDelete, _ := h.adminUserService.CanUserBeDeleted(c.Request.Context(), user.ID)
+	canDisable, _ := h.adminUserService.CanUserBeDisabled(c.Request.Context(), user.ID)
+
 	userResponse := types.AdminUserResponse{
 		ID:          user.ID,
 		Username:    user.Username,
@@ -146,6 +162,8 @@ func (h *AdminUserHandler) Create(c *gin.Context) {
 		StatusText:  user.GetStatusText(),
 		LastLoginAt: user.LastLoginAt,
 		Remark:      user.Remark,
+		CanDelete:   canDelete,
+		CanDisable:  canDisable,
 		CreatedAt:   user.CreatedAt,
 		UpdatedAt:   user.UpdatedAt,
 	}
@@ -184,6 +202,10 @@ func (h *AdminUserHandler) Update(c *gin.Context) {
 		return
 	}
 
+	// 检查权限
+	canDelete, _ := h.adminUserService.CanUserBeDeleted(c.Request.Context(), user.ID)
+	canDisable, _ := h.adminUserService.CanUserBeDisabled(c.Request.Context(), user.ID)
+
 	userResponse := types.AdminUserResponse{
 		ID:          user.ID,
 		Username:    user.Username,
@@ -195,6 +217,8 @@ func (h *AdminUserHandler) Update(c *gin.Context) {
 		StatusText:  user.GetStatusText(),
 		LastLoginAt: user.LastLoginAt,
 		Remark:      user.Remark,
+		CanDelete:   canDelete,
+		CanDisable:  canDisable,
 		CreatedAt:   user.CreatedAt,
 		UpdatedAt:   user.UpdatedAt,
 	}

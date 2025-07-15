@@ -107,6 +107,11 @@ func (s *adminRoleService) UpdateRole(ctx context.Context, id uint, req *types.R
 		return nil, err
 	}
 
+	// 检查是否为超级管理员角色
+	if role.IsSuperAdminRole() {
+		return nil, errors.New("超级管理员角色不可编辑")
+	}
+
 	// 验证权限代码
 	if err := s.validatePermissions(req.Permissions); err != nil {
 		return nil, err
@@ -144,9 +149,14 @@ func (s *adminRoleService) UpdateRole(ctx context.Context, id uint, req *types.R
 // DeleteRole 删除角色
 func (s *adminRoleService) DeleteRole(ctx context.Context, id uint) error {
 	// 检查角色是否存在
-	_, err := s.adminRoleRepo.GetByID(ctx, id)
+	role, err := s.adminRoleRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	// 检查是否为超级管理员角色
+	if role.IsSuperAdminRole() {
+		return errors.New("超级管理员角色不可删除")
 	}
 
 	// 检查是否有用户使用该角色
@@ -262,9 +272,14 @@ func (s *adminRoleService) extractModuleFromPermissionCode(code string) string {
 // UpdateRolePermissions 更新角色权限
 func (s *adminRoleService) UpdateRolePermissions(ctx context.Context, id uint, req *types.RolePermissionUpdateRequest) error {
 	// 检查角色是否存在
-	_, err := s.adminRoleRepo.GetByID(ctx, id)
+	role, err := s.adminRoleRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	// 检查是否为超级管理员角色
+	if role.IsSuperAdminRole() {
+		return errors.New("超级管理员角色权限不可修改")
 	}
 
 	// 验证权限代码
@@ -432,6 +447,8 @@ func (s *adminRoleService) convertToRoleResponse(ctx context.Context, role model
 		StatusText:  s.getStatusText(role.Status),
 		Permissions: permissions,
 		UserCount:   userCount,
+		CanEdit:     role.CanBeEdited(),
+		CanDelete:   role.CanBeDeleted(),
 		CreatedAt:   role.CreatedAt,
 		UpdatedAt:   role.UpdatedAt,
 	}

@@ -22,6 +22,10 @@ type AdminUserService interface {
 	UpdateStatus(ctx context.Context, id uint, enabled bool) error
 	List(ctx context.Context, req *sharedTypes.BasePageQuery) ([]*models.AdminUser, int64, error)
 	ListWithFilter(ctx context.Context, req *types.AdminUserListRequest) ([]*models.AdminUser, int64, error)
+
+	// 权限检查方法
+	CanUserBeDeleted(ctx context.Context, userID uint) (bool, error)
+	CanUserBeDisabled(ctx context.Context, userID uint) (bool, error)
 }
 
 // adminUserService 管理员用户服务实现
@@ -104,6 +108,20 @@ func (s *adminUserService) Update(ctx context.Context, id uint, req *types.Admin
 	adminUser.Avatar = req.Avatar
 
 	// 转换 Enabled 字段为 Status
+	// 如果要禁用超级管理员，需要检查是否会导致系统没有可用的超管
+	if adminUser.IsSuperAdmin() && !req.Enabled {
+		// 统计除了当前用户外的其他超级管理员数量
+		otherSuperAdminCount, err := s.adminUserRepo.CountSuperAdminsExcludeID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+
+		// 如果禁用后系统将没有可用的超级管理员，则不允许禁用
+		if otherSuperAdminCount == 0 {
+			return nil, errors.New("系统必须保留至少一个可用的超级管理员，无法禁用")
+		}
+	}
+
 	if req.Enabled {
 		adminUser.Status = sharedTypes.StatusActive
 	} else {
@@ -128,11 +146,51 @@ func (s *adminUserService) Update(ctx context.Context, id uint, req *types.Admin
 
 // Delete 删除管理员用户
 func (s *adminUserService) Delete(ctx context.Context, id uint) error {
+	// 检查用户是否存在
+	adminUser, err := s.adminUserRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// 如果是超级管理员，需要检查是否会导致系统没有超管
+	if adminUser.IsSuperAdmin() {
+		// 统计除了当前用户外的其他超级管理员数量
+		otherSuperAdminCount, err := s.adminUserRepo.CountSuperAdminsExcludeID(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		// 如果删除后系统将没有超级管理员，则不允许删除
+		if otherSuperAdminCount == 0 {
+			return errors.New("系统必须保留至少一个超级管理员，无法删除")
+		}
+	}
+
 	return s.adminUserRepo.Delete(ctx, id)
 }
 
 // UpdateStatus 更新管理员用户状态
 func (s *adminUserService) UpdateStatus(ctx context.Context, id uint, enabled bool) error {
+	// 检查用户是否存在
+	adminUser, err := s.adminUserRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// 如果要禁用超级管理员，需要检查是否会导致系统没有可用的超管
+	if adminUser.IsSuperAdmin() && !enabled {
+		// 统计除了当前用户外的其他超级管理员数量
+		otherSuperAdminCount, err := s.adminUserRepo.CountSuperAdminsExcludeID(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		// 如果禁用后系统将没有可用的超级管理员，则不允许禁用
+		if otherSuperAdminCount == 0 {
+			return errors.New("系统必须保留至少一个可用的超级管理员，无法禁用")
+		}
+	}
+
 	return s.adminUserRepo.UpdateStatus(ctx, id, enabled)
 }
 
@@ -144,4 +202,50 @@ func (s *adminUserService) List(ctx context.Context, req *sharedTypes.BasePageQu
 // ListWithFilter 获取管理员用户列表（带筛选）
 func (s *adminUserService) ListWithFilter(ctx context.Context, req *types.AdminUserListRequest) ([]*models.AdminUser, int64, error) {
 	return s.adminUserRepo.ListWithFilter(ctx, req)
+}
+
+// CanUserBeDeleted 检查用户是否可以被删除
+func (s *adminUserService) CanUserBeDeleted(ctx context.Context, userID uint) (bool, error) {
+	// 检查用户是否存在
+	adminUser, err := s.adminUserRepo.GetByID(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	// 如果不是超级管理员，可以删除
+	if !adminUser.IsSuperAdmin() {
+		return true, nil
+	}
+
+	// 如果是超级管理员，检查是否还有其他超管
+	otherSuperAdminCount, err := s.adminUserRepo.CountSuperAdminsExcludeID(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	// 如果删除后系统将没有超级管理员，则不允许删除
+	return otherSuperAdminCount > 0, nil
+}
+
+// CanUserBeDisabled 检查用户是否可以被禁用
+func (s *adminUserService) CanUserBeDisabled(ctx context.Context, userID uint) (bool, error) {
+	// 检查用户是否存在
+	adminUser, err := s.adminUserRepo.GetByID(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	// 如果不是超级管理员，可以禁用
+	if !adminUser.IsSuperAdmin() {
+		return true, nil
+	}
+
+	// 如果是超级管理员，检查是否还有其他超管
+	otherSuperAdminCount, err := s.adminUserRepo.CountSuperAdminsExcludeID(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	// 如果禁用后系统将没有可用的超级管理员，则不允许禁用
+	return otherSuperAdminCount > 0, nil
 }

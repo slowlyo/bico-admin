@@ -83,12 +83,26 @@ func (r *AdminRole) IsEnabled() bool {
 	return r.Status == types.StatusActive
 }
 
+// IsSuperAdminRole 检查是否为超级管理员角色
+func (r *AdminRole) IsSuperAdminRole() bool {
+	return r.Code == RoleCodeSuperAdmin
+}
+
+// CanBeEdited 检查角色是否可以被编辑
+func (r *AdminRole) CanBeEdited() bool {
+	// 超级管理员角色不可编辑
+	return !r.IsSuperAdminRole()
+}
+
+// CanBeDeleted 检查角色是否可以被删除
+func (r *AdminRole) CanBeDeleted() bool {
+	// 超级管理员角色不可删除
+	return !r.IsSuperAdminRole()
+}
+
 // 预定义角色代码常量
 const (
 	RoleCodeSuperAdmin = "super_admin" // 超级管理员
-	RoleCodeAdmin      = "admin"       // 管理员
-	RoleCodeOperator   = "operator"    // 操作员
-	RoleCodeViewer     = "viewer"      // 查看者
 )
 
 // GetDefaultRoles 获取默认角色配置
@@ -97,25 +111,7 @@ func GetDefaultRoles() []AdminRole {
 		{
 			Name:        "超级管理员",
 			Code:        RoleCodeSuperAdmin,
-			Description: "拥有系统所有权限的超级管理员",
-			Status:      types.StatusActive,
-		},
-		{
-			Name:        "管理员",
-			Code:        RoleCodeAdmin,
-			Description: "拥有大部分管理权限的管理员",
-			Status:      types.StatusActive,
-		},
-		{
-			Name:        "操作员",
-			Code:        RoleCodeOperator,
-			Description: "拥有基本操作权限的操作员",
-			Status:      types.StatusActive,
-		},
-		{
-			Name:        "查看者",
-			Code:        RoleCodeViewer,
-			Description: "只有查看权限的用户",
+			Description: "拥有系统所有权限的超级管理员，不可编辑删除",
 			Status:      types.StatusActive,
 		},
 	}

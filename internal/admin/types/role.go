@@ -41,6 +41,8 @@ type RoleResponse struct {
 	StatusText  string                   `json:"status_text"`
 	Permissions []RolePermissionResponse `json:"permissions"`
 	UserCount   int64                    `json:"user_count"` // 拥有该角色的用户数量
+	CanEdit     bool                     `json:"can_edit"`   // 是否可编辑
+	CanDelete   bool                     `json:"can_delete"` // 是否可删除
 	CreatedAt   time.Time                `json:"created_at"`
 	UpdatedAt   time.Time                `json:"updated_at"`
 }
