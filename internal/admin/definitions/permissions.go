@@ -55,7 +55,6 @@ var permissionDefs = []PermissionDef{
 	{"system.admin_user:create", "创建管理员", "system.admin_user", "action", 3, "create", "/admin/admin-users"},
 	{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/admin/admin-users/:id,/admin/admin-users/:id/status"},
 	{"system.admin_user:delete", "删除管理员", "system.admin_user", "action", 4, "delete", "/admin/admin-users/:id"},
-	{"system.admin_user:reset_password", "重置管理员密码", "system.admin_user", "action", 3, "reset_password", "/admin/admin-users/:id/password"},
 
 	{"system.role", "角色管理", "system", "module", 1, "", ""},
 	{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/admin/roles,/admin/roles/:id,/admin/roles/permissions"},

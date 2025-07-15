@@ -42,6 +42,11 @@ type LogoutRequest struct {
 	Token string `json:"token" binding:"required"`
 }
 
+// StatusRequest 状态更新请求
+type StatusRequest struct {
+	Status int `json:"status" binding:"oneof=0 1 -1"`
+}
+
 // AdminUserCreateRequest 创建管理员用户请求
 type AdminUserCreateRequest struct {
 	Username string `json:"username" binding:"required,min=3,max=50"`

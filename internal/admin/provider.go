@@ -20,17 +20,14 @@ var ProviderSet = wire.NewSet(
 	repository.NewAdminRoleRepository,
 
 	// Service层
-	service.NewUserService,
 	service.NewAdminUserService,
 	service.NewAdminRoleService,
 	service.NewAuthService,
 
 	// Handler层
 	handler.NewAuthHandler,
-	handler.NewUserHandler,
 	handler.NewAdminUserHandler,
 	handler.NewAdminRoleHandler,
-	handler.NewSystemHandler,
 
 	// 路由处理器集合
 	ProvideHandlers,
@@ -42,17 +39,13 @@ var ProviderSet = wire.NewSet(
 // ProvideHandlers 提供处理器集合
 func ProvideHandlers(
 	authHandler *handler.AuthHandler,
-	userHandler *handler.UserHandler,
 	adminUserHandler *handler.AdminUserHandler,
 	adminRoleHandler *handler.AdminRoleHandler,
-	systemHandler *handler.SystemHandler,
 ) *routes.Handlers {
 	return &routes.Handlers{
 		AuthHandler:      authHandler,
-		UserHandler:      userHandler,
 		AdminUserHandler: adminUserHandler,
 		AdminRoleHandler: adminRoleHandler,
-		SystemHandler:    systemHandler,
 	}
 }
 
