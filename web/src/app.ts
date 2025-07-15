@@ -1,5 +1,5 @@
 // 运行时配置
-import { history } from '@umijs/max';
+import { history, request as umiRequest } from '@umijs/max';
 import { message } from 'antd';
 import { UserInfo, logout as logoutApi } from '@/services/auth';
 
@@ -24,24 +24,19 @@ const fetchUserInfo = async (): Promise<{ userInfo?: UserInfo; permissions?: str
     }
 
     // 调用后端API获取最新的用户信息和权限
-    const response = await fetch('/admin/auth/profile', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+    const response = await umiRequest('/admin/auth/profile', {
+      method: 'GET',
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      if (data.code === 200) {
-        // 更新本地存储
-        localStorage.setItem('userInfo', JSON.stringify(data.data.user_info));
-        localStorage.setItem('permissions', JSON.stringify(data.data.permissions));
+    if (response.code === 200) {
+      // 更新本地存储
+      localStorage.setItem('userInfo', JSON.stringify(response.data.user_info));
+      localStorage.setItem('permissions', JSON.stringify(response.data.permissions));
 
-        return {
-          userInfo: data.data.user_info,
-          permissions: data.data.permissions,
-        };
-      }
+      return {
+        userInfo: response.data.user_info,
+        permissions: response.data.permissions,
+      };
     }
 
     // 如果API调用失败，清除本地存储
@@ -175,6 +170,7 @@ export const layout = (_initialState: InitialState, setInitialState: any) => {
 
   return {
     logo: 'https://img.alicdn.com/tfs/TB1YHEpwUT1gK0jSZFhXXaAtVXa-28-27.svg',
+    title: 'Bico Admin',
     menu: {
       locale: false,
     },

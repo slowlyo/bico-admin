@@ -199,6 +199,12 @@ func (s *adminUserService) Delete(ctx context.Context, id uint) error {
 		}
 	}
 
+	// 先删除用户角色关联
+	if err := s.adminRoleRepo.DeleteUserRoles(ctx, nil, id); err != nil {
+		return err
+	}
+
+	// 再删除用户
 	return s.adminUserRepo.Delete(ctx, id)
 }
 
