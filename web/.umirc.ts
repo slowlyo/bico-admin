@@ -41,6 +41,10 @@ export default defineConfig({
       icon: "SettingOutlined",
       routes: [
         {
+          path: "/system",
+          redirect: "/system/admin-users",
+        },
+        {
           name: "管理员",
           path: "/system/admin-users",
           component: "./AdminUser",

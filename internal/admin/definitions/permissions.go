@@ -51,15 +51,15 @@ var permissionDefs = []PermissionDef{
 	// 系统管理
 	{"system", "系统管理", "", "module", 1, "", ""},
 	{"system.admin_user", "管理员管理", "system", "module", 1, "", ""},
-	{"system.admin_user:list", "查看管理员列表", "system.admin_user", "action", 1, "search,filter", "/admin/admin-users"},
-	{"system.admin_user:create", "创建管理员", "system.admin_user", "action", 3, "create", "/admin/admin-users"},
-	{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/admin/admin-users/:id,/admin/admin-users/:id/status"},
+	{"system.admin_user:list", "查看管理员列表", "system.admin_user", "action", 1, "search,filter", "/admin/admin-users,/admin/admin-users/:id"},
+	{"system.admin_user:create", "创建管理员", "system.admin_user", "action", 3, "create", "/admin/admin-users,/admin/roles/options"},
+	{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/admin/admin-users/:id,/admin/admin-users/:id/status,/admin/roles/options"},
 	{"system.admin_user:delete", "删除管理员", "system.admin_user", "action", 4, "delete", "/admin/admin-users/:id"},
 
 	{"system.role", "角色管理", "system", "module", 1, "", ""},
-	{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/admin/roles,/admin/roles/:id,/admin/roles/permissions"},
-	{"system.role:create", "创建角色", "system.role", "action", 3, "create", "/admin/roles"},
-	{"system.role:update", "编辑角色", "system.role", "action", 3, "edit,save,assign_permissions", "/admin/roles/:id,/admin/roles/:id/permissions,/admin/roles/assign"},
+	{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/admin/roles,/admin/roles/:id"},
+	{"system.role:create", "创建角色", "system.role", "action", 3, "create", "/admin/roles,/admin/roles/permissions"},
+	{"system.role:update", "编辑角色", "system.role", "action", 3, "edit,save,assign_permissions", "/admin/roles/:id,/admin/roles/:id/status,/admin/roles/:id/permissions,/admin/roles/permissions,/admin/roles/assign"},
 	{"system.role:delete", "删除角色", "system.role", "action", 4, "delete", "/admin/roles/:id"},
 }
 
@@ -266,10 +266,34 @@ func HasPermissionForButton(userPermissions []string, buttonKey string) bool {
 
 // matchAPIPath 匹配API路径（支持参数路径如 /api/users/:id）
 func matchAPIPath(pattern, path string) bool {
-	// 简单实现，实际项目中可以使用更复杂的路径匹配
+	// 简单的完全匹配
 	if pattern == path {
 		return true
 	}
-	// TODO: 实现参数路径匹配，如 /api/users/:id 匹配 /api/users/123
-	return false
+
+	// 处理参数路径匹配，如 /admin/admin-users/:id 匹配 /admin/admin-users/123
+	patternParts := strings.Split(pattern, "/")
+	pathParts := strings.Split(path, "/")
+
+	// 路径段数量必须相同
+	if len(patternParts) != len(pathParts) {
+		return false
+	}
+
+	// 逐段比较
+	for i, patternPart := range patternParts {
+		pathPart := pathParts[i]
+
+		// 如果是参数段（以:开头），则跳过比较
+		if strings.HasPrefix(patternPart, ":") {
+			continue
+		}
+
+		// 普通段必须完全匹配
+		if patternPart != pathPart {
+			return false
+		}
+	}
+
+	return true
 }

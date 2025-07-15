@@ -10,6 +10,13 @@ import (
 	"bico-admin/pkg/response"
 )
 
+// 权限白名单 - 这些路径不需要权限检查
+var permissionWhitelist = []string{
+	"/admin/auth/logout",  // 登出
+	"/admin/auth/profile", // 获取个人信息
+	"/admin/auth/refresh", // 刷新token
+}
+
 // PermissionMiddleware 权限检查中间件
 func PermissionMiddleware(adminUserService service.AdminUserService) gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
@@ -39,7 +46,13 @@ func PermissionMiddleware(adminUserService service.AdminUserService) gin.Handler
 		// 查找匹配的权限
 		requiredPermission := findPermissionByAPI(apiPath)
 		if requiredPermission == "" {
-			// 如果没有找到匹配的权限配置，允许访问（向后兼容）
+			// 如果没有找到匹配的权限配置，检查是否在白名单中
+			if !isWhitelistedPath(apiPath) {
+				response.Forbidden(c, "该接口需要权限配置")
+				c.Abort()
+				return
+			}
+			// 对于白名单中的路径，允许访问
 			c.Next()
 			return
 		}
@@ -89,14 +102,14 @@ func findPermissionByAPI(apiPath string) string {
 	return ""
 }
 
-// matchAPIPath 匹配API路径（支持参数路径如 /api/admin/users/:id）
+// matchAPIPath 匹配API路径（支持参数路径如 /admin/admin-users/:id）
 func matchAPIPath(pattern, path string) bool {
 	// 简单的完全匹配
 	if pattern == path {
 		return true
 	}
 
-	// 处理参数路径匹配，如 /api/admin/admin-users/:id 匹配 /api/admin/admin-users/123
+	// 处理参数路径匹配，如 /admin/admin-users/:id 匹配 /admin/admin-users/123
 	patternParts := strings.Split(pattern, "/")
 	pathParts := strings.Split(path, "/")
 
@@ -121,6 +134,16 @@ func matchAPIPath(pattern, path string) bool {
 	}
 
 	return true
+}
+
+// isWhitelistedPath 检查路径是否在权限白名单中
+func isWhitelistedPath(path string) bool {
+	for _, whitelistPath := range permissionWhitelist {
+		if matchAPIPath(whitelistPath, path) {
+			return true
+		}
+	}
+	return false
 }
 
 // PermissionMiddlewareFactory 权限中间件工厂

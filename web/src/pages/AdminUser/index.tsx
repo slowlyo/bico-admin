@@ -4,7 +4,8 @@ import {
   ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Divider, message, Popconfirm, Switch } from 'antd';
+import { Button, message, Popconfirm, Switch } from 'antd';
+import { Access, useAccess } from '@umijs/max';
 import React, { useRef, useState } from 'react';
 import {
   getAdminUserList,
@@ -108,6 +109,7 @@ const handleStatusChange = async (id: number, status: number) => {
 };
 
 const AdminUserList: React.FC = () => {
+  const access = useAccess();
   const [createDrawerVisible, handleDrawerVisible] = useState<boolean>(false);
   const [updateDrawerVisible, handleUpdateDrawerVisible] = useState<boolean>(false);
   const [stepFormValues, setStepFormValues] = useState<AdminUser | undefined>();
@@ -274,49 +276,48 @@ const AdminUserList: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <>
-          <Button
-            size="small"
-            type="link"
-            onClick={() => {
-              handleUpdateDrawerVisible(true);
-              setStepFormValues(record);
-            }}
-          >
-            编辑
-          </Button>
-          <Divider type="vertical" />
-          <Popconfirm
-            title="确定要删除这个管理员用户吗？"
-            disabled={!record.can_delete}
-            onConfirm={async () => {
-              const success = await handleRemove(record.id);
-              if (success && actionRef.current) {
-                actionRef.current.reload();
-              }
-            }}
-            okText="确定"
-            cancelText="取消"
-          >
+          <Access accessible={access.canEditAdminUser}>
             <Button
-              type="link"
               size="small"
-              danger
-              disabled={!record.can_delete}
+              type="link"
+              onClick={() => {
+                handleUpdateDrawerVisible(true);
+                setStepFormValues(record);
+              }}
             >
-              删除
+              编辑
             </Button>
-          </Popconfirm>
+          </Access>
+          <Access accessible={access.canDeleteAdminUser}>
+            <Popconfirm
+              title="确定要删除这个管理员用户吗？"
+              disabled={!record.can_delete}
+              onConfirm={async () => {
+                const success = await handleRemove(record.id);
+                if (success && actionRef.current) {
+                  actionRef.current.reload();
+                }
+              }}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button
+                type="link"
+                size="small"
+                danger
+                disabled={!record.can_delete}
+              >
+                删除
+              </Button>
+            </Popconfirm>
+          </Access>
         </>
       ),
     },
   ];
 
   return (
-    <PageContainer
-      header={{
-        title: '管理员用户管理',
-      }}
-    >
+    <PageContainer title={false}>
       <ProTable<AdminUser>
         actionRef={actionRef}
         rowKey="id"
@@ -324,13 +325,14 @@ const AdminUserList: React.FC = () => {
           labelWidth: 120,
         }}
         toolBarRender={() => [
-          <Button
-            key="1"
-            type="primary"
-            onClick={() => handleDrawerVisible(true)}
-          >
-            新建管理员
-          </Button>,
+          <Access key="1" accessible={access.canCreateAdminUser}>
+            <Button
+              type="primary"
+              onClick={() => handleDrawerVisible(true)}
+            >
+              新建管理员
+            </Button>
+          </Access>,
         ]}
         request={async (params) => {
           const response = await getAdminUserList({

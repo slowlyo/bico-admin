@@ -4,7 +4,8 @@ import {
   ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, Divider, message, Popconfirm, Switch } from 'antd';
+import { Button, message, Popconfirm, Switch } from 'antd';
+import { Access, useAccess } from '@umijs/max';
 import React, { useRef, useState } from 'react';
 import {
   getRoleList,
@@ -108,6 +109,7 @@ const handleStatusChange = async (id: number, status: number) => {
 };
 
 const RoleList: React.FC = () => {
+  const access = useAccess();
   const [createModalVisible, handleModalVisible] = useState<boolean>(false);
   const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
   const [permissionDrawerVisible, setPermissionDrawerVisible] = useState<boolean>(false);
@@ -219,62 +221,62 @@ const RoleList: React.FC = () => {
       valueType: 'option',
       render: (_, record) => (
         <>
-          <Button
-            size="small"
-            type="link"
-            disabled={!record.can_edit}
-            onClick={() => {
-              handleUpdateModalVisible(true);
-              setStepFormValues(record);
-            }}
-          >
-            编辑
-          </Button>
-          <Divider type="vertical" />
-          <Button
-            size="small"
-            type="link"
-            disabled={!record.can_edit}
-            onClick={() => {
-              setSelectedRole(record);
-              setPermissionDrawerVisible(true);
-            }}
-          >
-            权限配置
-          </Button>
-          <Divider type="vertical" />
-          <Popconfirm
-            title="确定要删除这个角色吗？"
-            disabled={!record.can_delete}
-            onConfirm={async () => {
-              const success = await handleRemove(record.id);
-              if (success && actionRef.current) {
-                actionRef.current.reload();
-              }
-            }}
-            okText="确定"
-            cancelText="取消"
-          >
+          <Access accessible={access.canEditRole}>
             <Button
-              type="link"
               size="small"
-              danger
-              disabled={!record.can_delete}
+              type="link"
+              disabled={!record.can_edit}
+              onClick={() => {
+                handleUpdateModalVisible(true);
+                setStepFormValues(record);
+              }}
             >
-              删除
+              编辑
             </Button>
-          </Popconfirm>
+          </Access>
+          <Access accessible={access.canEditRole}>
+            <Button
+              size="small"
+              type="link"
+              disabled={!record.can_edit}
+              onClick={() => {
+                setSelectedRole(record);
+                setPermissionDrawerVisible(true);
+              }}
+            >
+              权限配置
+            </Button>
+          </Access>
+          <Access accessible={access.canDeleteRole}>
+            <Popconfirm
+              title="确定要删除这个角色吗？"
+              disabled={!record.can_delete}
+              onConfirm={async () => {
+                const success = await handleRemove(record.id);
+                if (success && actionRef.current) {
+                  actionRef.current.reload();
+                }
+              }}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button
+                type="link"
+                size="small"
+                danger
+                disabled={!record.can_delete}
+              >
+                删除
+              </Button>
+            </Popconfirm>
+          </Access>
         </>
       ),
     },
   ];
 
   return (
-    <PageContainer
-      header={{
-        title: '角色管理',
-      }}
-    >
+    <PageContainer title={false}>
       <ProTable<Role>
         actionRef={actionRef}
         rowKey="id"
@@ -282,13 +284,14 @@ const RoleList: React.FC = () => {
           labelWidth: 120,
         }}
         toolBarRender={() => [
-          <Button
-            key="1"
-            type="primary"
-            onClick={() => handleModalVisible(true)}
-          >
-            新建角色
-          </Button>,
+          <Access key="1" accessible={access.canCreateRole}>
+            <Button
+              type="primary"
+              onClick={() => handleModalVisible(true)}
+            >
+              新建角色
+            </Button>
+          </Access>,
         ]}
         request={async (params) => {
           const response = await getRoleList({

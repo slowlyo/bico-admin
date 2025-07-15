@@ -11,9 +11,7 @@ const AccessPage: React.FC = () => {
   return (
     <PageContainer
       ghost
-      header={{
-        title: '权限控制示例',
-      }}
+      title={false}
     >
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {/* 用户权限信息 */}
