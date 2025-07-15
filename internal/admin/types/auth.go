@@ -28,8 +28,8 @@ type AdminLoginResponse struct {
 
 // AdminProfileResponse 管理员资料响应（包含权限）
 type AdminProfileResponse struct {
-	UserInfo    types.UserInfo `json:"user_info"`
-	Permissions []string       `json:"permissions"`
+	UserInfo    AdminUserResponse `json:"user_info"`
+	Permissions []string          `json:"permissions"`
 }
 
 // RefreshTokenRequest 刷新令牌请求
@@ -40,6 +40,20 @@ type RefreshTokenRequest struct {
 // LogoutRequest 登出请求
 type LogoutRequest struct {
 	Token string `json:"token" binding:"required"`
+}
+
+// ChangePasswordRequest 修改密码请求
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required,min=6,max=100"`
+	NewPassword string `json:"new_password" binding:"required,min=6,max=100"`
+}
+
+// ProfileUpdateRequest 个人信息更新请求
+type ProfileUpdateRequest struct {
+	Name   string `json:"name" binding:"required,min=1,max=100"`
+	Avatar string `json:"avatar" binding:"max=255"`
+	Email  string `json:"email" binding:"omitempty,email,max=100"`
+	Phone  string `json:"phone" binding:"omitempty,max=20"`
 }
 
 // StatusRequest 状态更新请求

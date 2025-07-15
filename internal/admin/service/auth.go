@@ -22,7 +22,8 @@ type AuthService interface {
 	RefreshToken(ctx context.Context, req *types.RefreshTokenRequest) (*types.AdminLoginResponse, error)
 	GetProfile(ctx context.Context, userID uint) (*types.AdminUserResponse, error)
 	GetProfileWithPermissions(ctx context.Context, userID uint) (*types.AdminProfileResponse, error)
-	UpdateProfile(ctx context.Context, userID uint, req *types.AdminUserUpdateRequest) (*types.AdminUserResponse, error)
+	UpdateProfileInfo(ctx context.Context, userID uint, req *types.ProfileUpdateRequest) (*types.AdminUserResponse, error)
+	ChangePassword(ctx context.Context, userID uint, req *types.ChangePasswordRequest) error
 }
 
 // authService 认证服务实现
@@ -177,18 +178,21 @@ func (s *authService) GetProfile(ctx context.Context, userID uint) (*types.Admin
 	}, nil
 }
 
-// UpdateProfile 更新用户资料
-func (s *authService) UpdateProfile(ctx context.Context, userID uint, req *types.AdminUserUpdateRequest) (*types.AdminUserResponse, error) {
-	adminUser, err := s.adminUserService.Update(ctx, userID, req)
+// GetProfileWithPermissions 获取用户资料和权限
+func (s *authService) GetProfileWithPermissions(ctx context.Context, userID uint) (*types.AdminProfileResponse, error) {
+	adminUser, err := s.adminUserService.GetByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
+
+	// 获取用户权限（超级管理员会自动获得所有权限）
+	permissions := adminUser.GetPermissionCodes()
 
 	// 检查权限
 	canDelete, _ := s.adminUserService.CanUserBeDeleted(ctx, adminUser.ID)
 	canDisable, _ := s.adminUserService.CanUserBeDisabled(ctx, adminUser.ID)
 
-	return &types.AdminUserResponse{
+	userInfo := types.AdminUserResponse{
 		ID:          adminUser.ID,
 		Username:    adminUser.Username,
 		Name:        adminUser.Name,
@@ -203,21 +207,80 @@ func (s *authService) UpdateProfile(ctx context.Context, userID uint, req *types
 		CanDisable:  canDisable,
 		CreatedAt:   adminUser.CreatedAt,
 		UpdatedAt:   adminUser.UpdatedAt,
+	}
+
+	return &types.AdminProfileResponse{
+		UserInfo:    userInfo,
+		Permissions: permissions,
 	}, nil
 }
 
-// GetProfileWithPermissions 获取用户资料和权限
-func (s *authService) GetProfileWithPermissions(ctx context.Context, userID uint) (*types.AdminProfileResponse, error) {
+// UpdateProfileInfo 更新个人信息
+func (s *authService) UpdateProfileInfo(ctx context.Context, userID uint, req *types.ProfileUpdateRequest) (*types.AdminUserResponse, error) {
+	// 获取当前用户信息
 	adminUser, err := s.adminUserService.GetByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 获取用户权限（超级管理员会自动获得所有权限）
-	permissions := adminUser.GetPermissionCodes()
+	// 更新用户信息
+	adminUser.Name = req.Name
+	adminUser.Avatar = req.Avatar
+	adminUser.Email = req.Email
+	adminUser.Phone = req.Phone
 
-	return &types.AdminProfileResponse{
-		UserInfo:    adminUser.ToUserInfo(),
-		Permissions: permissions,
+	// 保存更新
+	updatedUser, err := s.adminUserService.UpdateProfileInfo(ctx, adminUser)
+	if err != nil {
+		return nil, err
+	}
+
+	// 检查权限
+	canDelete, _ := s.adminUserService.CanUserBeDeleted(ctx, updatedUser.ID)
+	canDisable, _ := s.adminUserService.CanUserBeDisabled(ctx, updatedUser.ID)
+
+	return &types.AdminUserResponse{
+		ID:          updatedUser.ID,
+		Username:    updatedUser.Username,
+		Name:        updatedUser.Name,
+		Avatar:      updatedUser.Avatar,
+		Email:       updatedUser.Email,
+		Phone:       updatedUser.Phone,
+		Status:      updatedUser.Status,
+		StatusText:  updatedUser.GetStatusText(),
+		LastLoginAt: updatedUser.LastLoginAt,
+		Remark:      updatedUser.Remark,
+		CanDelete:   canDelete,
+		CanDisable:  canDisable,
+		CreatedAt:   updatedUser.CreatedAt,
+		UpdatedAt:   updatedUser.UpdatedAt,
 	}, nil
+}
+
+// ChangePassword 修改密码
+func (s *authService) ChangePassword(ctx context.Context, userID uint, req *types.ChangePasswordRequest) error {
+	// 获取用户信息
+	adminUser, err := s.adminUserService.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	// 验证原密码
+	if err := bcrypt.CompareHashAndPassword([]byte(adminUser.Password), []byte(req.OldPassword)); err != nil {
+		return errors.New("原密码错误")
+	}
+
+	// 检查新密码是否与原密码相同
+	if req.OldPassword == req.NewPassword {
+		return errors.New("新密码不能与原密码相同")
+	}
+
+	// 加密新密码
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.New("密码加密失败")
+	}
+
+	// 更新密码
+	return s.adminUserService.UpdatePassword(ctx, userID, string(hashedPassword))
 }

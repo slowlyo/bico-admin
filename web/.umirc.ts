@@ -36,9 +36,16 @@ export default defineConfig({
       icon: "HomeOutlined",
     },
     {
+      name: "个人信息",
+      path: "/profile",
+      component: "./Profile",
+      hideInMenu: true,
+    },
+    {
       name: "系统管理",
       path: "/system",
       icon: "SettingOutlined",
+      access: "canSeeSystemManagement",
       routes: [
         {
           path: "/system",

@@ -214,6 +214,7 @@ const RoleList: React.FC = () => {
       hideInForm: true,
       hideInSearch: true,
       valueType: 'dateTime',
+      sorter: true,
     },
     {
       title: '操作',
@@ -293,13 +294,26 @@ const RoleList: React.FC = () => {
             </Button>
           </Access>,
         ]}
-        request={async (params) => {
+        request={async (params, sort) => {
+          // 处理排序参数
+          let sortBy = '';
+          let sortDesc = false;
+
+          if (sort && Object.keys(sort).length > 0) {
+            const sortField = Object.keys(sort)[0];
+            const sortOrder = sort[sortField];
+            sortBy = sortField;
+            sortDesc = sortOrder === 'descend';
+          }
+
           const response = await getRoleList({
             page: params.current || 1,
             page_size: params.pageSize || 10,
             code: params.code,
             name: params.name,
             status: params.status,
+            sort_by: sortBy,
+            sort_desc: sortDesc,
           });
           
           if (response.code === 200) {

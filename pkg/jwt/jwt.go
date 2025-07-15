@@ -99,13 +99,34 @@ func (j *JWTManager) RefreshToken(tokenString string) (string, time.Time, error)
 		return "", time.Time{}, err
 	}
 
-	// 检查令牌是否即将过期（剩余时间少于1小时）
-	if time.Until(claims.ExpiresAt.Time) > time.Hour {
+	// 检查令牌是否即将过期（剩余时间少于2小时）
+	// 放宽刷新条件，允许更早刷新
+	if time.Until(claims.ExpiresAt.Time) > 2*time.Hour {
 		return "", time.Time{}, errors.New("令牌尚未到刷新时间")
 	}
 
 	// 生成新令牌
 	return j.GenerateToken(claims.UserID, claims.Username, claims.UserType)
+}
+
+// CanRefreshToken 检查令牌是否可以刷新
+func (j *JWTManager) CanRefreshToken(tokenString string) bool {
+	claims, err := j.ValidateToken(tokenString)
+	if err != nil {
+		return false
+	}
+
+	// 剩余时间少于2小时时可以刷新
+	return time.Until(claims.ExpiresAt.Time) <= 2*time.Hour
+}
+
+// GetTokenExpirationTime 获取令牌过期时间
+func (j *JWTManager) GetTokenExpirationTime(tokenString string) (time.Time, error) {
+	claims, err := j.ValidateToken(tokenString)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return claims.ExpiresAt.Time, nil
 }
 
 // AddToBlacklist 将令牌加入黑名单

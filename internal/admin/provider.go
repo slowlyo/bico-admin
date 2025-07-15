@@ -28,6 +28,7 @@ var ProviderSet = wire.NewSet(
 	handler.NewAuthHandler,
 	handler.NewAdminUserHandler,
 	handler.NewAdminRoleHandler,
+	handler.NewCommonHandler,
 
 	// 路由处理器集合
 	ProvideHandlers,
@@ -41,11 +42,13 @@ func ProvideHandlers(
 	authHandler *handler.AuthHandler,
 	adminUserHandler *handler.AdminUserHandler,
 	adminRoleHandler *handler.AdminRoleHandler,
+	commonHandler *handler.CommonHandler,
 ) *routes.Handlers {
 	return &routes.Handlers{
 		AuthHandler:      authHandler,
 		AdminUserHandler: adminUserHandler,
 		AdminRoleHandler: adminRoleHandler,
+		CommonHandler:    commonHandler,
 	}
 }
 

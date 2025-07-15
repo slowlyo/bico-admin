@@ -118,9 +118,13 @@ func (r *adminRoleRepository) List(ctx context.Context, req *types.RoleListReque
 	// 分页查询
 	offset := req.GetOffset()
 	pageSize := req.GetPageSize()
+
+	// 构建排序条件
+	orderClause := r.buildOrderClause(req.SortBy, req.SortDesc)
+
 	err := db.Preload("Permissions").
 		Offset(offset).Limit(pageSize).
-		Order("created_at DESC").
+		Order(orderClause).
 		Find(&roles).Error
 
 	return roles, total, err
@@ -303,4 +307,30 @@ func (r *adminRoleRepository) CountUsersWithRoles(ctx context.Context) (int64, e
 		Distinct("user_id").
 		Count(&count).Error
 	return count, err
+}
+
+// buildOrderClause 构建排序条件
+func (r *adminRoleRepository) buildOrderClause(sortBy string, sortDesc bool) string {
+	// 定义允许排序的字段映射
+	allowedSortFields := map[string]string{
+		"created_at": "created_at",
+		"name":       "name",
+		"code":       "code",
+		"status":     "status",
+	}
+
+	// 检查排序字段是否允许
+	dbField, exists := allowedSortFields[sortBy]
+	if !exists {
+		// 默认按创建时间降序排序
+		return "created_at DESC"
+	}
+
+	// 构建排序方向
+	direction := "ASC"
+	if sortDesc {
+		direction = "DESC"
+	}
+
+	return dbField + " " + direction
 }

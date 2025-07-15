@@ -8,12 +8,12 @@ export default (initialState: InitialState) => {
 
   // 通用权限检查函数
   const hasPermission = (permission: string) => {
-    return permissions.some(p => p === permission);
+    return permissions?.some(p => p === permission);
   };
 
   // 检查多个权限中的任意一个
   const hasAnyPermission = (permissionList: string[]) => {
-    return permissionList.some(permission => hasPermission(permission));
+    return permissionList?.some(permission => hasPermission(permission));
   };
 
   // 检查是否已登录
@@ -23,6 +23,9 @@ export default (initialState: InitialState) => {
     // 基础权限
     isLogin,
     canSeeAdmin: isLogin,
+
+    // 系统管理权限 - 只要有任一系统管理子模块权限就能看到系统管理菜单
+    canSeeSystemManagement: hasAnyPermission(['system.admin_user:list', 'system.role:list']),
 
     // 管理员管理权限
     canViewAdminUsers: hasPermission('system.admin_user:list'),

@@ -21,6 +21,8 @@ type AdminUserService interface {
 	Delete(ctx context.Context, id uint) error
 	UpdateStatus(ctx context.Context, id uint, enabled bool) error
 	UpdateLastLoginTime(ctx context.Context, id uint) error
+	UpdatePassword(ctx context.Context, id uint, hashedPassword string) error
+	UpdateProfileInfo(ctx context.Context, user *models.AdminUser) (*models.AdminUser, error)
 	List(ctx context.Context, req *sharedTypes.BasePageQuery) ([]*models.AdminUser, int64, error)
 	ListWithFilter(ctx context.Context, req *types.AdminUserListRequest) ([]*models.AdminUser, int64, error)
 
@@ -292,4 +294,20 @@ func (s *adminUserService) CanUserBeDisabled(ctx context.Context, userID uint) (
 
 	// 如果禁用后系统将没有可用的超级管理员，则不允许禁用
 	return otherSuperAdminCount > 0, nil
+}
+
+// UpdatePassword 更新用户密码
+func (s *adminUserService) UpdatePassword(ctx context.Context, id uint, hashedPassword string) error {
+	return s.adminUserRepo.UpdatePassword(ctx, id, hashedPassword)
+}
+
+// UpdateProfileInfo 更新用户个人信息
+func (s *adminUserService) UpdateProfileInfo(ctx context.Context, user *models.AdminUser) (*models.AdminUser, error) {
+	// 更新用户信息
+	if err := s.adminUserRepo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+
+	// 重新获取更新后的用户信息（包含关联数据）
+	return s.adminUserRepo.GetByID(ctx, user.ID)
 }

@@ -129,10 +129,10 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param request body types.AdminUserUpdateRequest true "更新用户请求"
+// @Param request body types.ProfileUpdateRequest true "更新个人信息请求"
 // @Success 200 {object} response.ApiResponse{data=types.AdminUserResponse}
 // @Failure 400 {object} response.ApiResponse
-// @Router /admin/auth/profile [put]
+// @Router /admin/profile [put]
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -140,17 +140,49 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	var req types.AdminUserUpdateRequest
+	var req types.ProfileUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error())
 		return
 	}
 
-	result, err := h.authService.UpdateProfile(c.Request.Context(), userID.(uint), &req)
+	result, err := h.authService.UpdateProfileInfo(c.Request.Context(), userID.(uint), &req)
 	if err != nil {
 		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
 		return
 	}
 
 	response.Success(c, result)
+}
+
+// ChangePassword 修改密码
+// @Summary 修改密码
+// @Description 修改当前登录用户的密码
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param request body types.ChangePasswordRequest true "修改密码请求"
+// @Success 200 {object} response.ApiResponse
+// @Failure 400 {object} response.ApiResponse
+// @Router /admin/profile/password [put]
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, "用户未登录")
+		return
+	}
+
+	var req types.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	if err := h.authService.ChangePassword(c.Request.Context(), userID.(uint), &req); err != nil {
+		response.ErrorWithMessage(c, response.CodeBadRequest, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
 }

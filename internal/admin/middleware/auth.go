@@ -122,6 +122,13 @@ func RequirePermissionWithService(permission string, adminUserService service.Ad
 				return
 			}
 
+			// 检查用户状态是否启用
+			if !adminUser.IsEnabled() {
+				response.Forbidden(c, "用户已被禁用")
+				c.Abort()
+				return
+			}
+
 			// 检查用户是否有指定权限（超级管理员会自动通过）
 			if !adminUser.HasPermission(permission) {
 				response.Forbidden(c, "权限不足")

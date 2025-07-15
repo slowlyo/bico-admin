@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -15,6 +16,7 @@ type Config struct {
 	Log      LogConfig      `mapstructure:"log" yaml:"log"`
 	JWT      JWTConfig      `mapstructure:"jwt" yaml:"jwt"`
 	Cache    CacheConfig    `mapstructure:"cache" yaml:"cache"`
+	Upload   UploadConfig   `mapstructure:"upload" yaml:"upload"`
 }
 
 // AppConfig 应用基础配置
@@ -106,6 +108,71 @@ type CacheRedisConfig struct {
 	ReadTimeout  time.Duration `mapstructure:"read_timeout" yaml:"read_timeout"`
 	WriteTimeout time.Duration `mapstructure:"write_timeout" yaml:"write_timeout"`
 	KeyPrefix    string        `mapstructure:"key_prefix" yaml:"key_prefix"`
+}
+
+// UploadConfig 文件上传配置
+type UploadConfig struct {
+	MaxFileSize  string   `mapstructure:"max_file_size" yaml:"max_file_size"`
+	MaxFiles     int      `mapstructure:"max_files" yaml:"max_files"`
+	AllowedTypes []string `mapstructure:"allowed_types" yaml:"allowed_types"`
+	UploadDir    string   `mapstructure:"upload_dir" yaml:"upload_dir"`
+}
+
+// GetMaxFileSizeBytes 获取最大文件大小（字节）
+func (u *UploadConfig) GetMaxFileSizeBytes() int64 {
+	if u.MaxFileSize == "" {
+		return 10 << 20 // 默认10MB
+	}
+
+	size := strings.ToUpper(u.MaxFileSize)
+
+	// 提取数字部分
+	var numStr string
+	var unit string
+	for i, char := range size {
+		if char >= '0' && char <= '9' || char == '.' {
+			numStr += string(char)
+		} else {
+			unit = size[i:]
+			break
+		}
+	}
+
+	if numStr == "" {
+		return 10 << 20 // 默认10MB
+	}
+
+	num, err := strconv.ParseFloat(numStr, 64)
+	if err != nil {
+		return 10 << 20 // 默认10MB
+	}
+
+	// 根据单位转换
+	switch unit {
+	case "KB":
+		return int64(num * 1024)
+	case "MB":
+		return int64(num * 1024 * 1024)
+	case "GB":
+		return int64(num * 1024 * 1024 * 1024)
+	default:
+		return int64(num) // 默认按字节处理
+	}
+}
+
+// IsAllowedType 检查文件类型是否允许
+func (u *UploadConfig) IsAllowedType(ext string) bool {
+	if len(u.AllowedTypes) == 0 {
+		return true // 如果没有配置限制，则允许所有类型
+	}
+
+	ext = strings.ToLower(ext)
+	for _, allowedType := range u.AllowedTypes {
+		if strings.ToLower(allowedType) == ext {
+			return true
+		}
+	}
+	return false
 }
 
 // GetDSN 获取数据库连接字符串

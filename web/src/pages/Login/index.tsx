@@ -4,6 +4,7 @@ import { LoginForm, ProFormText } from '@ant-design/pro-components';
 import { useModel, history } from '@umijs/max';
 import { Alert, message } from 'antd';
 import React, { useState } from 'react';
+import { appConfig } from '@/config/app';
 
 const LoginMessage: React.FC<{
   content: string;
@@ -96,29 +97,72 @@ const Login: React.FC = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#f5f5f5',
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingTop: '64px'
+      paddingTop: '64px',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
+      {/* 背景装饰元素 */}
+      <div style={{
+        position: 'absolute',
+        top: '-50%',
+        left: '-50%',
+        width: '200%',
+        height: '200%',
+        background: `
+          radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.4) 0%, transparent 50%),
+          radial-gradient(circle at 75% 75%, rgba(0, 0, 0, 0.05) 0%, transparent 50%)
+        `,
+        zIndex: 0
+      }} />
+
+      {/* 浮动圆点装饰 */}
+      <div style={{
+        position: 'absolute',
+        top: '20%',
+        right: '20%',
+        width: '80px',
+        height: '80px',
+        background: 'rgba(255, 255, 255, 0.3)',
+        borderRadius: '50%',
+        filter: 'blur(1px)'
+      }} />
+
+      <div style={{
+        position: 'absolute',
+        bottom: '25%',
+        left: '10%',
+        width: '120px',
+        height: '120px',
+        background: 'rgba(0, 0, 0, 0.03)',
+        borderRadius: '50%',
+        filter: 'blur(2px)'
+      }} />
+
+      <div style={{
+        position: 'absolute',
+        top: '60%',
+        right: '5%',
+        width: '40px',
+        height: '40px',
+        background: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: '50%'
+      }} />
+
       <div style={{
         width: '100%',
         maxWidth: '448px',
-        marginTop: '-112px'
+        marginTop: '-112px',
+        position: 'relative',
+        zIndex: 1
       }}>
         <LoginForm
-          logo={
-            <div style={{
-              fontSize: '24px',
-              fontWeight: 'bold',
-              color: '#1890ff'
-            }}>
-              Bico
-            </div>
-          }
-          title="Bico Admin"
-          subTitle="管理后台"
+          logo={<img src={appConfig.logo} alt={appConfig.title} style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />}
+          title={appConfig.title}
+          subTitle
           onFinish={async (values) => {
             await handleSubmit(values);
           }}
@@ -131,7 +175,7 @@ const Login: React.FC = () => {
             name="username"
             fieldProps={{
               size: 'large',
-              prefix: <UserOutlined style={{ color: '#1890ff' }} />,
+              prefix: <UserOutlined />,
             }}
             placeholder="用户名（3-50位）"
             rules={[
@@ -150,7 +194,7 @@ const Login: React.FC = () => {
             name="password"
             fieldProps={{
               size: 'large',
-              prefix: <LockOutlined style={{ color: '#1890ff' }} />,
+              prefix: <LockOutlined />,
             }}
             placeholder="密码（最少6位）"
             rules={[

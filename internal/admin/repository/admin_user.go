@@ -28,6 +28,7 @@ type AdminUserRepository interface {
 	// 状态管理
 	UpdateStatus(ctx context.Context, id uint, enabled bool) error
 	UpdateLastLoginTime(ctx context.Context, id uint) error
+	UpdatePassword(ctx context.Context, id uint, hashedPassword string) error
 	BatchUpdateStatus(ctx context.Context, ids []uint, enabled bool) error
 
 	// 统计方法
@@ -166,8 +167,12 @@ func (r *adminUserRepository) ListWithFilter(ctx context.Context, req *adminType
 	// 分页查询
 	offset := req.GetOffset()
 	pageSize := req.GetPageSize()
+
+	// 构建排序条件
+	orderClause := r.buildOrderClause(req.SortBy, req.SortDesc)
+
 	err := db.Offset(offset).Limit(pageSize).
-		Order("admin_users.created_at DESC").
+		Order(orderClause).
 		Find(&users).Error
 
 	return users, total, err
@@ -196,4 +201,38 @@ func (r *adminUserRepository) CountSuperAdminsExcludeID(ctx context.Context, exc
 			models.RoleCodeSuperAdmin, types.StatusActive, excludeID).
 		Count(&count).Error
 	return count, err
+}
+
+// buildOrderClause 构建排序条件
+func (r *adminUserRepository) buildOrderClause(sortBy string, sortDesc bool) string {
+	// 定义允许排序的字段映射
+	allowedSortFields := map[string]string{
+		"created_at":    "admin_users.created_at",
+		"last_login_at": "admin_users.last_login_at",
+		"username":      "admin_users.username",
+		"name":          "admin_users.name",
+		"status":        "admin_users.status",
+	}
+
+	// 检查排序字段是否允许
+	dbField, exists := allowedSortFields[sortBy]
+	if !exists {
+		// 默认按创建时间降序排序
+		return "admin_users.created_at DESC"
+	}
+
+	// 构建排序方向
+	direction := "ASC"
+	if sortDesc {
+		direction = "DESC"
+	}
+
+	return dbField + " " + direction
+}
+
+// UpdatePassword 更新用户密码
+func (r *adminUserRepository) UpdatePassword(ctx context.Context, id uint, hashedPassword string) error {
+	return r.db.WithContext(ctx).Model(&models.AdminUser{}).
+		Where("id = ?", id).
+		Update("password", hashedPassword).Error
 }

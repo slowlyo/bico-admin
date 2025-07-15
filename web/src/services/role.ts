@@ -62,6 +62,8 @@ export interface RoleListRequest {
   code?: string;
   name?: string;
   status?: number;
+  sort_by?: string; // 排序字段
+  sort_desc?: boolean; // 是否降序
 }
 
 // 分页响应

@@ -4,7 +4,8 @@ import {
   ProColumns,
   ProTable,
 } from '@ant-design/pro-components';
-import { Button, message, Popconfirm, Switch } from 'antd';
+import { Button, message, Popconfirm, Switch, Avatar } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
 import { Access, useAccess } from '@umijs/max';
 import React, { useRef, useState } from 'react';
 import {
@@ -142,6 +143,20 @@ const AdminUserList: React.FC = () => {
       width: 80,
     },
     {
+      title: '头像',
+      dataIndex: 'avatar',
+      hideInForm: true,
+      hideInSearch: true,
+      width: 80,
+      render: (_, record) => (
+        <Avatar
+          size={40}
+          src={record.avatar}
+          icon={<UserOutlined />}
+        />
+      ),
+    },
+    {
       title: '用户名',
       dataIndex: 'username',
       formItemProps: {
@@ -262,6 +277,7 @@ const AdminUserList: React.FC = () => {
       hideInForm: true,
       hideInSearch: true,
       valueType: 'dateTime',
+      sorter: true,
     },
     {
       title: '创建时间',
@@ -269,6 +285,7 @@ const AdminUserList: React.FC = () => {
       hideInForm: true,
       hideInSearch: true,
       valueType: 'dateTime',
+      sorter: true,
     },
     {
       title: '操作',
@@ -334,7 +351,18 @@ const AdminUserList: React.FC = () => {
             </Button>
           </Access>,
         ]}
-        request={async (params) => {
+        request={async (params, sort) => {
+          // 处理排序参数
+          let sortBy = '';
+          let sortDesc = false;
+
+          if (sort && Object.keys(sort).length > 0) {
+            const sortField = Object.keys(sort)[0];
+            const sortOrder = sort[sortField];
+            sortBy = sortField;
+            sortDesc = sortOrder === 'descend';
+          }
+
           const response = await getAdminUserList({
             page: params.current || 1,
             page_size: params.pageSize || 10,
@@ -342,6 +370,8 @@ const AdminUserList: React.FC = () => {
             name: params.name,
             status: params.status,
             role_id: params.role_id,
+            sort_by: sortBy,
+            sort_desc: sortDesc,
           });
           
           if (response.code === 200) {

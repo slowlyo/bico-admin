@@ -49,7 +49,7 @@ const RoleForm: React.FC<RoleFormProps> = (props) => {
         }
       }}
       modalProps={{
-        destroyOnClose: true,
+        destroyOnHidden: true,
       }}
     >
       <ProFormText

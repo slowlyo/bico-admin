@@ -12,9 +12,12 @@ import (
 
 // 权限白名单 - 这些路径不需要权限检查
 var permissionWhitelist = []string{
-	"/admin/auth/logout",  // 登出
-	"/admin/auth/profile", // 获取个人信息
-	"/admin/auth/refresh", // 刷新token
+	"/admin/auth/logout",      // 登出
+	"/admin/auth/profile",     // 获取个人信息
+	"/admin/auth/refresh",     // 刷新token
+	"/admin/profile",          // 更新个人信息
+	"/admin/profile/password", // 修改密码
+	"/admin/upload",           // 文件上传
 }
 
 // PermissionMiddleware 权限检查中间件
@@ -61,6 +64,13 @@ func PermissionMiddleware(adminUserService service.AdminUserService) gin.Handler
 		adminUser, err := adminUserService.GetByID(c.Request.Context(), userID.(uint))
 		if err != nil {
 			response.Forbidden(c, "权限验证失败")
+			c.Abort()
+			return
+		}
+
+		// 检查用户状态是否启用
+		if !adminUser.IsEnabled() {
+			response.Forbidden(c, "用户已被禁用")
 			c.Abort()
 			return
 		}

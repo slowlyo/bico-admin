@@ -10,6 +10,9 @@ import (
 
 // RegisterRoutes 注册admin端路由
 func RegisterRoutes(r *gin.Engine, handlers *Handlers, cache cache.Cache, permissionMiddleware gin.HandlerFunc) {
+	// 静态文件服务 - 提供上传文件访问
+	r.Static("/uploads", "./data/uploads")
+
 	// admin端路由组
 	adminGroup := r.Group("/admin")
 
@@ -33,7 +36,13 @@ func RegisterRoutes(r *gin.Engine, handlers *Handlers, cache cache.Cache, permis
 		// 认证相关
 		protectedGroup.POST("/auth/logout", handlers.AuthHandler.Logout)
 		protectedGroup.GET("/auth/profile", handlers.AuthHandler.GetProfile)
-		protectedGroup.PUT("/auth/profile", handlers.AuthHandler.UpdateProfile)
+
+		// 个人信息管理（使用profile路径，与前端保持一致）
+		protectedGroup.PUT("/profile", handlers.AuthHandler.UpdateProfile)
+		protectedGroup.PUT("/profile/password", handlers.AuthHandler.ChangePassword)
+
+		// 通用接口
+		protectedGroup.POST("/upload", handlers.CommonHandler.Upload)
 
 		// 管理员用户管理
 		adminUserGroup := protectedGroup.Group("/admin-users")
@@ -69,4 +78,5 @@ type Handlers struct {
 	AuthHandler      *handler.AuthHandler
 	AdminUserHandler *handler.AdminUserHandler
 	AdminRoleHandler *handler.AdminRoleHandler
+	CommonHandler    *handler.CommonHandler
 }

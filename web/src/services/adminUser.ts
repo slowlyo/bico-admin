@@ -58,6 +58,8 @@ export interface AdminUserListParams {
   name?: string;
   status?: number;
   role_id?: number; // 角色筛选
+  sort_by?: string; // 排序字段
+  sort_desc?: boolean; // 是否降序
 }
 
 export interface AdminUserListResponse {

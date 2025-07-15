@@ -50,13 +50,13 @@ type PermissionDef struct {
 var permissionDefs = []PermissionDef{
 	// 系统管理
 	{"system", "系统管理", "", "module", 1, "", ""},
-	{"system.admin_user", "管理员管理", "system", "module", 1, "", ""},
+	{"system.admin_user", "管理员", "system", "module", 1, "", ""},
 	{"system.admin_user:list", "查看管理员列表", "system.admin_user", "action", 1, "search,filter", "/admin/admin-users,/admin/admin-users/:id"},
 	{"system.admin_user:create", "创建管理员", "system.admin_user", "action", 3, "create", "/admin/admin-users,/admin/roles/options"},
 	{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/admin/admin-users/:id,/admin/admin-users/:id/status,/admin/roles/options"},
 	{"system.admin_user:delete", "删除管理员", "system.admin_user", "action", 4, "delete", "/admin/admin-users/:id"},
 
-	{"system.role", "角色管理", "system", "module", 1, "", ""},
+	{"system.role", "角色", "system", "module", 1, "", ""},
 	{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/admin/roles,/admin/roles/:id"},
 	{"system.role:create", "创建角色", "system.role", "action", 3, "create", "/admin/roles,/admin/roles/permissions"},
 	{"system.role:update", "编辑角色", "system.role", "action", 3, "edit,save,assign_permissions", "/admin/roles/:id,/admin/roles/:id/status,/admin/roles/:id/permissions,/admin/roles/permissions,/admin/roles/assign"},

@@ -1,8 +1,9 @@
-import { DrawerForm, ProFormText, ProFormSwitch, ProFormSelect, ProFormTextArea } from '@ant-design/pro-components';
+import { DrawerForm, ProFormText, ProFormSwitch, ProFormSelect, ProFormTextArea, ProFormUploadButton } from '@ant-design/pro-components';
 import React, { useEffect, useState } from 'react';
 import { message } from 'antd';
 import { AdminUser, AdminUserCreateRequest, AdminUserUpdateRequest } from '@/services/adminUser';
 import { getActiveRoles, Role } from '@/services/role';
+import { uploadAvatar } from '@/services/upload';
 
 export interface AdminUserFormProps {
   drawerVisible: boolean;
@@ -71,7 +72,7 @@ const AdminUserForm: React.FC<AdminUserFormProps> = (props) => {
         await onSubmit(value as AdminUserCreateRequest | AdminUserUpdateRequest);
       }}
       drawerProps={{
-        destroyOnClose: true,
+        destroyOnHidden: true,
       }}
     >
       <ProFormText
@@ -148,10 +149,82 @@ const AdminUserForm: React.FC<AdminUserFormProps> = (props) => {
         placeholder="请输入手机号（可选）"
       />
       
-      <ProFormText
+      <ProFormUploadButton
         name="avatar"
-        label="头像URL"
-        placeholder="请输入头像URL（可选）"
+        label="头像"
+        max={1}
+        fieldProps={{
+          name: 'files',
+          listType: 'picture-card',
+          showUploadList: {
+            showPreviewIcon: true,
+            showRemoveIcon: true,
+          },
+          accept: 'image/*',
+          beforeUpload: (file) => {
+            // 检查文件类型
+            const isImage = file.type.startsWith('image/');
+            if (!isImage) {
+              message.error('只能上传图片文件！');
+              return false;
+            }
+
+            // 检查文件大小（限制为2MB）
+            const isLt2M = file.size / 1024 / 1024 < 2;
+            if (!isLt2M) {
+              message.error('图片大小不能超过2MB！');
+              return false;
+            }
+
+            return true;
+          },
+          customRequest: async ({ file, onSuccess, onError }) => {
+            try {
+              const response = await uploadAvatar(file as File);
+              if (response.code === 200 && response.data.files.length > 0) {
+                const uploadedFile = response.data.files[0];
+                onSuccess?.(uploadedFile);
+                message.success('头像上传成功');
+              } else {
+                throw new Error(response.message || '上传失败');
+              }
+            } catch (error) {
+              console.error('上传失败:', error);
+              onError?.(error as Error);
+              message.error('头像上传失败');
+            }
+          },
+        }}
+        extra="支持jpg、png等图片格式，文件大小不超过2MB"
+        transform={(value) => {
+          // 转换上传组件的值为字符串URL
+          if (value && Array.isArray(value) && value.length > 0) {
+            const file = value[0];
+            if (file.response) {
+              return file.response.file_path;
+            }
+            if (file.url) {
+              return file.url;
+            }
+          }
+          // 如果没有文件或文件为空，返回空字符串
+          return '';
+        }}
+        convertValue={(value) => {
+          // 将字符串URL转换为上传组件需要的格式
+          if (typeof value === 'string' && value) {
+            return [
+              {
+                uid: '-1',
+                name: 'avatar',
+                status: 'done',
+                url: value,
+              },
+            ];
+          }
+          // 确保返回数组格式
+          return Array.isArray(value) ? value : [];
+        }}
       />
       
       <ProFormTextArea

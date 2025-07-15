@@ -16,14 +16,19 @@ export interface RefreshTokenRequest {
 export interface UserInfo {
   id: number;
   username: string;
-  nickname: string;  // 后端返回的是nickname字段
+  name: string;      // 姓名字段
+  nickname: string;  // 昵称字段（与name相同）
   avatar?: string;
   email?: string;
   phone?: string;
   status: number;
+  status_text?: string;
   last_login_at?: string;
-  last_login_ip?: string;
-  login_count: number;
+  remark?: string;
+  can_delete?: boolean;
+  can_disable?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // 权限信息 - 后端返回的是权限代码字符串数组

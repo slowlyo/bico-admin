@@ -91,6 +91,40 @@ cache:
   #   write_timeout: "3s"
   #   key_prefix: "bico:cache:"
 
+upload:
+  max_file_size: "10MB"        # 单个文件最大大小: 支持 KB, MB, GB 单位
+  max_files: 10                # 单次上传最大文件数量
+  allowed_types:               # 允许的文件类型（扩展名）
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".gif"
+    - ".bmp"
+    - ".webp"
+    - ".svg"
+    - ".pdf"
+    - ".doc"
+    - ".docx"
+    - ".xls"
+    - ".xlsx"
+    - ".ppt"
+    - ".pptx"
+    - ".txt"
+    - ".csv"
+    - ".zip"
+    - ".rar"
+    - ".7z"
+    - ".tar"
+    - ".gz"
+    - ".mp3"
+    - ".mp4"
+    - ".avi"
+    - ".mov"
+    - ".wmv"
+    - ".flv"
+    - ".wav"
+  upload_dir: "data/uploads"   # 上传文件存储目录
+
 # 配置使用说明:
 # 1. 环境变量优先级高于配置文件，格式: BICO_<配置路径>
 #    例如: BICO_LOG_LEVEL=debug, BICO_DATABASE_DRIVER=mysql
