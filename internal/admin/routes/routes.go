@@ -67,6 +67,7 @@ func RegisterRoutes(r *gin.Engine, handlers *Handlers, cache cache.Cache, permis
 			roleGroup.GET("/:id", handlers.AdminRoleHandler.GetRoleByID)
 			roleGroup.POST("", handlers.AdminRoleHandler.CreateRole)
 			roleGroup.PUT("/:id", handlers.AdminRoleHandler.UpdateRole)
+			roleGroup.PATCH("/:id/status", handlers.AdminRoleHandler.UpdateRoleStatus)
 			roleGroup.PUT("/:id/permissions", handlers.AdminRoleHandler.UpdateRolePermissions)
 			roleGroup.DELETE("/:id", handlers.AdminRoleHandler.DeleteRole)
 			roleGroup.POST("/assign", handlers.AdminRoleHandler.AssignRolesToUser)

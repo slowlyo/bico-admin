@@ -1,5 +1,13 @@
 import { request } from '@umijs/max';
 
+// 角色权限响应
+export interface RolePermissionResponse {
+  permission_code: string;
+  permission_name: string;
+  module: string;
+  level: number;
+}
+
 // 角色数据类型
 export interface Role {
   id: number;
@@ -8,6 +16,10 @@ export interface Role {
   description?: string;
   status: number;
   status_text: string;
+  permissions: RolePermissionResponse[];
+  user_count: number;    // 拥有该角色的用户数量
+  can_edit: boolean;     // 是否可编辑
+  can_delete: boolean;   // 是否可删除
   created_at: string;
   updated_at: string;
 }
@@ -17,15 +29,16 @@ export interface RoleCreateRequest {
   code: string;
   name: string;
   description?: string;
-  status?: number;
+  status: number;
+  permissions?: string[];  // 权限代码列表
 }
 
 // 角色更新请求
 export interface RoleUpdateRequest {
-  code?: string;
-  name?: string;
+  name: string;
   description?: string;
-  status?: number;
+  status: number;
+  permissions?: string[];  // 权限代码列表
 }
 
 // 权限树节点
@@ -150,5 +163,48 @@ export async function updateRolePermissions(id: number, data: RolePermissionUpda
   return request(`/admin/roles/${id}/permissions`, {
     method: 'PUT',
     data,
+  });
+}
+
+// 角色分配请求
+export interface RoleAssignRequest {
+  user_id: number;
+  role_ids: number[];
+}
+
+// 用户角色响应
+export interface UserRoleResponse {
+  user_id: number;
+  username: string;
+  name: string;
+  roles: Role[];
+  created_at: string;
+}
+
+/**
+ * 分配角色给用户
+ */
+export async function assignRolesToUser(data: RoleAssignRequest): Promise<ApiResponse<null>> {
+  return request('/admin/roles/assign', {
+    method: 'POST',
+    data,
+  });
+}
+
+/**
+ * 获取用户角色
+ */
+export async function getUserRoles(userId: number): Promise<ApiResponse<UserRoleResponse>> {
+  return request(`/admin/roles/user/${userId}`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * 获取角色统计
+ */
+export async function getRoleStats(): Promise<ApiResponse<any>> {
+  return request('/admin/roles/stats', {
+    method: 'GET',
   });
 }

@@ -175,6 +175,14 @@ const RoleList: React.FC = () => {
       },
     },
     {
+      title: '用户数量',
+      dataIndex: 'user_count',
+      hideInForm: true,
+      hideInSearch: true,
+      width: 100,
+      render: (text) => text || 0,
+    },
+    {
       title: '状态',
       dataIndex: 'status',
       hideInForm: true,
@@ -186,6 +194,7 @@ const RoleList: React.FC = () => {
       render: (_, record) => (
         <Switch
           checked={record.status === 1}
+          disabled={!record.can_edit}
           onChange={async (checked) => {
             const success = await handleStatusChange(record.id, checked ? 1 : 0);
             if (success && actionRef.current) {
@@ -213,6 +222,7 @@ const RoleList: React.FC = () => {
           <Button
             size="small"
             type="link"
+            disabled={!record.can_edit}
             onClick={() => {
               handleUpdateModalVisible(true);
               setStepFormValues(record);
@@ -234,6 +244,7 @@ const RoleList: React.FC = () => {
           <Divider type="vertical" />
           <Popconfirm
             title="确定要删除这个角色吗？"
+            disabled={!record.can_delete}
             onConfirm={async () => {
               const success = await handleRemove(record.id);
               if (success && actionRef.current) {
@@ -243,7 +254,12 @@ const RoleList: React.FC = () => {
             okText="确定"
             cancelText="取消"
           >
-            <Button type="link" size="small" danger>
+            <Button
+              type="link"
+              size="small"
+              danger
+              disabled={!record.can_delete}
+            >
               删除
             </Button>
           </Popconfirm>

@@ -183,6 +183,7 @@ const AdminUserList: React.FC = () => {
       render: (_, record) => (
         <Switch
           checked={record.status === 1}
+          disabled={!record.can_disable}
           onChange={async (checked) => {
             const success = await handleStatusChange(record.id, checked ? 1 : 0);
             if (success && actionRef.current) {
@@ -193,6 +194,13 @@ const AdminUserList: React.FC = () => {
           unCheckedChildren="禁用"
         />
       ),
+    },
+    {
+      title: '备注',
+      dataIndex: 'remark',
+      hideInSearch: true,
+      hideInForm: true,
+      ellipsis: true,
     },
 
     {
@@ -228,6 +236,7 @@ const AdminUserList: React.FC = () => {
           <Divider type="vertical" />
           <Popconfirm
             title="确定要删除这个管理员用户吗？"
+            disabled={!record.can_delete}
             onConfirm={async () => {
               const success = await handleRemove(record.id);
               if (success && actionRef.current) {
@@ -237,7 +246,12 @@ const AdminUserList: React.FC = () => {
             okText="确定"
             cancelText="取消"
           >
-            <Button type="link" size="small" danger>
+            <Button
+              type="link"
+              size="small"
+              danger
+              disabled={!record.can_delete}
+            >
               删除
             </Button>
           </Popconfirm>

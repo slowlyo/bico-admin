@@ -31,6 +31,7 @@ const AdminUserForm: React.FC<AdminUserFormProps> = (props) => {
               email: values.email,
               phone: values.phone,
               avatar: values.avatar,
+              remark: values.remark,
               enabled: values.status === 1,
             }
           : {
@@ -124,6 +125,18 @@ const AdminUserForm: React.FC<AdminUserFormProps> = (props) => {
         placeholder="请输入头像URL（可选）"
       />
       
+      <ProFormText
+        name="remark"
+        label="备注"
+        rules={[
+          {
+            max: 500,
+            message: '备注长度不能超过500个字符',
+          },
+        ]}
+        placeholder="请输入备注（可选）"
+      />
+
       <ProFormSwitch
         name="enabled"
         label="启用状态"

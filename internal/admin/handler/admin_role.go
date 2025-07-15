@@ -117,6 +117,65 @@ func (h *AdminRoleHandler) UpdateRole(ctx *gin.Context) {
 	response.Success(ctx, result)
 }
 
+// UpdateRoleStatus 更新角色状态
+// @Summary 更新角色状态
+// @Description 启用或禁用角色
+// @Tags 角色管理
+// @Accept json
+// @Produce json
+// @Param id path int true "角色ID"
+// @Param request body types.StatusRequest true "状态更新请求"
+// @Success 200 {object} response.Response
+// @Router /admin/roles/{id}/status [patch]
+func (h *AdminRoleHandler) UpdateRoleStatus(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.ErrorWithMessage(ctx, response.CodeBadRequest, "无效的角色ID")
+		return
+	}
+
+	var req types.StatusRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.ErrorWithMessage(ctx, response.CodeBadRequest, err.Error())
+		return
+	}
+
+	// 获取角色信息
+	role, err := h.roleService.GetRoleByID(ctx.Request.Context(), uint(id))
+	if err != nil {
+		response.ErrorWithMessage(ctx, response.CodeNotFound, err.Error())
+		return
+	}
+
+	// 检查是否可以编辑
+	if !role.CanEdit {
+		response.ErrorWithMessage(ctx, response.CodeForbidden, "该角色不可编辑")
+		return
+	}
+
+	// 构造更新请求
+	updateReq := types.RoleUpdateRequest{
+		Name:        role.Name,
+		Description: role.Description,
+		Status:      req.Status,
+		Permissions: make([]string, len(role.Permissions)),
+	}
+
+	// 提取权限代码
+	for i, perm := range role.Permissions {
+		updateReq.Permissions[i] = perm.PermissionCode
+	}
+
+	// 更新角色
+	if _, err := h.roleService.UpdateRole(ctx.Request.Context(), uint(id), &updateReq); err != nil {
+		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(ctx, nil)
+}
+
 // DeleteRole 删除角色
 // @Summary 删除角色
 // @Description 删除角色

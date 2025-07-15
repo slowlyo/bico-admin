@@ -1,6 +1,8 @@
 package definitions
 
-import "strings"
+import (
+	"strings"
+)
 
 // Permission 权限定义（静态配置，程序中定义）
 type Permission struct {
@@ -49,17 +51,17 @@ var permissionDefs = []PermissionDef{
 	// 系统管理
 	{"system", "系统管理", "", "module", 1, "", ""},
 	{"system.admin_user", "管理员管理", "system", "module", 1, "", ""},
-	{"system.admin_user:list", "查看管理员列表", "system.admin_user", "action", 1, "search,filter", "/api/admin/admin-users"},
-	{"system.admin_user:create", "创建管理员", "system.admin_user", "action", 3, "create", "/api/admin/admin-users"},
-	{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/api/admin/admin-users/:id,/api/admin/admin-users/:id/status"},
-	{"system.admin_user:delete", "删除管理员", "system.admin_user", "action", 4, "delete", "/api/admin/admin-users/:id"},
-	{"system.admin_user:reset_password", "重置管理员密码", "system.admin_user", "action", 3, "reset_password", "/api/admin/admin-users/:id/password"},
+	{"system.admin_user:list", "查看管理员列表", "system.admin_user", "action", 1, "search,filter", "/admin/admin-users"},
+	{"system.admin_user:create", "创建管理员", "system.admin_user", "action", 3, "create", "/admin/admin-users"},
+	{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/admin/admin-users/:id,/admin/admin-users/:id/status"},
+	{"system.admin_user:delete", "删除管理员", "system.admin_user", "action", 4, "delete", "/admin/admin-users/:id"},
+	{"system.admin_user:reset_password", "重置管理员密码", "system.admin_user", "action", 3, "reset_password", "/admin/admin-users/:id/password"},
 
 	{"system.role", "角色管理", "system", "module", 1, "", ""},
-	{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/api/admin/roles,/api/admin/roles/:id,/api/admin/roles/permissions"},
-	{"system.role:create", "创建角色", "system.role", "action", 3, "create", "/api/admin/roles"},
-	{"system.role:update", "编辑角色", "system.role", "action", 3, "edit,save,assign_permissions", "/api/admin/roles/:id,/api/admin/roles/:id/permissions,/api/admin/roles/assign"},
-	{"system.role:delete", "删除角色", "system.role", "action", 4, "delete", "/api/admin/roles/:id"},
+	{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/admin/roles,/admin/roles/:id,/admin/roles/permissions"},
+	{"system.role:create", "创建角色", "system.role", "action", 3, "create", "/admin/roles"},
+	{"system.role:update", "编辑角色", "system.role", "action", 3, "edit,save,assign_permissions", "/admin/roles/:id,/admin/roles/:id/permissions,/admin/roles/assign"},
+	{"system.role:delete", "删除角色", "system.role", "action", 4, "delete", "/admin/roles/:id"},
 }
 
 // splitString 分割字符串并去除空白
@@ -95,13 +97,28 @@ func buildPermissionTree() []Permission {
 		permMap[def.Code] = perm
 	}
 
-	// 构建树形结构
+	// 构建树形结构 - 递归构建完整的权限树
+	var buildChildren func(parentCode string) []Permission
+	buildChildren = func(parentCode string) []Permission {
+		var children []Permission
+		for _, def := range permissionDefs {
+			if def.Parent == parentCode {
+				perm := permMap[def.Code]
+				// 递归构建子权限
+				perm.Children = buildChildren(def.Code)
+				children = append(children, *perm)
+			}
+		}
+		return children
+	}
+
+	// 收集根权限并构建完整的树
 	var roots []Permission
-	for _, perm := range permMap {
-		if perm.ParentID == "" {
+	for _, def := range permissionDefs {
+		if def.Parent == "" {
+			perm := permMap[def.Code]
+			perm.Children = buildChildren(def.Code)
 			roots = append(roots, *perm)
-		} else if parent, exists := permMap[perm.ParentID]; exists {
-			parent.Children = append(parent.Children, *perm)
 		}
 	}
 

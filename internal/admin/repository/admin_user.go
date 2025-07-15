@@ -53,10 +53,25 @@ func NewAdminUserRepository(db *gorm.DB) AdminUserRepository {
 	}
 }
 
-// GetByUsername 根据用户名获取管理员用户
+// GetByID 根据ID获取管理员用户（预加载角色和权限）
+func (r *adminUserRepository) GetByID(ctx context.Context, id uint) (*models.AdminUser, error) {
+	var user models.AdminUser
+	err := r.BaseRepository.db.WithContext(ctx).
+		Preload("Roles.Role.Permissions").
+		First(&user, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// GetByUsername 根据用户名获取管理员用户（预加载角色和权限）
 func (r *adminUserRepository) GetByUsername(ctx context.Context, username string) (*models.AdminUser, error) {
 	var user models.AdminUser
-	err := r.BaseRepository.db.WithContext(ctx).Where("username = ?", username).First(&user).Error
+	err := r.BaseRepository.db.WithContext(ctx).
+		Preload("Roles.Role.Permissions").
+		Where("username = ?", username).
+		First(&user).Error
 	if err != nil {
 		return nil, err
 	}

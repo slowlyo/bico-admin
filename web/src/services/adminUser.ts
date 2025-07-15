@@ -12,6 +12,8 @@ export interface AdminUser {
   status_text: string;
   last_login_at?: string;
   remark?: string;
+  can_delete: boolean;   // 是否可删除
+  can_disable: boolean;  // 是否可禁用
   created_at: string;
   updated_at: string;
 }
@@ -21,6 +23,9 @@ export interface AdminUserCreateRequest {
   password: string;
   name: string;
   avatar?: string;
+  email?: string;
+  phone?: string;
+  remark?: string;
   enabled: boolean;
 }
 
@@ -29,6 +34,9 @@ export interface AdminUserUpdateRequest {
   password?: string;
   name: string;
   avatar?: string;
+  email?: string;
+  phone?: string;
+  remark?: string;
   enabled: boolean;
 }
 
