@@ -24,6 +24,342 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/admin-users": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "分页获取管理员用户列表",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员用户管理"
+                ],
+                "summary": "获取管理员用户列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "每页数量",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "用户名",
+                        "name": "username",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "姓名",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "状态",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/bico-admin_pkg_response.PageResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "list": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/bico-admin_internal_admin_types.AdminUserResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "创建新的管理员用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员用户管理"
+                ],
+                "summary": "创建管理员用户",
+                "parameters": [
+                    {
+                        "description": "创建管理员用户请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_internal_admin_types.AdminUserCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/bico-admin_internal_admin_types.AdminUserResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/admin-users/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "根据用户ID获取管理员用户详细信息",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员用户管理"
+                ],
+                "summary": "根据ID获取管理员用户",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "用户ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/bico-admin_internal_admin_types.AdminUserResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "更新管理员用户信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员用户管理"
+                ],
+                "summary": "更新管理员用户",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "用户ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新管理员用户请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_internal_admin_types.AdminUserUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/bico-admin_internal_admin_types.AdminUserResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "软删除管理员用户",
+                "tags": [
+                    "管理员用户管理"
+                ],
+                "summary": "删除管理员用户",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "用户ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/admin-users/{id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "启用或禁用管理员用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理员用户管理"
+                ],
+                "summary": "更新管理员用户状态",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "用户ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "状态更新请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_internal_admin_types.StatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/auth/login": {
             "post": {
                 "description": "管理员登录接口",
@@ -44,7 +380,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/types.AdminLoginRequest"
+                            "$ref": "#/definitions/bico-admin_internal_admin_types.AdminLoginRequest"
                         }
                     }
                 ],
@@ -54,13 +390,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.ApiResponse"
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/types.AdminLoginResponse"
+                                            "$ref": "#/definitions/bico-admin_internal_admin_types.AdminLoginResponse"
                                         }
                                     }
                                 }
@@ -70,7 +406,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                         }
                     }
                 }
@@ -84,9 +420,6 @@ const docTemplate = `{
                     }
                 ],
                 "description": "管理员登出接口",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -98,7 +431,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                         }
                     }
                 }
@@ -111,27 +450,27 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "获取当前登录用户的详细信息",
+                "description": "获取当前登录用户的详细信息和权限列表",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "认证"
                 ],
-                "summary": "获取当前用户信息",
+                "summary": "获取当前用户信息和权限",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.ApiResponse"
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/types.UserResponse"
+                                            "$ref": "#/definitions/bico-admin_internal_admin_types.AdminProfileResponse"
                                         }
                                     }
                                 }
@@ -141,62 +480,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "更新当前登录用户的信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "认证"
-                ],
-                "summary": "更新当前用户信息",
-                "parameters": [
-                    {
-                        "description": "更新用户请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/types.UserUpdateRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/types.UserResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                         }
                     }
                 }
@@ -222,7 +506,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/types.RefreshTokenRequest"
+                            "$ref": "#/definitions/bico-admin_internal_admin_types.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -232,13 +516,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.ApiResponse"
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/types.AdminLoginResponse"
+                                            "$ref": "#/definitions/bico-admin_internal_admin_types.AdminLoginResponse"
                                         }
                                     }
                                 }
@@ -248,103 +532,20 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                         }
                     }
                 }
             }
         },
-        "/admin/configs": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "分页获取系统配置列表",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "配置管理"
-                ],
-                "summary": "获取配置列表",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "创建新的系统配置",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "配置管理"
-                ],
-                "summary": "创建配置",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/configs/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "根据ID获取配置详情",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "配置管理"
-                ],
-                "summary": "获取配置详情",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "配置ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
-                    }
-                }
-            },
+        "/admin/profile": {
             "put": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "更新系统配置",
+                "description": "更新当前登录用户的信息",
                 "consumes": [
                     "application/json"
                 ],
@@ -352,207 +553,56 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "配置管理"
+                    "认证"
                 ],
-                "summary": "更新配置",
+                "summary": "更新当前用户信息",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "配置ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                        "description": "更新个人信息请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
                         "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
+                            "$ref": "#/definitions/bico-admin_internal_admin_types.ProfileUpdateRequest"
                         }
                     }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "删除系统配置",
-                "tags": [
-                    "配置管理"
-                ],
-                "summary": "删除配置",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "配置ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/bico-admin_internal_admin_types.AdminUserResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                         }
                     }
                 }
             }
         },
-        "/admin/logs": {
-            "get": {
+        "/admin/profile/password": {
+            "put": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "分页获取系统日志列表",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "日志管理"
-                ],
-                "summary": "获取日志列表",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "清理系统日志",
-                "tags": [
-                    "日志管理"
-                ],
-                "summary": "清理日志",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/system/cache": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "清理系统缓存",
-                "tags": [
-                    "系统管理"
-                ],
-                "summary": "清理缓存",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/system/cache/stats": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "获取缓存使用统计信息",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "系统管理"
-                ],
-                "summary": "获取缓存统计",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/system/info": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "获取系统基本信息",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "系统管理"
-                ],
-                "summary": "获取系统信息",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/system/stats": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "获取系统运行统计信息",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "系统管理"
-                ],
-                "summary": "获取系统统计",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/users": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "分页获取用户列表",
+                "description": "修改当前登录用户的密码",
                 "consumes": [
                     "application/json"
                 ],
@@ -560,9 +610,184 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "认证"
                 ],
-                "summary": "获取用户列表",
+                "summary": "修改密码",
+                "parameters": [
+                    {
+                        "description": "修改密码请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_internal_admin_types.ChangePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/roles/options": {
+            "get": {
+                "description": "获取所有启用的角色选项，用于下拉选择",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "角色管理"
+                ],
+                "summary": "获取角色选项",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/bico-admin_internal_admin_types.RoleOptionResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/roles/{id}/status": {
+            "patch": {
+                "description": "启用或禁用角色",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "角色管理"
+                ],
+                "summary": "更新角色状态",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "角色ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "状态更新请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_internal_admin_types.StatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/upload": {
+            "post": {
+                "description": "支持单文件或多文件上传，可通过dir参数指定上传目录",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "通用接口"
+                ],
+                "summary": "文件上传",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "上传目录，不指定则存储在根目录",
+                        "name": "dir",
+                        "in": "query"
+                    },
+                    {
+                        "type": "file",
+                        "description": "上传的文件",
+                        "name": "files",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_admin_handler.MultiUploadResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/roles": {
+            "get": {
+                "description": "获取角色列表，支持分页和条件筛选",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "角色管理"
+                ],
+                "summary": "获取角色列表",
                 "parameters": [
                     {
                         "type": "integer",
@@ -580,14 +805,14 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "搜索关键词",
-                        "name": "keyword",
+                        "description": "角色名称",
+                        "name": "name",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "用户类型",
-                        "name": "user_type",
+                        "description": "角色代码",
+                        "name": "code",
                         "in": "query"
                     },
                     {
@@ -603,13 +828,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.ApiResponse"
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/response.PageResponse"
+                                            "$ref": "#/definitions/bico-admin_pkg_response.PageResponse"
                                         }
                                     }
                                 }
@@ -619,12 +844,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "创建新用户",
+                "description": "创建新角色",
                 "consumes": [
                     "application/json"
                 ],
@@ -632,17 +852,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "角色管理"
                 ],
-                "summary": "创建用户",
+                "summary": "创建角色",
                 "parameters": [
                     {
-                        "description": "创建用户请求",
-                        "name": "request",
+                        "description": "角色信息",
+                        "name": "role",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/types.UserCreateRequest"
+                            "$ref": "#/definitions/bico-admin_internal_admin_types.RoleCreateRequest"
                         }
                     }
                 ],
@@ -652,84 +872,119 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.ApiResponse"
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/types.UserResponse"
+                                            "$ref": "#/definitions/bico-admin_internal_admin_types.RoleResponse"
                                         }
                                     }
                                 }
                             ]
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
                     }
                 }
             }
         },
-        "/admin/users/stats": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
+        "/api/admin/roles/assign": {
+            "post": {
+                "description": "为管理员用户分配角色",
+                "consumes": [
+                    "application/json"
                 ],
-                "description": "获取用户统计信息",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "角色管理"
                 ],
-                "summary": "获取用户统计",
+                "summary": "为用户分配角色",
+                "parameters": [
+                    {
+                        "description": "角色分配信息",
+                        "name": "assignment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/bico-admin_internal_admin_types.RoleAssignRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.ApiResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/types.UserStatsResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                         }
                     }
                 }
             }
         },
-        "/admin/users/{id}": {
+        "/api/admin/roles/permissions": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
+                "description": "获取权限树，用于角色权限分配",
+                "consumes": [
+                    "application/json"
                 ],
-                "description": "根据用户ID获取用户详细信息",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "角色管理"
                 ],
-                "summary": "根据ID获取用户",
+                "summary": "获取权限树",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "用户ID",
+                        "description": "角色ID，用于标记已选中的权限",
+                        "name": "role_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/bico-admin_internal_admin_types.PermissionTreeNode"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/roles/{id}": {
+            "get": {
+                "description": "根据ID获取角色详情",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "角色管理"
+                ],
+                "summary": "获取角色详情",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "角色ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -741,34 +996,23 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.ApiResponse"
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/types.UserResponse"
+                                            "$ref": "#/definitions/bico-admin_internal_admin_types.RoleResponse"
                                         }
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
                         }
                     }
                 }
             },
             "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "更新用户信息",
+                "description": "更新角色信息",
                 "consumes": [
                     "application/json"
                 ],
@@ -776,24 +1020,24 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "角色管理"
                 ],
-                "summary": "更新用户",
+                "summary": "更新角色",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "用户ID",
+                        "description": "角色ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "更新用户请求",
-                        "name": "request",
+                        "description": "角色信息",
+                        "name": "role",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/types.UserUpdateRequest"
+                            "$ref": "#/definitions/bico-admin_internal_admin_types.RoleUpdateRequest"
                         }
                     }
                 ],
@@ -803,71 +1047,23 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.ApiResponse"
+                                    "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/types.UserResponse"
+                                            "$ref": "#/definitions/bico-admin_internal_admin_types.RoleResponse"
                                         }
                                     }
                                 }
                             ]
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
                     }
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "软删除用户",
-                "tags": [
-                    "用户管理"
-                ],
-                "summary": "删除用户",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "用户ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/users/{id}/password": {
-            "patch": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "管理员重置用户密码",
+                "description": "删除角色",
                 "consumes": [
                     "application/json"
                 ],
@@ -875,45 +1071,31 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "角色管理"
                 ],
-                "summary": "重置用户密码",
+                "summary": "删除角色",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "用户ID",
+                        "description": "角色ID",
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "密码重置请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/types.UserPasswordRequest"
-                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                         }
                     }
                 }
             }
         },
-        "/admin/users/{id}/status": {
-            "patch": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "更新用户状态（激活/禁用）",
+        "/api/admin/roles/{id}/permissions": {
+            "put": {
+                "description": "更新角色的权限配置",
                 "consumes": [
                     "application/json"
                 ],
@@ -921,29 +1103,24 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "用户管理"
+                    "角色管理"
                 ],
-                "summary": "更新用户状态",
+                "summary": "更新角色权限",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "用户ID",
+                        "description": "角色ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "状态更新请求",
-                        "name": "request",
+                        "description": "权限信息",
+                        "name": "permissions",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "status": {
-                                    "type": "integer"
-                                }
-                            }
+                            "$ref": "#/definitions/bico-admin_internal_admin_types.RolePermissionUpdateRequest"
                         }
                     }
                 ],
@@ -951,7 +1128,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                         }
                     }
                 }
@@ -971,7 +1148,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                         }
                     }
                 }
@@ -991,7 +1168,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.ApiResponse"
+                            "$ref": "#/definitions/bico-admin_pkg_response.ApiResponse"
                         }
                     }
                 }
@@ -999,37 +1176,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "response.ApiResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {},
-                "message": {
-                    "type": "string"
-                }
-            }
-        },
-        "response.PageResponse": {
-            "type": "object",
-            "properties": {
-                "list": {},
-                "page": {
-                    "type": "integer"
-                },
-                "page_size": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
-                },
-                "total_pages": {
-                    "type": "integer"
-                }
-            }
-        },
-        "types.AdminLoginRequest": {
+        "bico-admin_internal_admin_types.AdminLoginRequest": {
             "type": "object",
             "required": [
                 "captcha",
@@ -1052,17 +1199,11 @@ const docTemplate = `{
                 }
             }
         },
-        "types.AdminLoginResponse": {
+        "bico-admin_internal_admin_types.AdminLoginResponse": {
             "type": "object",
             "properties": {
                 "expires_at": {
                     "type": "string"
-                },
-                "menus": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/types.Menu"
-                    }
                 },
                 "permissions": {
                     "type": "array",
@@ -1074,52 +1215,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_info": {
-                    "$ref": "#/definitions/types.UserInfo"
+                    "$ref": "#/definitions/bico-admin_internal_shared_types.UserInfo"
                 }
             }
         },
-        "types.Menu": {
+        "bico-admin_internal_admin_types.AdminProfileResponse": {
             "type": "object",
             "properties": {
-                "children": {
+                "permissions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/types.Menu"
+                        "type": "string"
                     }
                 },
-                "icon": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "path": {
-                    "type": "string"
-                },
-                "sort": {
-                    "type": "integer"
+                "user_info": {
+                    "$ref": "#/definitions/bico-admin_internal_admin_types.AdminUserResponse"
                 }
             }
         },
-        "types.RefreshTokenRequest": {
+        "bico-admin_internal_admin_types.AdminUserCreateRequest": {
             "type": "object",
             "required": [
-                "refresh_token"
-            ],
-            "properties": {
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "types.UserCreateRequest": {
-            "type": "object",
-            "required": [
+                "name",
                 "password",
-                "user_type",
                 "username"
             ],
             "properties": {
@@ -1127,24 +1245,17 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255
                 },
-                "birthday": {
-                    "type": "string"
-                },
                 "email": {
                     "type": "string",
                     "maxLength": 100
                 },
-                "gender": {
-                    "type": "integer",
-                    "enum": [
-                        0,
-                        1,
-                        2
-                    ]
+                "enabled": {
+                    "type": "boolean"
                 },
-                "nickname": {
+                "name": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 100,
+                    "minLength": 1
                 },
                 "password": {
                     "type": "string",
@@ -1159,20 +1270,12 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 500
                 },
-                "status": {
-                    "type": "integer",
-                    "enum": [
-                        0,
-                        1
-                    ]
-                },
-                "user_type": {
-                    "type": "string",
-                    "enum": [
-                        "admin",
-                        "master",
-                        "normal"
-                    ]
+                "role_ids": {
+                    "description": "角色ID列表",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "username": {
                     "type": "string",
@@ -1181,64 +1284,24 @@ const docTemplate = `{
                 }
             }
         },
-        "types.UserInfo": {
+        "bico-admin_internal_admin_types.AdminUserResponse": {
             "type": "object",
             "properties": {
                 "avatar": {
                     "type": "string"
                 },
-                "email": {
-                    "type": "string"
+                "can_delete": {
+                    "description": "是否可删除",
+                    "type": "boolean"
                 },
-                "id": {
-                    "type": "integer"
-                },
-                "nickname": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "integer"
-                },
-                "user_type": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "types.UserPasswordRequest": {
-            "type": "object",
-            "required": [
-                "password"
-            ],
-            "properties": {
-                "password": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 6
-                }
-            }
-        },
-        "types.UserResponse": {
-            "type": "object",
-            "properties": {
-                "avatar": {
-                    "type": "string"
-                },
-                "birthday": {
-                    "type": "string"
+                "can_disable": {
+                    "description": "是否可禁用",
+                    "type": "boolean"
                 },
                 "created_at": {
                     "type": "string"
                 },
                 "email": {
-                    "type": "string"
-                },
-                "gender": {
-                    "type": "integer"
-                },
-                "gender_text": {
                     "type": "string"
                 },
                 "id": {
@@ -1247,13 +1310,7 @@ const docTemplate = `{
                 "last_login_at": {
                     "type": "string"
                 },
-                "last_login_ip": {
-                    "type": "string"
-                },
-                "login_count": {
-                    "type": "integer"
-                },
-                "nickname": {
+                "name": {
                     "type": "string"
                 },
                 "phone": {
@@ -1261,6 +1318,13 @@ const docTemplate = `{
                 },
                 "remark": {
                     "type": "string"
+                },
+                "roles": {
+                    "description": "用户角色列表",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bico-admin_internal_admin_types.AdminUserRoleResponse"
+                    }
                 },
                 "status": {
                     "type": "integer"
@@ -1271,68 +1335,56 @@ const docTemplate = `{
                 "updated_at": {
                     "type": "string"
                 },
-                "user_type": {
-                    "type": "string"
-                },
-                "user_type_text": {
-                    "type": "string"
-                },
                 "username": {
                     "type": "string"
                 }
             }
         },
-        "types.UserStatsResponse": {
+        "bico-admin_internal_admin_types.AdminUserRoleResponse": {
             "type": "object",
             "properties": {
-                "active_users": {
+                "code": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
                     "type": "integer"
                 },
-                "admin_users": {
-                    "type": "integer"
-                },
-                "master_users": {
-                    "type": "integer"
-                },
-                "normal_users": {
-                    "type": "integer"
-                },
-                "today_logins": {
-                    "type": "integer"
-                },
-                "total_users": {
-                    "type": "integer"
-                },
-                "weekly_logins": {
-                    "type": "integer"
+                "name": {
+                    "type": "string"
                 }
             }
         },
-        "types.UserUpdateRequest": {
+        "bico-admin_internal_admin_types.AdminUserUpdateRequest": {
             "type": "object",
+            "required": [
+                "name",
+                "username"
+            ],
             "properties": {
                 "avatar": {
                     "type": "string",
                     "maxLength": 255
                 },
-                "birthday": {
-                    "type": "string"
-                },
                 "email": {
                     "type": "string",
                     "maxLength": 100
                 },
-                "gender": {
-                    "type": "integer",
-                    "enum": [
-                        0,
-                        1,
-                        2
-                    ]
+                "enabled": {
+                    "type": "boolean"
                 },
-                "nickname": {
+                "name": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "password": {
+                    "description": "可选，为空则不更新密码",
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 6
                 },
                 "phone": {
                     "type": "string",
@@ -1342,20 +1394,389 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 500
                 },
+                "role_ids": {
+                    "description": "角色ID列表",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3
+                }
+            }
+        },
+        "bico-admin_internal_admin_types.ChangePasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "old_password"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 6
+                },
+                "old_password": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 6
+                }
+            }
+        },
+        "bico-admin_internal_admin_types.PermissionTreeNode": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "description": "子节点",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bico-admin_internal_admin_types.PermissionTreeNode"
+                    }
+                },
+                "key": {
+                    "description": "权限代码或模块代码",
+                    "type": "string"
+                },
+                "selected": {
+                    "description": "是否选中",
+                    "type": "boolean"
+                },
+                "title": {
+                    "description": "显示名称",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "类型：module 或 action",
+                    "type": "string"
+                }
+            }
+        },
+        "bico-admin_internal_admin_types.ProfileUpdateRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "avatar": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20
+                }
+            }
+        },
+        "bico-admin_internal_admin_types.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "bico-admin_internal_admin_types.RoleAssignRequest": {
+            "type": "object",
+            "required": [
+                "role_ids",
+                "user_id"
+            ],
+            "properties": {
+                "role_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "bico-admin_internal_admin_types.RoleCreateRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "name"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 1
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "permissions": {
+                    "description": "权限代码列表",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "status": {
                     "type": "integer",
                     "enum": [
                         0,
                         1
                     ]
+                }
+            }
+        },
+        "bico-admin_internal_admin_types.RoleOptionResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "bico-admin_internal_admin_types.RolePermissionResponse": {
+            "type": "object",
+            "properties": {
+                "level": {
+                    "type": "integer"
+                },
+                "module": {
+                    "type": "string"
+                },
+                "permission_code": {
+                    "type": "string"
+                },
+                "permission_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "bico-admin_internal_admin_types.RolePermissionUpdateRequest": {
+            "type": "object",
+            "required": [
+                "permissions"
+            ],
+            "properties": {
+                "permissions": {
+                    "description": "权限代码列表",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "bico-admin_internal_admin_types.RoleResponse": {
+            "type": "object",
+            "properties": {
+                "can_delete": {
+                    "description": "是否可删除",
+                    "type": "boolean"
+                },
+                "can_edit": {
+                    "description": "是否可编辑",
+                    "type": "boolean"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/bico-admin_internal_admin_types.RolePermissionResponse"
+                    }
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "status_text": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_count": {
+                    "description": "拥有该角色的用户数量",
+                    "type": "integer"
+                }
+            }
+        },
+        "bico-admin_internal_admin_types.RoleUpdateRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "permissions": {
+                    "description": "权限代码列表",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "status": {
+                    "type": "integer",
+                    "enum": [
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        "bico-admin_internal_admin_types.StatusRequest": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "integer",
+                    "enum": [
+                        0,
+                        1,
+                        -1
+                    ]
+                }
+            }
+        },
+        "bico-admin_internal_shared_types.UserInfo": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
                 },
                 "user_type": {
-                    "type": "string",
-                    "enum": [
-                        "admin",
-                        "master",
-                        "normal"
-                    ]
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "bico-admin_pkg_response.ApiResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "bico-admin_pkg_response.PageResponse": {
+            "type": "object",
+            "properties": {
+                "list": {},
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_admin_handler.MultiUploadResponse": {
+            "type": "object",
+            "properties": {
+                "files": {
+                    "description": "上传成功的文件列表",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_admin_handler.UploadResponse"
+                    }
+                },
+                "total": {
+                    "description": "总文件数",
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_admin_handler.UploadResponse": {
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "description": "原始文件名",
+                    "type": "string"
+                },
+                "file_path": {
+                    "description": "文件访问路径",
+                    "type": "string"
+                },
+                "file_size": {
+                    "description": "文件大小（字节）",
+                    "type": "integer"
+                },
+                "file_type": {
+                    "description": "文件类型",
+                    "type": "string"
                 }
             }
         }

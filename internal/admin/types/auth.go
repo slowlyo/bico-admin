@@ -43,6 +43,11 @@ type ChangePasswordRequest struct {
 	NewPassword string `json:"new_password" binding:"required,min=6,max=100"`
 }
 
+// StatusRequest 状态更新请求
+type StatusRequest struct {
+	Status int `json:"status" binding:"oneof=0 1 -1"`
+}
+
 // ProfileUpdateRequest 个人信息更新请求
 type ProfileUpdateRequest struct {
 	Name   string `json:"name" binding:"required,min=1,max=100"`

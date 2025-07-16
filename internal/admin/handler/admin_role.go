@@ -7,7 +7,6 @@ import (
 
 	"bico-admin/internal/admin/service"
 	"bico-admin/internal/admin/types"
-	sharedTypes "bico-admin/internal/shared/types"
 	"bico-admin/pkg/response"
 )
 
@@ -34,7 +33,7 @@ func NewAdminRoleHandler(roleService service.AdminRoleService) *AdminRoleHandler
 // @Param name query string false "角色名称"
 // @Param code query string false "角色代码"
 // @Param status query int false "状态"
-// @Success 200 {object} response.Response{data=types.PageResponse[types.RoleResponse]}
+// @Success 200 {object} response.ApiResponse{data=response.PageResponse}
 // @Router /api/admin/roles [get]
 func (h *AdminRoleHandler) GetRoleList(ctx *gin.Context) {
 	var req types.RoleListRequest
@@ -67,7 +66,7 @@ func (h *AdminRoleHandler) GetRoleList(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param role body types.RoleCreateRequest true "角色信息"
-// @Success 200 {object} response.Response{data=types.RoleResponse}
+// @Success 200 {object} response.ApiResponse{data=types.RoleResponse}
 // @Router /api/admin/roles [post]
 func (h *AdminRoleHandler) CreateRole(ctx *gin.Context) {
 	var req types.RoleCreateRequest
@@ -93,7 +92,7 @@ func (h *AdminRoleHandler) CreateRole(ctx *gin.Context) {
 // @Produce json
 // @Param id path int true "角色ID"
 // @Param role body types.RoleUpdateRequest true "角色信息"
-// @Success 200 {object} response.Response{data=types.RoleResponse}
+// @Success 200 {object} response.ApiResponse{data=types.RoleResponse}
 // @Router /api/admin/roles/{id} [put]
 func (h *AdminRoleHandler) UpdateRole(ctx *gin.Context) {
 	idStr := ctx.Param("id")
@@ -126,7 +125,7 @@ func (h *AdminRoleHandler) UpdateRole(ctx *gin.Context) {
 // @Produce json
 // @Param id path int true "角色ID"
 // @Param request body types.StatusRequest true "状态更新请求"
-// @Success 200 {object} response.Response
+// @Success 200 {object} response.ApiResponse
 // @Router /admin/roles/{id}/status [patch]
 func (h *AdminRoleHandler) UpdateRoleStatus(ctx *gin.Context) {
 	idStr := ctx.Param("id")
@@ -136,7 +135,7 @@ func (h *AdminRoleHandler) UpdateRoleStatus(ctx *gin.Context) {
 		return
 	}
 
-	var req sharedTypes.StatusRequest
+	var req types.StatusRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.ErrorWithMessage(ctx, response.CodeBadRequest, err.Error())
 		return
@@ -184,7 +183,7 @@ func (h *AdminRoleHandler) UpdateRoleStatus(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path int true "角色ID"
-// @Success 200 {object} response.Response
+// @Success 200 {object} response.ApiResponse
 // @Router /api/admin/roles/{id} [delete]
 func (h *AdminRoleHandler) DeleteRole(ctx *gin.Context) {
 	idStr := ctx.Param("id")
@@ -209,7 +208,7 @@ func (h *AdminRoleHandler) DeleteRole(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path int true "角色ID"
-// @Success 200 {object} response.Response{data=types.RoleResponse}
+// @Success 200 {object} response.ApiResponse{data=types.RoleResponse}
 // @Router /api/admin/roles/{id} [get]
 func (h *AdminRoleHandler) GetRoleByID(ctx *gin.Context) {
 	idStr := ctx.Param("id")
@@ -235,7 +234,7 @@ func (h *AdminRoleHandler) GetRoleByID(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param role_id query int false "角色ID，用于标记已选中的权限"
-// @Success 200 {object} response.Response{data=[]types.PermissionTreeNode}
+// @Success 200 {object} response.ApiResponse{data=[]types.PermissionTreeNode}
 // @Router /api/admin/roles/permissions [get]
 func (h *AdminRoleHandler) GetPermissionTree(ctx *gin.Context) {
 	var roleID *uint
@@ -263,7 +262,7 @@ func (h *AdminRoleHandler) GetPermissionTree(ctx *gin.Context) {
 // @Produce json
 // @Param id path int true "角色ID"
 // @Param permissions body types.RolePermissionUpdateRequest true "权限信息"
-// @Success 200 {object} response.Response
+// @Success 200 {object} response.ApiResponse
 // @Router /api/admin/roles/{id}/permissions [put]
 func (h *AdminRoleHandler) UpdateRolePermissions(ctx *gin.Context) {
 	idStr := ctx.Param("id")
@@ -294,7 +293,7 @@ func (h *AdminRoleHandler) UpdateRolePermissions(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param assignment body types.RoleAssignRequest true "角色分配信息"
-// @Success 200 {object} response.Response
+// @Success 200 {object} response.ApiResponse
 // @Router /api/admin/roles/assign [post]
 func (h *AdminRoleHandler) AssignRolesToUser(ctx *gin.Context) {
 	var req types.RoleAssignRequest
@@ -317,7 +316,7 @@ func (h *AdminRoleHandler) AssignRolesToUser(ctx *gin.Context) {
 // @Tags 角色管理
 // @Accept json
 // @Produce json
-// @Success 200 {object} response.Response{data=[]types.RoleOptionResponse}
+// @Success 200 {object} response.ApiResponse{data=[]types.RoleOptionResponse}
 // @Router /admin/roles/options [get]
 func (h *AdminRoleHandler) GetRoleOptions(c *gin.Context) {
 	roles, err := h.roleService.GetActiveRoles(c.Request.Context())

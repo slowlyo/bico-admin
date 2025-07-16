@@ -229,7 +229,7 @@ func (h *AdminUserHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	var req sharedTypes.StatusRequest
+	var req types.StatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error())
 		return
