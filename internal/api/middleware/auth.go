@@ -78,7 +78,7 @@ func validateAPIKey(apiKey string) (*APIKeyInfo, error) {
 			Status:      1,
 		}, nil
 	}
-	
+
 	return nil, gin.Error{Err: gin.Error{}.Err, Type: gin.ErrorTypePublic}
 }
 
@@ -86,7 +86,7 @@ func validateAPIKey(apiKey string) (*APIKeyInfo, error) {
 func hasAPIPermission(keyInfo *APIKeyInfo, method, path string) bool {
 	// TODO: 实现真正的权限检查逻辑
 	// 这里是临时的简单实现
-	
+
 	// 构建权限字符串
 	var permission string
 	switch {

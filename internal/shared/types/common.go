@@ -4,8 +4,8 @@ import "time"
 
 // 通用状态枚举
 const (
-	StatusActive   = 1 // 激活
-	StatusInactive = 0 // 未激活
+	StatusActive   = 1  // 激活
+	StatusInactive = 0  // 未激活
 	StatusDeleted  = -1 // 已删除
 )
 
@@ -30,43 +30,14 @@ type BaseModel struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// SoftDeleteModel 软删除模型
-type SoftDeleteModel struct {
-	BaseModel
-	DeletedAt *time.Time `json:"deleted_at,omitempty" gorm:"index"`
-}
-
-// StatusModel 状态模型
-type StatusModel struct {
-	Status int `json:"status" gorm:"default:1;comment:状态 1:激活 0:未激活 -1:已删除"`
-}
-
-// TimestampModel 时间戳模型
-type TimestampModel struct {
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `json:"deleted_at,omitempty" gorm:"index"`
-}
-
 // IDRequest 通用ID请求
 type IDRequest struct {
 	ID uint `uri:"id" binding:"required,min=1"`
 }
 
-// IDsRequest 通用IDs请求
-type IDsRequest struct {
-	IDs []uint `json:"ids" binding:"required,min=1"`
-}
-
 // StatusRequest 状态更新请求
 type StatusRequest struct {
 	Status int `json:"status" binding:"oneof=0 1 -1"`
-}
-
-// LoginRequest 登录请求
-type LoginRequest struct {
-	Username string `json:"username" binding:"required,min=3,max=50"`
-	Password string `json:"password" binding:"required,min=6,max=100"`
 }
 
 // LoginResponse 登录响应
@@ -85,12 +56,6 @@ type UserInfo struct {
 	Avatar   string `json:"avatar"`
 	UserType string `json:"user_type"`
 	Status   int    `json:"status"`
-}
-
-// ChangePasswordRequest 修改密码请求
-type ChangePasswordRequest struct {
-	OldPassword string `json:"old_password" binding:"required,min=6,max=100"`
-	NewPassword string `json:"new_password" binding:"required,min=6,max=100"`
 }
 
 // GetStatusText 获取状态文本

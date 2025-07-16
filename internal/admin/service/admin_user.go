@@ -23,7 +23,7 @@ type AdminUserService interface {
 	UpdateLastLoginTime(ctx context.Context, id uint) error
 	UpdatePassword(ctx context.Context, id uint, hashedPassword string) error
 	UpdateProfileInfo(ctx context.Context, user *models.AdminUser) (*models.AdminUser, error)
-	List(ctx context.Context, req *sharedTypes.BasePageQuery) ([]*models.AdminUser, int64, error)
+
 	ListWithFilter(ctx context.Context, req *types.AdminUserListRequest) ([]*models.AdminUser, int64, error)
 
 	// 权限检查方法
@@ -238,11 +238,6 @@ func (s *adminUserService) UpdateStatus(ctx context.Context, id uint, enabled bo
 // UpdateLastLoginTime 更新最后登录时间
 func (s *adminUserService) UpdateLastLoginTime(ctx context.Context, id uint) error {
 	return s.adminUserRepo.UpdateLastLoginTime(ctx, id)
-}
-
-// List 获取管理员用户列表
-func (s *adminUserService) List(ctx context.Context, req *sharedTypes.BasePageQuery) ([]*models.AdminUser, int64, error) {
-	return s.adminUserRepo.List(ctx, req)
 }
 
 // ListWithFilter 获取管理员用户列表（带筛选）

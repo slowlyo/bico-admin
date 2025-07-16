@@ -20,7 +20,7 @@ type AuthService interface {
 	Login(ctx context.Context, req *types.AdminLoginRequest) (*types.AdminLoginResponse, error)
 	Logout(ctx context.Context, token string) error
 	RefreshToken(ctx context.Context, req *types.RefreshTokenRequest) (*types.AdminLoginResponse, error)
-	GetProfile(ctx context.Context, userID uint) (*types.AdminUserResponse, error)
+
 	GetProfileWithPermissions(ctx context.Context, userID uint) (*types.AdminProfileResponse, error)
 	UpdateProfileInfo(ctx context.Context, userID uint, req *types.ProfileUpdateRequest) (*types.AdminUserResponse, error)
 	ChangePassword(ctx context.Context, userID uint, req *types.ChangePasswordRequest) error
@@ -146,35 +146,6 @@ func (s *authService) RefreshToken(ctx context.Context, req *types.RefreshTokenR
 			UserInfo:  adminUser.ToUserInfo(),
 		},
 		Permissions: permissions,
-	}, nil
-}
-
-// GetProfile 获取用户资料
-func (s *authService) GetProfile(ctx context.Context, userID uint) (*types.AdminUserResponse, error) {
-	adminUser, err := s.adminUserService.GetByID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	// 检查权限
-	canDelete, _ := s.adminUserService.CanUserBeDeleted(ctx, adminUser.ID)
-	canDisable, _ := s.adminUserService.CanUserBeDisabled(ctx, adminUser.ID)
-
-	return &types.AdminUserResponse{
-		ID:          adminUser.ID,
-		Username:    adminUser.Username,
-		Name:        adminUser.Name,
-		Avatar:      adminUser.Avatar,
-		Email:       adminUser.Email,
-		Phone:       adminUser.Phone,
-		Status:      adminUser.Status,
-		StatusText:  adminUser.GetStatusText(),
-		LastLoginAt: adminUser.LastLoginAt,
-		Remark:      adminUser.Remark,
-		CanDelete:   canDelete,
-		CanDisable:  canDisable,
-		CreatedAt:   adminUser.CreatedAt,
-		UpdatedAt:   adminUser.UpdatedAt,
 	}, nil
 }
 

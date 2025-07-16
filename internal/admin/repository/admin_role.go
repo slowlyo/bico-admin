@@ -15,31 +15,21 @@ type AdminRoleRepository interface {
 	// 基础CRUD
 	Create(ctx context.Context, role *models.AdminRole) error
 	GetByID(ctx context.Context, id uint) (*models.AdminRole, error)
-	GetByCode(ctx context.Context, code string) (*models.AdminRole, error)
+
 	Update(ctx context.Context, role *models.AdminRole) error
 	Delete(ctx context.Context, id uint) error
 
 	// 查询方法
 	List(ctx context.Context, req *types.RoleListRequest) ([]*models.AdminRole, int64, error)
-	ListByStatus(ctx context.Context, status int, req *sharedTypes.BasePageQuery) ([]*models.AdminRole, int64, error)
+
 	ListActiveRoles(ctx context.Context) ([]*models.AdminRole, error)
-
-	// 状态管理
-	UpdateStatus(ctx context.Context, id uint, status int) error
-	BatchUpdateStatus(ctx context.Context, ids []uint, status int) error
-
-	// 统计方法
-	Count(ctx context.Context) (int64, error)
-	CountByStatus(ctx context.Context, status int) (int64, error)
 
 	// 验证方法
 	ExistsByCode(ctx context.Context, code string) (bool, error)
-	ExistsByCodeExcludeID(ctx context.Context, code string, excludeID uint) (bool, error)
 
 	// 权限相关
 	CreateRolePermissions(ctx context.Context, tx *gorm.DB, roleID uint, permissionCodes []string) error
 	DeleteRolePermissions(ctx context.Context, tx *gorm.DB, roleID uint) error
-	GetRolePermissions(ctx context.Context, roleID uint) ([]string, error)
 
 	// 用户角色关联
 	AssignRolesToUser(ctx context.Context, tx *gorm.DB, userID uint, roleIDs []uint) error
@@ -76,16 +66,6 @@ func (r *adminRoleRepository) WithTx(tx *gorm.DB) AdminRoleRepository {
 func (r *adminRoleRepository) GetByID(ctx context.Context, id uint) (*models.AdminRole, error) {
 	var role models.AdminRole
 	err := r.BaseRepository.db.WithContext(ctx).Preload("Permissions").First(&role, id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &role, nil
-}
-
-// GetByCode 根据代码获取管理员角色
-func (r *adminRoleRepository) GetByCode(ctx context.Context, code string) (*models.AdminRole, error) {
-	var role models.AdminRole
-	err := r.BaseRepository.db.WithContext(ctx).Preload("Permissions").Where("code = ?", code).First(&role).Error
 	if err != nil {
 		return nil, err
 	}
@@ -130,27 +110,6 @@ func (r *adminRoleRepository) List(ctx context.Context, req *types.RoleListReque
 	return roles, total, err
 }
 
-// ListByStatus 根据状态分页获取管理员角色列表
-func (r *adminRoleRepository) ListByStatus(ctx context.Context, status int, req *sharedTypes.BasePageQuery) ([]*models.AdminRole, int64, error) {
-	_, total, err := r.BaseRepository.ListByStatus(ctx, status, req)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	// 需要预加载权限信息，重新查询
-	var rolesWithPermissions []*models.AdminRole
-	offset := req.GetOffset()
-	pageSize := req.GetPageSize()
-	err = r.BaseRepository.db.WithContext(ctx).Model(&models.AdminRole{}).
-		Where("status = ?", status).
-		Preload("Permissions").
-		Offset(offset).Limit(pageSize).
-		Order("created_at DESC").
-		Find(&rolesWithPermissions).Error
-
-	return rolesWithPermissions, total, err
-}
-
 // ListActiveRoles 获取所有启用的角色
 func (r *adminRoleRepository) ListActiveRoles(ctx context.Context) ([]*models.AdminRole, error) {
 	var roles []*models.AdminRole
@@ -166,11 +125,6 @@ func (r *adminRoleRepository) ListActiveRoles(ctx context.Context) ([]*models.Ad
 // ExistsByCode 检查角色代码是否存在
 func (r *adminRoleRepository) ExistsByCode(ctx context.Context, code string) (bool, error) {
 	return r.BaseRepository.ExistsByField(ctx, "code", code)
-}
-
-// ExistsByCodeExcludeID 检查角色代码是否存在（排除指定ID）
-func (r *adminRoleRepository) ExistsByCodeExcludeID(ctx context.Context, code string, excludeID uint) (bool, error) {
-	return r.BaseRepository.ExistsByFieldExcludeID(ctx, "code", code, excludeID)
 }
 
 // CreateRolePermissions 创建角色权限关联
@@ -200,21 +154,6 @@ func (r *adminRoleRepository) DeleteRolePermissions(ctx context.Context, tx *gor
 	}
 
 	return db.WithContext(ctx).Where("role_id = ?", roleID).Delete(&models.AdminRolePermission{}).Error
-}
-
-// GetRolePermissions 获取角色权限代码列表
-func (r *adminRoleRepository) GetRolePermissions(ctx context.Context, roleID uint) ([]string, error) {
-	var permissions []models.AdminRolePermission
-	err := r.BaseRepository.db.WithContext(ctx).Where("role_id = ?", roleID).Find(&permissions).Error
-	if err != nil {
-		return nil, err
-	}
-
-	var codes []string
-	for _, permission := range permissions {
-		codes = append(codes, permission.PermissionCode)
-	}
-	return codes, nil
 }
 
 // AssignRolesToUser 为用户分配角色

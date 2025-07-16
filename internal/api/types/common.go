@@ -17,9 +17,9 @@ type APIResponse struct {
 
 // HealthCheckResponse 健康检查响应
 type HealthCheckResponse struct {
-	Status    string    `json:"status"`
-	Version   string    `json:"version"`
-	Timestamp time.Time `json:"timestamp"`
+	Status    string                   `json:"status"`
+	Version   string                   `json:"version"`
+	Timestamp time.Time                `json:"timestamp"`
 	Services  map[string]ServiceStatus `json:"services"`
 }
 
@@ -31,9 +31,9 @@ type ServiceStatus struct {
 
 // APIKeyRequest API密钥请求
 type APIKeyRequest struct {
-	Name        string   `json:"name" binding:"required,max=100"`
-	Description string   `json:"description" binding:"max=255"`
-	Permissions []string `json:"permissions" binding:"required"`
+	Name        string     `json:"name" binding:"required,max=100"`
+	Description string     `json:"description" binding:"max=255"`
+	Permissions []string   `json:"permissions" binding:"required"`
 	ExpiresAt   *time.Time `json:"expires_at"`
 }
 
@@ -75,10 +75,10 @@ type APIUsageStats struct {
 
 // EndpointStats 端点统计
 type EndpointStats struct {
-	Path        string `json:"path"`
-	Method      string `json:"method"`
-	Count       int64  `json:"count"`
-	AvgTime     int64  `json:"avg_time"`
-	ErrorRate   float64 `json:"error_rate"`
-	LastAccess  time.Time `json:"last_access"`
+	Path       string    `json:"path"`
+	Method     string    `json:"method"`
+	Count      int64     `json:"count"`
+	AvgTime    int64     `json:"avg_time"`
+	ErrorRate  float64   `json:"error_rate"`
+	LastAccess time.Time `json:"last_access"`
 }

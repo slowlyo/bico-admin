@@ -95,15 +95,13 @@ func (h *AdminUserHandler) convertToAdminUserResponse(ctx *gin.Context, user *mo
 
 	// 获取用户角色
 	var roles []types.AdminUserRoleResponse
-	if userRoles, err := h.adminRoleService.GetUserRoles(ctx.Request.Context(), user.ID); err == nil {
-		for _, role := range userRoles.Roles {
-			roles = append(roles, types.AdminUserRoleResponse{
-				ID:          role.ID,
-				Name:        role.Name,
-				Code:        role.Code,
-				Description: role.Description,
-			})
-		}
+	for _, userRole := range user.Roles {
+		roles = append(roles, types.AdminUserRoleResponse{
+			ID:          userRole.Role.ID,
+			Name:        userRole.Role.Name,
+			Code:        userRole.Role.Code,
+			Description: userRole.Role.Description,
+		})
 	}
 
 	return types.AdminUserResponse{
@@ -231,7 +229,7 @@ func (h *AdminUserHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	var req types.StatusRequest
+	var req sharedTypes.StatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error())
 		return

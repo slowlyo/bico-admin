@@ -225,10 +225,10 @@ func copyValue(src, dest interface{}) error {
 
 // Stats 缓存统计信息
 type Stats struct {
-	Driver    string            `json:"driver"`
-	KeyCount  int               `json:"key_count"`
-	Memory    string            `json:"memory,omitempty"`
-	Info      map[string]string `json:"info,omitempty"`
+	Driver   string            `json:"driver"`
+	KeyCount int               `json:"key_count"`
+	Memory   string            `json:"memory,omitempty"`
+	Info     map[string]string `json:"info,omitempty"`
 }
 
 // GetStats 获取缓存统计信息

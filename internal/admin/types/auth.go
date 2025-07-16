@@ -37,11 +37,6 @@ type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
-// LogoutRequest 登出请求
-type LogoutRequest struct {
-	Token string `json:"token" binding:"required"`
-}
-
 // ChangePasswordRequest 修改密码请求
 type ChangePasswordRequest struct {
 	OldPassword string `json:"old_password" binding:"required,min=6,max=100"`
@@ -54,11 +49,6 @@ type ProfileUpdateRequest struct {
 	Avatar string `json:"avatar" binding:"max=255"`
 	Email  string `json:"email" binding:"omitempty,email,max=100"`
 	Phone  string `json:"phone" binding:"omitempty,max=20"`
-}
-
-// StatusRequest 状态更新请求
-type StatusRequest struct {
-	Status int `json:"status" binding:"oneof=0 1 -1"`
 }
 
 // AdminUserCreateRequest 创建管理员用户请求

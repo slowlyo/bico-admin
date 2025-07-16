@@ -2,11 +2,11 @@ package types
 
 // BasePageQuery 基础分页查询参数
 type BasePageQuery struct {
-	Page     int    `form:"page" json:"page" binding:"min=1"`         // 页码，从1开始
+	Page     int    `form:"page" json:"page" binding:"min=1"`                   // 页码，从1开始
 	PageSize int    `form:"page_size" json:"page_size" binding:"min=1,max=100"` // 每页数量，最大100
-	Keyword  string `form:"keyword" json:"keyword"`                   // 搜索关键词
-	SortBy   string `form:"sort_by" json:"sort_by"`                   // 排序字段
-	SortDesc bool   `form:"sort_desc" json:"sort_desc"`               // 是否降序
+	Keyword  string `form:"keyword" json:"keyword"`                             // 搜索关键词
+	SortBy   string `form:"sort_by" json:"sort_by"`                             // 排序字段
+	SortDesc bool   `form:"sort_desc" json:"sort_desc"`                         // 是否降序
 }
 
 // GetOffset 获取偏移量

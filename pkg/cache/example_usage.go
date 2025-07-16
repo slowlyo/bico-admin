@@ -148,11 +148,11 @@ func ExampleRedisUsage() {
 // ExampleCachePatterns 展示常见的缓存模式
 func ExampleCachePatterns() {
 	ctx := context.Background()
-	
+
 	// 创建缓存
 	cache, _ := NewCache(Config{Driver: "memory"})
 	defer cache.Close()
-	
+
 	manager := NewManager(cache)
 
 	// 1. 缓存穿透保护
@@ -170,7 +170,7 @@ func ExampleCachePatterns() {
 				"exists": true,
 			}, nil
 		}, 5*time.Minute)
-		
+
 		return user, err
 	}
 
@@ -194,11 +194,11 @@ func ExampleCachePatterns() {
 
 		// 从数据源获取
 		value := "从数据源获取的数据"
-		
+
 		// 设置到两级缓存
 		manager.SetString(ctx, "l1:"+key, value, 1*time.Minute)
 		manager.SetString(ctx, "l2:"+key, value, 10*time.Minute)
-		
+
 		return value, nil
 	}
 

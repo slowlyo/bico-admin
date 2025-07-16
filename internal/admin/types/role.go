@@ -66,15 +66,6 @@ type RolePermissionUpdateRequest struct {
 	Permissions []string `json:"permissions" binding:"required"` // 权限代码列表
 }
 
-// UserRoleResponse 用户角色响应
-type UserRoleResponse struct {
-	UserID    uint           `json:"user_id"`
-	Username  string         `json:"username"`
-	Name      string         `json:"name"`
-	Roles     []RoleResponse `json:"roles"`
-	CreatedAt time.Time      `json:"created_at"`
-}
-
 // PermissionTreeNode 权限树节点（无限极树结构）
 type PermissionTreeNode struct {
 	Key      string               `json:"key"`      // 权限代码或模块代码
@@ -84,30 +75,10 @@ type PermissionTreeNode struct {
 	Children []PermissionTreeNode `json:"children"` // 子节点
 }
 
-// RoleStatsResponse 角色统计响应
-type RoleStatsResponse struct {
-	TotalRoles    int64 `json:"total_roles"`
-	ActiveRoles   int64 `json:"active_roles"`
-	InactiveRoles int64 `json:"inactive_roles"`
-	TotalUsers    int64 `json:"total_users"`
-}
-
 // RoleOptionResponse 角色选项响应（用于下拉选择）
 type RoleOptionResponse struct {
 	ID          uint   `json:"id"`
 	Name        string `json:"name"`
 	Code        string `json:"code"`
 	Description string `json:"description"`
-}
-
-// GetStatusText 获取状态文本
-func (r *RoleResponse) GetStatusText() string {
-	switch r.Status {
-	case types.StatusActive:
-		return "启用"
-	case types.StatusInactive:
-		return "禁用"
-	default:
-		return "未知"
-	}
 }

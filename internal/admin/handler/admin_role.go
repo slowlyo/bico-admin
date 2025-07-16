@@ -7,6 +7,7 @@ import (
 
 	"bico-admin/internal/admin/service"
 	"bico-admin/internal/admin/types"
+	sharedTypes "bico-admin/internal/shared/types"
 	"bico-admin/pkg/response"
 )
 
@@ -135,7 +136,7 @@ func (h *AdminRoleHandler) UpdateRoleStatus(ctx *gin.Context) {
 		return
 	}
 
-	var req types.StatusRequest
+	var req sharedTypes.StatusRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.ErrorWithMessage(ctx, response.CodeBadRequest, err.Error())
 		return
@@ -308,50 +309,6 @@ func (h *AdminRoleHandler) AssignRolesToUser(ctx *gin.Context) {
 	}
 
 	response.Success(ctx, nil)
-}
-
-// GetUserRoles 获取用户角色
-// @Summary 获取用户角色
-// @Description 获取管理员用户的角色信息
-// @Tags 角色管理
-// @Accept json
-// @Produce json
-// @Param user_id path int true "用户ID"
-// @Success 200 {object} response.Response{data=types.UserRoleResponse}
-// @Router /api/admin/users/{user_id}/roles [get]
-func (h *AdminRoleHandler) GetUserRoles(ctx *gin.Context) {
-	userIDStr := ctx.Param("user_id")
-	userID, err := strconv.ParseUint(userIDStr, 10, 32)
-	if err != nil {
-		response.ErrorWithMessage(ctx, response.CodeBadRequest, "无效的用户ID")
-		return
-	}
-
-	result, err := h.roleService.GetUserRoles(ctx.Request.Context(), uint(userID))
-	if err != nil {
-		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
-		return
-	}
-
-	response.Success(ctx, result)
-}
-
-// GetRoleStats 获取角色统计
-// @Summary 获取角色统计
-// @Description 获取角色统计信息
-// @Tags 角色管理
-// @Accept json
-// @Produce json
-// @Success 200 {object} response.Response{data=types.RoleStatsResponse}
-// @Router /api/admin/roles/stats [get]
-func (h *AdminRoleHandler) GetRoleStats(ctx *gin.Context) {
-	result, err := h.roleService.GetRoleStats(ctx.Request.Context())
-	if err != nil {
-		response.ErrorWithMessage(ctx, response.CodeInternalServerError, err.Error())
-		return
-	}
-
-	response.Success(ctx, result)
 }
 
 // GetRoleOptions 获取角色选项（用于下拉选择）

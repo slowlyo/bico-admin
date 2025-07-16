@@ -22,9 +22,8 @@ type AdminRoleService interface {
 	GetPermissionTree(ctx context.Context, roleID *uint) ([]types.PermissionTreeNode, error)
 	UpdateRolePermissions(ctx context.Context, id uint, req *types.RolePermissionUpdateRequest) error
 	AssignRolesToUser(ctx context.Context, req *types.RoleAssignRequest) error
-	GetUserRoles(ctx context.Context, userID uint) (*types.UserRoleResponse, error)
+
 	GetUserPermissions(ctx context.Context, userID uint) ([]string, error)
-	GetRoleStats(ctx context.Context) (*types.RoleStatsResponse, error)
 	GetActiveRoles(ctx context.Context) ([]*models.AdminRole, error)
 }
 
@@ -321,66 +320,9 @@ func (s *adminRoleService) AssignRolesToUser(ctx context.Context, req *types.Rol
 	return nil
 }
 
-// GetUserRoles 获取管理员用户角色
-func (s *adminRoleService) GetUserRoles(ctx context.Context, userID uint) (*types.UserRoleResponse, error) {
-	user, err := s.adminUserRepo.GetByID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	roles, err := s.adminRoleRepo.GetUserRoles(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	var roleResponses []types.RoleResponse
-	for _, role := range roles {
-		roleResponse := s.convertToRoleResponse(ctx, *role)
-		roleResponses = append(roleResponses, roleResponse)
-	}
-
-	return &types.UserRoleResponse{
-		UserID:   user.ID,
-		Username: user.Username,
-		Name:     user.Name,
-		Roles:    roleResponses,
-	}, nil
-}
-
 // GetUserPermissions 获取用户所有权限
 func (s *adminRoleService) GetUserPermissions(ctx context.Context, userID uint) ([]string, error) {
 	return s.adminRoleRepo.GetUserPermissions(ctx, userID)
-}
-
-// GetRoleStats 获取角色统计
-func (s *adminRoleService) GetRoleStats(ctx context.Context) (*types.RoleStatsResponse, error) {
-	var stats types.RoleStatsResponse
-
-	// 总角色数
-	totalRoles, err := s.adminRoleRepo.Count(ctx)
-	if err != nil {
-		return nil, err
-	}
-	stats.TotalRoles = totalRoles
-
-	// 启用角色数
-	activeRoles, err := s.adminRoleRepo.CountByStatus(ctx, sharedTypes.StatusActive)
-	if err != nil {
-		return nil, err
-	}
-	stats.ActiveRoles = activeRoles
-
-	// 禁用角色数
-	stats.InactiveRoles = stats.TotalRoles - stats.ActiveRoles
-
-	// 拥有角色的用户数
-	totalUsers, err := s.adminRoleRepo.CountUsersWithRoles(ctx)
-	if err != nil {
-		return nil, err
-	}
-	stats.TotalUsers = totalUsers
-
-	return &stats, nil
 }
 
 // 私有方法
@@ -444,22 +386,6 @@ func (s *adminRoleService) getStatusText(status int) string {
 		return "启用"
 	case sharedTypes.StatusInactive:
 		return "禁用"
-	default:
-		return "未知"
-	}
-}
-
-// getLevelText 获取权限级别文本
-func (s *adminRoleService) getLevelText(level int) string {
-	switch level {
-	case definitions.PermissionLevelView:
-		return "查看"
-	case definitions.PermissionLevelAction:
-		return "操作"
-	case definitions.PermissionLevelManage:
-		return "管理"
-	case definitions.PermissionLevelSuper:
-		return "超级"
 	default:
 		return "未知"
 	}

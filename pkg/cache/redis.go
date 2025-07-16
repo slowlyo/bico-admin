@@ -173,7 +173,7 @@ func (c *redisCache) Clear(ctx context.Context) error {
 func (c *redisCache) Keys(ctx context.Context, pattern string) ([]string, error) {
 	// 构建带前缀的模式
 	searchPattern := c.buildKey(pattern)
-	
+
 	keys, err := c.client.Keys(ctx, searchPattern).Result()
 	if err != nil {
 		return nil, &CacheError{

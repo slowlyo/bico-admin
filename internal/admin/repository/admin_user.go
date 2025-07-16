@@ -21,19 +21,12 @@ type AdminUserRepository interface {
 	Delete(ctx context.Context, id uint) error
 
 	// 查询方法
-	List(ctx context.Context, req *types.BasePageQuery) ([]*models.AdminUser, int64, error)
-	ListByStatus(ctx context.Context, enabled bool, req *types.BasePageQuery) ([]*models.AdminUser, int64, error)
 	ListWithFilter(ctx context.Context, req *adminTypes.AdminUserListRequest) ([]*models.AdminUser, int64, error)
 
 	// 状态管理
 	UpdateStatus(ctx context.Context, id uint, enabled bool) error
 	UpdateLastLoginTime(ctx context.Context, id uint) error
 	UpdatePassword(ctx context.Context, id uint, hashedPassword string) error
-	BatchUpdateStatus(ctx context.Context, ids []uint, enabled bool) error
-
-	// 统计方法
-	Count(ctx context.Context) (int64, error)
-	CountByStatus(ctx context.Context, enabled bool) (int64, error)
 
 	// 验证方法
 	ExistsByUsername(ctx context.Context, username string) (bool, error)
@@ -81,15 +74,6 @@ func (r *adminUserRepository) GetByUsername(ctx context.Context, username string
 	return &user, nil
 }
 
-// ListByStatus 根据状态分页获取管理员用户列表
-func (r *adminUserRepository) ListByStatus(ctx context.Context, enabled bool, req *types.BasePageQuery) ([]*models.AdminUser, int64, error) {
-	status := types.StatusInactive
-	if enabled {
-		status = types.StatusActive
-	}
-	return r.BaseRepository.ListByStatus(ctx, status, req)
-}
-
 // UpdateStatus 更新管理员用户状态
 func (r *adminUserRepository) UpdateStatus(ctx context.Context, id uint, enabled bool) error {
 	status := types.StatusInactive
@@ -108,22 +92,12 @@ func (r *adminUserRepository) UpdateLastLoginTime(ctx context.Context, id uint) 
 		Update("last_login_at", now).Error
 }
 
-// BatchUpdateStatus 批量更新管理员用户状态
-func (r *adminUserRepository) BatchUpdateStatus(ctx context.Context, ids []uint, enabled bool) error {
-	status := types.StatusInactive
-	if enabled {
-		status = types.StatusActive
-	}
-	return r.BaseRepository.BatchUpdateStatus(ctx, ids, status)
-}
-
-// CountByStatus 根据状态统计管理员用户数量
-func (r *adminUserRepository) CountByStatus(ctx context.Context, enabled bool) (int64, error) {
-	status := types.StatusInactive
-	if enabled {
-		status = types.StatusActive
-	}
-	return r.BaseRepository.CountByStatus(ctx, status)
+// UpdatePassword 更新用户密码
+func (r *adminUserRepository) UpdatePassword(ctx context.Context, id uint, hashedPassword string) error {
+	return r.BaseRepository.db.WithContext(ctx).
+		Model(&models.AdminUser{}).
+		Where("id = ?", id).
+		Update("password", hashedPassword).Error
 }
 
 // ExistsByUsername 检查用户名是否存在
@@ -171,7 +145,8 @@ func (r *adminUserRepository) ListWithFilter(ctx context.Context, req *adminType
 	// 构建排序条件
 	orderClause := r.buildOrderClause(req.SortBy, req.SortDesc)
 
-	err := db.Offset(offset).Limit(pageSize).
+	err := db.Preload("Roles.Role").
+		Offset(offset).Limit(pageSize).
 		Order(orderClause).
 		Find(&users).Error
 
@@ -228,11 +203,4 @@ func (r *adminUserRepository) buildOrderClause(sortBy string, sortDesc bool) str
 	}
 
 	return dbField + " " + direction
-}
-
-// UpdatePassword 更新用户密码
-func (r *adminUserRepository) UpdatePassword(ctx context.Context, id uint, hashedPassword string) error {
-	return r.db.WithContext(ctx).Model(&models.AdminUser{}).
-		Where("id = ?", id).
-		Update("password", hashedPassword).Error
 }
