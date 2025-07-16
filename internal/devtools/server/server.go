@@ -72,14 +72,16 @@ func (s *MCPDevServer) registerTools() error {
 		log.Printf("已注册工具: execute_sql")
 	}
 
+	// 注册代码生成工具
+	if s.config.Tools.CodeGenerator {
+		codeTool := tools.NewCodeGeneratorTool()
+		if err := s.registerTool("generate_code", codeTool); err != nil {
+			return fmt.Errorf("注册代码生成工具失败: %w", err)
+		}
+		log.Printf("已注册工具: generate_code")
+	}
+
 	// TODO: 后续添加其他工具
-	// if s.config.Tools.CRUDGenerator {
-	//     crudTool := tools.NewCRUDGeneratorTool()
-	//     if err := s.registerTool("generate_crud", crudTool); err != nil {
-	//         return fmt.Errorf("注册CRUD生成工具失败: %w", err)
-	//     }
-	//     log.Printf("已注册工具: generate_crud")
-	// }
 
 	return nil
 }

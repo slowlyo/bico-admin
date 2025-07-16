@@ -50,6 +50,9 @@ type ToolsConfig struct {
 	// 是否启用数据库操作工具
 	DatabaseTool bool `yaml:"database_tool" json:"database_tool"`
 
+	// 是否启用代码生成工具
+	CodeGenerator bool `yaml:"code_generator" json:"code_generator"`
+
 	// 是否启用CRUD生成工具（后续实现）
 	CRUDGenerator bool `yaml:"crud_generator" json:"crud_generator"`
 
@@ -79,6 +82,7 @@ func DefaultConfig() *Config {
 		Tools: ToolsConfig{
 			ConfigReader:  true,
 			DatabaseTool:  true,  // 数据库操作工具
+			CodeGenerator: true,  // 代码生成工具
 			CRUDGenerator: false, // 后续实现
 			DBHelper:      false, // 后续实现
 		},

@@ -44,6 +44,7 @@ make test
 - 🔐 **权限控制**: 基于角色的访问控制 (RBAC)
 - 📝 **API 文档**: 自动生成 Swagger 文档
 - 🗄️ **多数据库**: 支持 MySQL/PostgreSQL/SQLite
+- 🤖 **代码生成**: 基于 MCP 的智能代码生成器，快速生成 CRUD 模块
 
 ## 文档导航
 

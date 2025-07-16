@@ -1,0 +1,23 @@
+package models
+
+import (
+{{- if .HasTimeField }}
+	"time"
+{{- end }}
+{{- if not .HasTimeField }}
+{{- end }}
+	"bico-admin/internal/shared/types"
+)
+
+// {{.ModelName}} {{.ModelName}}模型
+type {{.ModelName}} struct {
+	types.BaseModel
+{{- range .Fields }}
+	{{.Name}} {{.Type}} `json:"{{.JsonTag}}"{{if .GormTag}} gorm:"{{.GormTag}}"{{end}}`
+{{- end }}
+}
+
+// TableName 指定表名
+func ({{.ModelName}}) TableName() string {
+	return "{{.TableName}}"
+}
