@@ -14,7 +14,7 @@ func RegisterRoutes(r *gin.Engine, handlers *Handlers, cache cache.Cache, permis
 	r.Static("/uploads", "./data/uploads")
 
 	// admin端路由组
-	adminGroup := r.Group("/admin")
+	adminGroup := r.Group("/admin-api")
 
 	// 认证相关路由（无需认证）
 	authGroup := adminGroup.Group("/auth")

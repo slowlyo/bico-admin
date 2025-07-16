@@ -10,6 +10,7 @@ import (
 	"bico-admin/internal/admin/repository"
 	"bico-admin/internal/admin/types"
 	sharedTypes "bico-admin/internal/shared/types"
+	"bico-admin/pkg/utils"
 )
 
 // AdminRoleService 管理员角色服务接口
@@ -374,8 +375,8 @@ func (s *adminRoleService) convertToRoleResponse(ctx context.Context, role model
 		UserCount:   userCount,
 		CanEdit:     role.CanBeEdited(),
 		CanDelete:   role.CanBeDeleted(),
-		CreatedAt:   role.CreatedAt,
-		UpdatedAt:   role.UpdatedAt,
+		CreatedAt:   utils.NewFormattedTime(role.CreatedAt),
+		UpdatedAt:   utils.NewFormattedTime(role.UpdatedAt),
 	}
 }
 

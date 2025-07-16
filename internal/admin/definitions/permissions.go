@@ -51,16 +51,16 @@ var permissionDefs = []PermissionDef{
 	// 系统管理
 	{"system", "系统管理", "", "module", 1, "", ""},
 	{"system.admin_user", "管理员", "system", "module", 1, "", ""},
-	{"system.admin_user:list", "查看管理员列表", "system.admin_user", "action", 1, "search,filter", "/admin/admin-users,/admin/admin-users/:id"},
-	{"system.admin_user:create", "创建管理员", "system.admin_user", "action", 3, "create", "/admin/admin-users,/admin/roles/options"},
-	{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/admin/admin-users/:id,/admin/admin-users/:id/status,/admin/roles/options"},
-	{"system.admin_user:delete", "删除管理员", "system.admin_user", "action", 4, "delete", "/admin/admin-users/:id"},
+	{"system.admin_user:list", "查看管理员列表", "system.admin_user", "action", 1, "search,filter", "/admin-api/admin-users,/admin-api/admin-users/:id"},
+	{"system.admin_user:create", "创建管理员", "system.admin_user", "action", 3, "create", "/admin-api/admin-users,/admin-api/roles/options"},
+	{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/admin-api/admin-users/:id,/admin-api/admin-users/:id/status,/admin-api/roles/options"},
+	{"system.admin_user:delete", "删除管理员", "system.admin_user", "action", 4, "delete", "/admin-api/admin-users/:id"},
 
 	{"system.role", "角色", "system", "module", 1, "", ""},
-	{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/admin/roles,/admin/roles/:id"},
-	{"system.role:create", "创建角色", "system.role", "action", 3, "create", "/admin/roles,/admin/roles/permissions"},
-	{"system.role:update", "编辑角色", "system.role", "action", 3, "edit,save,assign_permissions", "/admin/roles/:id,/admin/roles/:id/status,/admin/roles/:id/permissions,/admin/roles/permissions,/admin/roles/assign"},
-	{"system.role:delete", "删除角色", "system.role", "action", 4, "delete", "/admin/roles/:id"},
+	{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/admin-api/roles,/admin-api/roles/:id"},
+	{"system.role:create", "创建角色", "system.role", "action", 3, "create", "/admin-api/roles,/admin-api/roles/permissions"},
+	{"system.role:update", "编辑角色", "system.role", "action", 3, "edit,save,assign_permissions", "/admin-api/roles/:id,/admin-api/roles/:id/status,/admin-api/roles/:id/permissions,/admin-api/roles/permissions,/admin-api/roles/assign"},
+	{"system.role:delete", "删除角色", "system.role", "action", 4, "delete", "/admin-api/roles/:id"},
 }
 
 // splitString 分割字符串并去除空白
@@ -271,7 +271,7 @@ func matchAPIPath(pattern, path string) bool {
 		return true
 	}
 
-	// 处理参数路径匹配，如 /admin/admin-users/:id 匹配 /admin/admin-users/123
+	// 处理参数路径匹配，如 /admin-api/admin-users/:id 匹配 /admin-api/admin-users/123
 	patternParts := strings.Split(pattern, "/")
 	pathParts := strings.Split(path, "/")
 

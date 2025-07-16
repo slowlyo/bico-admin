@@ -12,12 +12,12 @@ import (
 
 // 权限白名单 - 这些路径不需要权限检查
 var permissionWhitelist = []string{
-	"/admin/auth/logout",      // 登出
-	"/admin/auth/profile",     // 获取个人信息
-	"/admin/auth/refresh",     // 刷新token
-	"/admin/profile",          // 更新个人信息
-	"/admin/profile/password", // 修改密码
-	"/admin/upload",           // 文件上传
+	"/admin-api/auth/logout",      // 登出
+	"/admin-api/auth/profile",     // 获取个人信息
+	"/admin-api/auth/refresh",     // 刷新token
+	"/admin-api/profile",          // 更新个人信息
+	"/admin-api/profile/password", // 修改密码
+	"/admin-api/upload",           // 文件上传
 }
 
 // PermissionMiddleware 权限检查中间件

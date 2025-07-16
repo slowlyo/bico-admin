@@ -13,6 +13,7 @@ import (
 	"bico-admin/pkg/config"
 	"bico-admin/pkg/jwt"
 	"bico-admin/pkg/logger"
+	"bico-admin/pkg/utils"
 )
 
 // AuthService 认证服务接口
@@ -163,6 +164,13 @@ func (s *authService) GetProfileWithPermissions(ctx context.Context, userID uint
 	canDelete, _ := s.adminUserService.CanUserBeDeleted(ctx, adminUser.ID)
 	canDisable, _ := s.adminUserService.CanUserBeDisabled(ctx, adminUser.ID)
 
+	// 转换LastLoginAt
+	var lastLoginAt *utils.FormattedTime
+	if adminUser.LastLoginAt != nil {
+		ft := utils.NewFormattedTime(*adminUser.LastLoginAt)
+		lastLoginAt = &ft
+	}
+
 	userInfo := types.AdminUserResponse{
 		ID:          adminUser.ID,
 		Username:    adminUser.Username,
@@ -172,12 +180,12 @@ func (s *authService) GetProfileWithPermissions(ctx context.Context, userID uint
 		Phone:       adminUser.Phone,
 		Status:      adminUser.Status,
 		StatusText:  adminUser.GetStatusText(),
-		LastLoginAt: adminUser.LastLoginAt,
+		LastLoginAt: lastLoginAt,
 		Remark:      adminUser.Remark,
 		CanDelete:   canDelete,
 		CanDisable:  canDisable,
-		CreatedAt:   adminUser.CreatedAt,
-		UpdatedAt:   adminUser.UpdatedAt,
+		CreatedAt:   utils.NewFormattedTime(adminUser.CreatedAt),
+		UpdatedAt:   utils.NewFormattedTime(adminUser.UpdatedAt),
 	}
 
 	return &types.AdminProfileResponse{
@@ -210,6 +218,13 @@ func (s *authService) UpdateProfileInfo(ctx context.Context, userID uint, req *t
 	canDelete, _ := s.adminUserService.CanUserBeDeleted(ctx, updatedUser.ID)
 	canDisable, _ := s.adminUserService.CanUserBeDisabled(ctx, updatedUser.ID)
 
+	// 转换LastLoginAt
+	var lastLoginAt *utils.FormattedTime
+	if updatedUser.LastLoginAt != nil {
+		ft := utils.NewFormattedTime(*updatedUser.LastLoginAt)
+		lastLoginAt = &ft
+	}
+
 	return &types.AdminUserResponse{
 		ID:          updatedUser.ID,
 		Username:    updatedUser.Username,
@@ -219,12 +234,12 @@ func (s *authService) UpdateProfileInfo(ctx context.Context, userID uint, req *t
 		Phone:       updatedUser.Phone,
 		Status:      updatedUser.Status,
 		StatusText:  updatedUser.GetStatusText(),
-		LastLoginAt: updatedUser.LastLoginAt,
+		LastLoginAt: lastLoginAt,
 		Remark:      updatedUser.Remark,
 		CanDelete:   canDelete,
 		CanDisable:  canDisable,
-		CreatedAt:   updatedUser.CreatedAt,
-		UpdatedAt:   updatedUser.UpdatedAt,
+		CreatedAt:   utils.NewFormattedTime(updatedUser.CreatedAt),
+		UpdatedAt:   utils.NewFormattedTime(updatedUser.UpdatedAt),
 	}, nil
 }
 

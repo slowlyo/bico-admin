@@ -72,6 +72,7 @@ func ProvideGinEngine(
 
 	// 添加全局中间件
 	r.Use(gin.Recovery())
+	r.Use(sharedMiddleware.CORS()) // 全局CORS中间件
 	r.Use(sharedMiddleware.Logging())
 
 	// 注册路由

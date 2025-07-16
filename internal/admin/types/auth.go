@@ -2,7 +2,7 @@ package types
 
 import (
 	"bico-admin/internal/shared/types"
-	"time"
+	"bico-admin/pkg/utils"
 )
 
 // AdminUserRoleResponse 管理员用户角色响应（简化版）
@@ -101,11 +101,11 @@ type AdminUserResponse struct {
 	Phone       string                  `json:"phone"`
 	Status      int                     `json:"status"`
 	StatusText  string                  `json:"status_text"`
-	LastLoginAt *time.Time              `json:"last_login_at"`
+	LastLoginAt *utils.FormattedTime    `json:"last_login_at"`
 	Remark      string                  `json:"remark"`
 	CanDelete   bool                    `json:"can_delete"`  // 是否可删除
 	CanDisable  bool                    `json:"can_disable"` // 是否可禁用
 	Roles       []AdminUserRoleResponse `json:"roles"`       // 用户角色列表
-	CreatedAt   time.Time               `json:"created_at"`
-	UpdatedAt   time.Time               `json:"updated_at"`
+	CreatedAt   utils.FormattedTime     `json:"created_at"`
+	UpdatedAt   utils.FormattedTime     `json:"updated_at"`
 }

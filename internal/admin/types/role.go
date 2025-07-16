@@ -1,9 +1,8 @@
 package types
 
 import (
-	"time"
-
 	"bico-admin/internal/shared/types"
+	"bico-admin/pkg/utils"
 )
 
 // RoleListRequest 角色列表请求
@@ -43,8 +42,8 @@ type RoleResponse struct {
 	UserCount   int64                    `json:"user_count"` // 拥有该角色的用户数量
 	CanEdit     bool                     `json:"can_edit"`   // 是否可编辑
 	CanDelete   bool                     `json:"can_delete"` // 是否可删除
-	CreatedAt   time.Time                `json:"created_at"`
-	UpdatedAt   time.Time                `json:"updated_at"`
+	CreatedAt   utils.FormattedTime      `json:"created_at"`
+	UpdatedAt   utils.FormattedTime      `json:"updated_at"`
 }
 
 // RolePermissionResponse 角色权限响应

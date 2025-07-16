@@ -8,6 +8,7 @@ import (
 	"bico-admin/internal/admin/types"
 	sharedTypes "bico-admin/internal/shared/types"
 	"bico-admin/pkg/response"
+	"bico-admin/pkg/utils"
 )
 
 // AdminUserHandler 管理员用户处理器
@@ -104,6 +105,13 @@ func (h *AdminUserHandler) convertToAdminUserResponse(ctx *gin.Context, user *mo
 		})
 	}
 
+	// 转换LastLoginAt
+	var lastLoginAt *utils.FormattedTime
+	if user.LastLoginAt != nil {
+		ft := utils.NewFormattedTime(*user.LastLoginAt)
+		lastLoginAt = &ft
+	}
+
 	return types.AdminUserResponse{
 		ID:          user.ID,
 		Username:    user.Username,
@@ -113,13 +121,13 @@ func (h *AdminUserHandler) convertToAdminUserResponse(ctx *gin.Context, user *mo
 		Phone:       user.Phone,
 		Status:      user.Status,
 		StatusText:  user.GetStatusText(),
-		LastLoginAt: user.LastLoginAt,
+		LastLoginAt: lastLoginAt,
 		Remark:      user.Remark,
 		CanDelete:   canDelete,
 		CanDisable:  canDisable,
 		Roles:       roles,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
+		CreatedAt:   utils.NewFormattedTime(user.CreatedAt),
+		UpdatedAt:   utils.NewFormattedTime(user.UpdatedAt),
 	}
 }
 
