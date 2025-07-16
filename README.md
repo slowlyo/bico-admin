@@ -51,6 +51,7 @@ make test
 - [项目结构说明](docs/project-structure.md) - 详细的目录结构和架构设计
 - [数据库配置](docs/database.md) - 多数据库支持和配置说明
 - [文件上传](docs/file-upload.md) - 文件上传功能说明
+- [MCP 开发工具](docs/mcp-devtools.md) - 开发工具服务使用指南
 - [API 文档](docs/swagger.json) - Swagger API 文档
 
 ## 开发命令
@@ -62,4 +63,10 @@ make build    # 构建二进制文件
 make clean    # 清理文件
 make wire     # 生成依赖注入代码
 make swagger  # 生成 API 文档
+
+# MCP 开发工具
+make devtools         # 启动 MCP 服务 (HTTP模式)
+make devtools-help    # 查看 MCP 工具帮助
 ```
+
+> **注意**: MCP 服务使用 HTTP 传输方式，通过 URL 连接简单可靠。详见 [MCP 开发工具文档](docs/mcp-devtools.md)。
