@@ -5,7 +5,8 @@ export class UserService {
   static login(params: Api.Auth.LoginParams) {
     return request.post<Api.Auth.LoginResponse>({
       url: '/admin-api/auth/login',
-      params
+      params,
+      showErrorMessage: false // 禁用自动错误显示，由登录页面手动处理
     })
   }
 

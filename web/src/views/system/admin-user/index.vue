@@ -123,8 +123,8 @@
         size: 'page_size'
       },
       columnsFactory: () => [
-        { type: 'selection' }, // 勾选列
-        { type: 'index', width: 60, label: '序号' }, // 序号
+        // { type: 'selection' }, // 勾选列
+        // { type: 'index', width: 60, label: '序号' }, // 序号
         {
           prop: 'id',
           label: 'ID',

@@ -11,8 +11,9 @@ declare namespace Api {
     interface BaseResponse<T = any> {
       // 状态码
       code: number
-      // 消息
-      msg: string
+      // 消息 (支持两种字段名)
+      msg?: string
+      message?: string
       // 数据
       data: T
     }

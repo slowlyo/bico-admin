@@ -67,16 +67,21 @@ axiosInstance.interceptors.request.use(
 // 响应拦截器
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse<Api.Http.BaseResponse>) => {
-    const { code, msg } = response.data
+    const { code, message, msg } = response.data
+    const errorMessage = message || msg
 
     switch (code) {
       case ApiStatus.success:
         return response
       case ApiStatus.unauthorized:
-        logOut()
-        throw new HttpError(msg || $t('httpMsg.unauthorized'), ApiStatus.unauthorized)
+        // 检查是否是登录请求，如果是登录请求则不执行登出操作
+        const isLoginRequest = response.config.url?.includes('/auth/login')
+        if (!isLoginRequest) {
+          logOut()
+        }
+        throw new HttpError(errorMessage || $t('httpMsg.unauthorized'), ApiStatus.unauthorized)
       default:
-        throw new HttpError(msg || $t('httpMsg.requestFailed'), code)
+        throw new HttpError(errorMessage || $t('httpMsg.requestFailed'), code)
     }
   },
   async (error) => {

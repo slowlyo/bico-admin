@@ -6,7 +6,8 @@ import { $t } from '@/locales'
 // 错误响应接口
 export interface ErrorResponse {
   code: number
-  msg: string
+  msg?: string
+  message?: string
   data?: unknown
 }
 
@@ -94,7 +95,7 @@ export function handleError(error: AxiosError<ErrorResponse>): never {
   }
 
   const statusCode = error.response?.status
-  const errorMessage = error.response?.data?.msg || error.message
+  const errorMessage = error.response?.data?.message || error.response?.data?.msg || error.message
   const requestConfig = error.config
 
   // 处理网络错误
