@@ -14,6 +14,8 @@ const RETRY_DELAY = 1000 // 重试延迟时间(毫秒)
 interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
   showErrorMessage?: boolean
   returnFullResponse?: boolean // 是否返回完整响应（包括message）
+  enableRetry?: boolean // 是否启用重试机制，默认关闭
+  maxRetries?: number // 最大重试次数，默认使用全局配置
 }
 
 const { VITE_API_URL, VITE_WITH_CREDENTIALS } = import.meta.env
@@ -111,24 +113,30 @@ axiosInstance.interceptors.response.use(
 // 请求重试函数
 async function retryRequest<T>(
   config: ExtendedAxiosRequestConfig,
-  retries: number = MAX_RETRIES
+  retries?: number
 ): Promise<T> {
+  // 如果没有启用重试，直接执行请求
+  if (!config.enableRetry) {
+    return await request<T>(config)
+  }
+
+  const maxRetries = retries ?? config.maxRetries ?? MAX_RETRIES
+
   try {
     return await request<T>(config)
   } catch (error) {
-    if (retries > 0 && error instanceof HttpError && shouldRetry(error.code)) {
+    if (maxRetries > 0 && error instanceof HttpError && shouldRetry(error.code)) {
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY))
-      return retryRequest<T>(config, retries - 1)
+      return retryRequest<T>(config, maxRetries - 1)
     }
     throw error
   }
 }
 
-// 判断是否需要重试
+// 判断是否需要重试（仅针对网络相关错误）
 function shouldRetry(statusCode: number): boolean {
   return [
     ApiStatus.requestTimeout,
-    ApiStatus.internalServerError,
     ApiStatus.badGateway,
     ApiStatus.serviceUnavailable,
     ApiStatus.gatewayTimeout
@@ -178,6 +186,19 @@ const api = {
   },
   request<T>(config: ExtendedAxiosRequestConfig): Promise<T> {
     return retryRequest<T>({ ...config })
+  },
+  // 带重试的请求方法
+  getWithRetry<T>(config: ExtendedAxiosRequestConfig): Promise<T> {
+    return retryRequest<T>({ ...config, method: 'GET', enableRetry: true })
+  },
+  postWithRetry<T>(config: ExtendedAxiosRequestConfig): Promise<T> {
+    return retryRequest<T>({ ...config, method: 'POST', enableRetry: true })
+  },
+  putWithRetry<T>(config: ExtendedAxiosRequestConfig): Promise<T> {
+    return retryRequest<T>({ ...config, method: 'PUT', enableRetry: true })
+  },
+  delWithRetry<T>(config: ExtendedAxiosRequestConfig): Promise<T> {
+    return retryRequest<T>({ ...config, method: 'DELETE', enableRetry: true })
   }
 }
 

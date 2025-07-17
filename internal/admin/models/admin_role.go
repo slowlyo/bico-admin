@@ -12,7 +12,7 @@ type AdminRole struct {
 	Name        string    `json:"name" gorm:"size:100;not null;comment:角色名称"`
 	Code        string    `json:"code" gorm:"size:50;uniqueIndex;not null;comment:角色代码"`
 	Description string    `json:"description" gorm:"size:500;comment:角色描述"`
-	Status      int       `json:"status" gorm:"default:1;comment:状态：1-启用，0-禁用"`
+	Status      *int      `json:"status" gorm:"default:1;comment:状态：1-启用，0-禁用"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 
@@ -80,7 +80,7 @@ func (r *AdminRole) HasPermission(permissionCode string) bool {
 
 // IsEnabled 检查角色是否启用
 func (r *AdminRole) IsEnabled() bool {
-	return r.Status == types.StatusActive
+	return r.Status != nil && *r.Status == types.StatusActive
 }
 
 // IsSuperAdminRole 检查是否为超级管理员角色
@@ -107,12 +107,13 @@ const (
 
 // GetDefaultRoles 获取默认角色配置
 func GetDefaultRoles() []AdminRole {
+	status := types.StatusActive
 	return []AdminRole{
 		{
 			Name:        "超级管理员",
 			Code:        RoleCodeSuperAdmin,
 			Description: "拥有系统所有权限的超级管理员，不可编辑删除",
-			Status:      types.StatusActive,
+			Status:      &status,
 		},
 	}
 }

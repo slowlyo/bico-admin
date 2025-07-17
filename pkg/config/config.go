@@ -116,6 +116,7 @@ type UploadConfig struct {
 	MaxFiles     int      `mapstructure:"max_files" yaml:"max_files"`
 	AllowedTypes []string `mapstructure:"allowed_types" yaml:"allowed_types"`
 	UploadDir    string   `mapstructure:"upload_dir" yaml:"upload_dir"`
+	BaseURL      string   `mapstructure:"base_url" yaml:"base_url"` // 文件访问的基础URL
 }
 
 // GetMaxFileSizeBytes 获取最大文件大小（字节）

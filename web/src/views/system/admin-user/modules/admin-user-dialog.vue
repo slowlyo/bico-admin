@@ -39,22 +39,38 @@
       <ElRow :gutter="20">
         <ElCol :span="12">
           <ElFormItem label="密码" prop="password">
-            <ElInput 
-              v-model="formData.password" 
-              type="password" 
-              placeholder="请输入密码"
+            <ElInput
+              v-model="formData.password"
+              type="password"
+              :placeholder="dialogType === 'edit' ? '留空表示不修改密码' : '请输入密码'"
               show-password
             />
           </ElFormItem>
         </ElCol>
         <ElCol :span="12">
+          <ElFormItem label="确认密码" prop="confirmPassword">
+            <ElInput
+              v-model="formData.confirmPassword"
+              type="password"
+              :placeholder="dialogType === 'edit' ? '留空表示不修改密码' : '请再次输入密码'"
+              show-password
+            />
+          </ElFormItem>
+        </ElCol>
+      </ElRow>
+
+      <ElRow :gutter="20">
+        <ElCol :span="12">
           <ElFormItem label="状态" prop="enabled">
-            <ElSwitch 
+            <ElSwitch
               v-model="formData.enabled"
               checked-text="启用"
               unchecked-text="禁用"
             />
           </ElFormItem>
+        </ElCol>
+        <ElCol :span="12">
+          <!-- 占位列 -->
         </ElCol>
       </ElRow>
 
@@ -75,7 +91,11 @@
       </ElFormItem>
 
       <ElFormItem label="头像" prop="avatar">
-        <ElInput v-model="formData.avatar" placeholder="请输入头像URL" />
+        <AvatarUpload
+          v-model="formData.avatar"
+          :size="80"
+          @change="handleAvatarChange"
+        />
       </ElFormItem>
 
       <ElFormItem label="备注" prop="remark">
@@ -103,6 +123,7 @@
   import type { FormInstance, FormRules } from 'element-plus'
   import { ElMessage } from 'element-plus'
   import { AdminUserService, RoleService } from '@/api/adminUserApi'
+  import AvatarUpload from '@/components/custom/avatar-upload/index.vue'
 
   interface Props {
     visible: boolean
@@ -134,9 +155,10 @@
   const formRef = ref<FormInstance>()
 
   // 表单数据
-  const formData = reactive<Api.AdminUser.AdminUserCreateRequest>({
+  const formData = reactive<Api.AdminUser.AdminUserCreateRequest & { confirmPassword: string }>({
     username: '',
     password: '',
+    confirmPassword: '',
     name: '',
     avatar: '',
     email: '',
@@ -146,6 +168,26 @@
     role_ids: []
   })
 
+  // 密码确认验证器
+  const validateConfirmPassword = (_rule: any, value: string, callback: any) => {
+    const isAdd = dialogType.value === 'add'
+    const hasPassword = !!formData.password
+
+    // 新增时确认密码必填，编辑时如果有密码则确认密码必填
+    if ((isAdd || hasPassword) && !value) {
+      callback(new Error('请再次输入密码'))
+      return
+    }
+
+    // 如果有确认密码值，检查是否与密码一致
+    if (value && value !== formData.password) {
+      callback(new Error('两次输入的密码不一致'))
+      return
+    }
+
+    callback()
+  }
+
   // 表单验证规则
   const rules: FormRules = {
     username: [
@@ -153,12 +195,29 @@
       { min: 3, max: 50, message: '用户名长度为3-50个字符', trigger: 'blur' }
     ],
     password: [
-      { 
-        required: dialogType.value === 'add', 
-        message: '请输入密码', 
-        trigger: 'blur' 
-      },
-      { min: 6, max: 100, message: '密码长度为6-100个字符', trigger: 'blur' }
+      {
+        validator: (_rule: any, value: string, callback: any) => {
+          // 新增时密码必填
+          if (dialogType.value === 'add' && !value) {
+            callback(new Error('请输入密码'))
+            return
+          }
+          // 如果有值，检查长度
+          if (value && (value.length < 6 || value.length > 100)) {
+            callback(new Error('密码长度为6-100个字符'))
+            return
+          }
+          // 如果密码有变化，需要重新验证确认密码
+          if (value && formData.confirmPassword) {
+            formRef.value?.validateField('confirmPassword')
+          }
+          callback()
+        },
+        trigger: 'blur'
+      }
+    ],
+    confirmPassword: [
+      { validator: validateConfirmPassword, trigger: 'blur' }
     ],
     name: [
       { required: true, message: '请输入姓名', trigger: 'blur' },
@@ -188,6 +247,7 @@
       Object.assign(formData, {
         username: row.username || '',
         password: '', // 编辑时密码为空，表示不修改
+        confirmPassword: '', // 编辑时确认密码也为空
         name: row.name || '',
         avatar: row.avatar || '',
         email: row.email || '',
@@ -201,6 +261,7 @@
       Object.assign(formData, {
         username: '',
         password: '',
+        confirmPassword: '',
         name: '',
         avatar: '',
         email: '',
@@ -210,6 +271,11 @@
         role_ids: []
       })
     }
+  }
+
+  // 头像变更处理
+  const handleAvatarChange = (value: string) => {
+    formData.avatar = value
   }
 
   // 统一监听对话框状态变化
@@ -234,10 +300,13 @@
       if (valid) {
         submitLoading.value = true
         try {
+          // 准备提交数据，移除确认密码字段
+          const { confirmPassword, ...submitData } = formData
+
           if (dialogType.value === 'add') {
-            await AdminUserService.createAdminUser(formData)
+            await AdminUserService.createAdminUser(submitData)
           } else {
-            const updateData = { ...formData } as Api.AdminUser.AdminUserUpdateRequest
+            const updateData = { ...submitData } as Api.AdminUser.AdminUserUpdateRequest
             // 如果密码为空，则不更新密码
             if (!updateData.password) {
               delete updateData.password
@@ -250,7 +319,7 @@
           emit('submit')
         } catch (error) {
           console.error('提交失败:', error)
-          ElMessage.error('操作失败请重试！')
+          // HTTP 拦截器已经显示了具体的错误消息，这里不再重复显示
         } finally {
           submitLoading.value = false
         }

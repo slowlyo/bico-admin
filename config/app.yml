@@ -124,6 +124,7 @@ upload:
     - ".flv"
     - ".wav"
   upload_dir: "data/uploads"   # 上传文件存储目录
+  base_url: ""                 # 文件访问的基础URL，留空则自动使用请求的域名
 
 # 配置使用说明:
 # 1. 环境变量优先级高于配置文件，格式: BICO_<配置路径>

@@ -84,7 +84,7 @@ func (s *adminUserService) Create(ctx context.Context, req *types.AdminUserCreat
 		Email:    req.Email,
 		Phone:    req.Phone,
 		Remark:   req.Remark,
-		Status:   status,
+		Status:   &status,
 	}
 
 	if err := s.adminUserRepo.Create(ctx, adminUser); err != nil {
@@ -143,9 +143,11 @@ func (s *adminUserService) Update(ctx context.Context, id uint, req *types.Admin
 	}
 
 	if req.Enabled {
-		adminUser.Status = sharedTypes.StatusActive
+		status := sharedTypes.StatusActive
+		adminUser.Status = &status
 	} else {
-		adminUser.Status = sharedTypes.StatusInactive
+		status := sharedTypes.StatusInactive
+		adminUser.Status = &status
 	}
 
 	// 如果提供了新密码，则更新密码

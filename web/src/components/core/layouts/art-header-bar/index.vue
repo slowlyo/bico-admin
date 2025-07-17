@@ -196,7 +196,6 @@
   import { useMenuStore } from '@/store/modules/menu'
   import AppConfig from '@/config'
   import { languageOptions } from '@/locales'
-  import { WEB_LINKS } from '@/utils/constants'
   import { mittBus } from '@/utils/sys'
   import { themeAnimation } from '@/utils/theme/animation'
   import { useCommon } from '@/composables/useCommon'
@@ -346,7 +345,11 @@
       if (userInfo.value.avatar.startsWith('http')) {
         return userInfo.value.avatar
       }
-      // 如果是相对路径，拼接上传文件的基础路径
+      // 如果是以 /uploads 开头的路径，拼接当前域名
+      if (userInfo.value.avatar.startsWith('/uploads/')) {
+        return `${window.location.origin}${userInfo.value.avatar}`
+      }
+      // 兼容旧的相对路径格式
       return `${window.location.origin}/uploads/${userInfo.value.avatar}`
     }
     // 默认头像

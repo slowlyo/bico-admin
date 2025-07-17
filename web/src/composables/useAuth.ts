@@ -1,48 +1,63 @@
-import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/store/modules/user'
-import { useCommon } from '@/composables/useCommon'
-import type { AppRouteRecord } from '@/types/router'
-
-type AuthItem = NonNullable<AppRouteRecord['meta']['authList']>[number]
 
 const userStore = useUserStore()
 
 /**
- * 按钮权限（前后端模式通用）
+ * 权限检查工具
  * 用法：
  * const { hasAuth } = useAuth()
- * hasAuth('add') // 检查是否拥有新增权限
+ * hasAuth('system.admin_user:list') // 检查完整权限代码
+ *
+ * const { hasAuth } = useAuth('system.admin_user')
+ * hasAuth('list') // 自动拼接为 'system.admin_user:list'
  */
-export const useAuth = () => {
-  const route = useRoute()
-  const { isFrontendMode } = useCommon()
-  const { info } = storeToRefs(userStore)
-
-  // 前端按钮权限（例如：['add', 'edit']）
-  const frontendAuthList = info.value?.buttons ?? []
-
-  // 后端路由 meta 配置的权限列表（例如：[{ authMark: 'add' }]）
-  const backendAuthList: AuthItem[] = Array.isArray(route.meta.authList)
-    ? (route.meta.authList as AuthItem[])
-    : []
+export const useAuth = (prefix?: string) => {
+  const { permissions } = storeToRefs(userStore)
 
   /**
-   * 检查是否拥有某权限标识（前后端模式通用）
-   * @param auth 权限标识
+   * 构建完整的权限代码
+   * @param code 权限代码或操作名
+   * @returns 完整的权限代码
+   */
+  const buildPermissionCode = (code: string): string => {
+    if (!prefix || code.includes(':')) {
+      return code
+    }
+    return `${prefix}:${code}`
+  }
+
+  /**
+   * 检查是否拥有指定权限
+   * @param permissionCode 权限代码或操作名
    * @returns 是否有权限
    */
-  const hasAuth = (auth: string): boolean => {
-    // 前端模式
-    if (isFrontendMode.value) {
-      return frontendAuthList.includes(auth)
-    }
+  const hasAuth = (permissionCode: string): boolean => {
+    const fullCode = buildPermissionCode(permissionCode)
+    return permissions.value.includes(fullCode)
+  }
 
-    // 后端模式
-    return backendAuthList.some((item) => item?.authMark === auth)
+  /**
+   * 检查是否拥有多个权限中的任意一个
+   * @param permissionCodes 权限代码或操作名数组
+   * @returns 是否有任意一个权限
+   */
+  const hasAnyAuth = (permissionCodes: string[]): boolean => {
+    return permissionCodes.some(code => hasAuth(code))
+  }
+
+  /**
+   * 检查是否拥有所有指定权限
+   * @param permissionCodes 权限代码或操作名数组
+   * @returns 是否拥有所有权限
+   */
+  const hasAllAuth = (permissionCodes: string[]): boolean => {
+    return permissionCodes.every(code => hasAuth(code))
   }
 
   return {
-    hasAuth
+    hasAuth,
+    hasAnyAuth,
+    hasAllAuth
   }
 }

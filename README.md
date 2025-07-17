@@ -34,8 +34,10 @@ make test
 - Zap (日志) + Viper (配置)
 
 **前端**
-- React + TypeScript + Ant Design
-- UmiJS + ProComponents
+- [Art Design Pro](https://github.com/Daymychen/art-design-pro) 一款专注于用户体验和视觉设计的后台管理系统模版
+- Vue 3 + TypeScript + Element Plus
+- Vite + Pinia + Vue Router
+- VueUse + Auto Import + Components
 
 ## 项目特点
 

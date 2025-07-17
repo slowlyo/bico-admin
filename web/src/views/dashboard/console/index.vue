@@ -22,8 +22,6 @@
         <TodoList />
       </el-col>
     </el-row>
-
-    <AboutProject />
   </div>
 </template>
 
@@ -34,7 +32,6 @@
   import NewUser from './widget/NewUser.vue'
   import Dynamic from './widget/Dynamic.vue'
   import TodoList from './widget/TodoList.vue'
-  import AboutProject from './widget/AboutProject.vue'
   import { useCommon } from '@/composables/useCommon'
 
   defineOptions({ name: 'Console' })

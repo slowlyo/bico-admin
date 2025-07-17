@@ -171,6 +171,11 @@ func (s *authService) GetProfileWithPermissions(ctx context.Context, userID uint
 		lastLoginAt = &ft
 	}
 
+	status := 0
+	if adminUser.Status != nil {
+		status = *adminUser.Status
+	}
+
 	userInfo := types.AdminUserResponse{
 		ID:          adminUser.ID,
 		Username:    adminUser.Username,
@@ -178,7 +183,7 @@ func (s *authService) GetProfileWithPermissions(ctx context.Context, userID uint
 		Avatar:      adminUser.Avatar,
 		Email:       adminUser.Email,
 		Phone:       adminUser.Phone,
-		Status:      adminUser.Status,
+		Status:      status,
 		StatusText:  adminUser.GetStatusText(),
 		LastLoginAt: lastLoginAt,
 		Remark:      adminUser.Remark,
@@ -225,6 +230,11 @@ func (s *authService) UpdateProfileInfo(ctx context.Context, userID uint, req *t
 		lastLoginAt = &ft
 	}
 
+	status := 0
+	if updatedUser.Status != nil {
+		status = *updatedUser.Status
+	}
+
 	return &types.AdminUserResponse{
 		ID:          updatedUser.ID,
 		Username:    updatedUser.Username,
@@ -232,7 +242,7 @@ func (s *authService) UpdateProfileInfo(ctx context.Context, userID uint, req *t
 		Avatar:      updatedUser.Avatar,
 		Email:       updatedUser.Email,
 		Phone:       updatedUser.Phone,
-		Status:      updatedUser.Status,
+		Status:      status,
 		StatusText:  updatedUser.GetStatusText(),
 		LastLoginAt: lastLoginAt,
 		Remark:      updatedUser.Remark,

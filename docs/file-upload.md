@@ -79,6 +79,7 @@ data/uploads/
       {
         "file_name": "example.jpg",
         "file_path": "/uploads/images/20240715_143022_a1b2c3d4.jpg",
+        "file_url": "http://localhost:8899/uploads/images/20240715_143022_a1b2c3d4.jpg",
         "file_size": 1024000,
         "file_type": "图片"
       }
@@ -119,11 +120,16 @@ data/uploads/
 
 上传成功后，文件可通过以下方式访问：
 
-### 直接访问
-- URL格式: `http://localhost:8899{file_path}`
-- 示例: `http://localhost:8899/uploads/images/20240715_143022_a1b2c3d4.jpg`
+### 推荐方式：使用 file_url
+```javascript
+// 直接使用响应中的完整URL（推荐）
+const fileUrl = response.data.files[0].file_url;
 
-### 在前端中使用
+// 在img标签中使用
+<img src={fileUrl} alt="上传的图片" />
+```
+
+### 兼容方式：使用 file_path
 ```javascript
 // 获取上传响应中的file_path
 const filePath = response.data.files[0].file_path;
@@ -134,6 +140,10 @@ const fileUrl = `${window.location.origin}${filePath}`;
 // 在img标签中使用
 <img src={fileUrl} alt="上传的图片" />
 ```
+
+### 直接访问
+- URL格式: `http://localhost:8899{file_path}`
+- 示例: `http://localhost:8899/uploads/images/20240715_143022_a1b2c3d4.jpg`
 
 ## 使用示例
 
@@ -189,9 +199,22 @@ upload:
     - ".png"
     # ... 更多类型
   upload_dir: "data/uploads"   # 上传文件存储目录
+  base_url: ""                 # 文件访问的基础URL，留空则自动使用请求的域名
 ```
 
 ### 配置项说明
+
+#### base_url 配置
+- **留空（默认）**: 自动使用请求的域名构建文件URL
+  - 开发环境: `http://localhost:8899/uploads/xxx.jpg`
+  - 生产环境: `https://api.example.com/uploads/xxx.jpg`
+- **自定义域名**: 指定文件访问的基础URL
+  - 示例: `base_url: "https://cdn.example.com"`
+  - 结果: `https://cdn.example.com/uploads/xxx.jpg`
+- **适用场景**:
+  - 使用CDN加速文件访问
+  - 前后端分离部署，需要指定后端域名
+  - 文件服务器与API服务器分离
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|

@@ -31,7 +31,8 @@ func NewCommonHandler(cfg *config.Config) *CommonHandler {
 // UploadResponse 文件上传响应
 type UploadResponse struct {
 	FileName string `json:"file_name"` // 原始文件名
-	FilePath string `json:"file_path"` // 文件访问路径
+	FilePath string `json:"file_path"` // 文件相对路径（用于存储）
+	FileURL  string `json:"file_url"`  // 文件完整访问URL
 	FileSize int64  `json:"file_size"` // 文件大小（字节）
 	FileType string `json:"file_type"` // 文件类型
 }
@@ -106,7 +107,7 @@ func (h *CommonHandler) Upload(c *gin.Context) {
 
 	// 处理每个上传的文件
 	for _, file := range files {
-		uploadResp, err := h.saveFile(file, uploadDir)
+		uploadResp, err := h.saveFile(c, file, uploadDir)
 		if err != nil {
 			failedFiles = append(failedFiles, fmt.Sprintf("%s: %s", file.Filename, err.Error()))
 			continue
@@ -137,7 +138,7 @@ func (h *CommonHandler) Upload(c *gin.Context) {
 }
 
 // saveFile 保存单个文件
-func (h *CommonHandler) saveFile(file *multipart.FileHeader, uploadDir string) (*UploadResponse, error) {
+func (h *CommonHandler) saveFile(c *gin.Context, file *multipart.FileHeader, uploadDir string) (*UploadResponse, error) {
 	// 文件大小验证
 	maxFileSize := h.cfg.Upload.GetMaxFileSizeBytes()
 	if file.Size > maxFileSize {
@@ -187,9 +188,24 @@ func (h *CommonHandler) saveFile(file *multipart.FileHeader, uploadDir string) (
 	}
 	accessPath = strings.Replace(accessPath, uploadDirConfig, "/uploads", 1)
 
+	// 构建完整的文件访问URL
+	var fileURL string
+	if h.cfg.Upload.BaseURL != "" {
+		// 如果配置了基础URL，使用配置的URL
+		fileURL = strings.TrimRight(h.cfg.Upload.BaseURL, "/") + accessPath
+	} else {
+		// 否则使用请求的域名构建URL
+		scheme := "http"
+		if c.Request.TLS != nil {
+			scheme = "https"
+		}
+		fileURL = fmt.Sprintf("%s://%s%s", scheme, c.Request.Host, accessPath)
+	}
+
 	return &UploadResponse{
 		FileName: file.Filename,
 		FilePath: accessPath,
+		FileURL:  fileURL,
 		FileSize: file.Size,
 		FileType: h.getFileType(file.Filename),
 	}, nil

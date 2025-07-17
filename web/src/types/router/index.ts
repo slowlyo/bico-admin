@@ -33,6 +33,8 @@ export interface RouteMeta extends Record<string | number | symbol, unknown> {
   isFirstLevel?: boolean
   /** 角色权限 */
   roles?: string[]
+  /** 菜单权限 - 访问此菜单需要的权限列表 */
+  permissions?: string[]
   /** 是否固定标签页 */
   fixedTab?: boolean
   /** 激活菜单路径 */

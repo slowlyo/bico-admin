@@ -5,7 +5,7 @@ export class UserService {
   static login(params: Api.Auth.LoginParams) {
     return request.post<Api.Auth.LoginResponse>({
       url: '/admin-api/auth/login',
-      params,
+      data: params,
       showErrorMessage: false // 禁用自动错误显示，由登录页面手动处理
     })
   }
@@ -28,7 +28,7 @@ export class UserService {
   static refreshToken(params: { refresh_token: string }) {
     return request.post<Api.Auth.LoginResponse>({
       url: '/admin-api/auth/refresh',
-      params
+      data: params
     })
   }
 
@@ -37,6 +37,22 @@ export class UserService {
     return request.get<Api.User.UserListData>({
       url: '/api/user/list',
       params
+    })
+  }
+
+  // 更新个人信息
+  static updateProfile(data: Api.User.ProfileUpdateRequest) {
+    return request.put<Api.Http.BaseResponse<Api.User.UserInfo>>({
+      url: '/admin-api/profile',
+      data: data
+    })
+  }
+
+  // 修改密码
+  static changePassword(data: Api.User.ChangePasswordRequest) {
+    return request.put<Api.Http.BaseResponse<null>>({
+      url: '/admin-api/profile/password',
+      data: data
     })
   }
 }

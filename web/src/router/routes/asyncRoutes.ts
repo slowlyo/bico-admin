@@ -22,6 +22,7 @@ export const asyncRoutes: AppRouteRecord[] = [
     meta: {
       title: '首页',
       icon: '&#xe721;'
+      // 首页不需要权限控制，所有用户都可以访问
     },
     children: [
       {
@@ -32,6 +33,7 @@ export const asyncRoutes: AppRouteRecord[] = [
           title: '控制台',
           keepAlive: false,
           fixedTab: true
+          // 控制台不需要权限控制
         }
       }
     ]
@@ -42,7 +44,9 @@ export const asyncRoutes: AppRouteRecord[] = [
     component: RoutesAlias.Layout,
     meta: {
       title: '系统管理',
-      icon: '&#xe7b9;'
+      icon: '&#xe7b9;',
+      // 系统管理模块需要任意一个系统权限
+      permissions: ['system.admin_user:list', 'system.role:list']
     },
     children: [
       {
@@ -51,26 +55,31 @@ export const asyncRoutes: AppRouteRecord[] = [
         component: RoutesAlias.AdminUsers,
         meta: {
           title: '管理员管理',
-          keepAlive: true
+          keepAlive: true,
+          // 管理员管理页面需要查看权限
+          permissions: ['system.admin_user:list']
         }
       },
       {
-        path: 'role',
-        name: 'Roles',
-        component: RoutesAlias.Roles,
+        path: 'admin-role',
+        name: 'AdminRoles',
+        component: RoutesAlias.AdminRoles,
         meta: {
           title: '角色管理',
-          keepAlive: true
+          keepAlive: true,
+          // 角色管理页面需要查看权限
+          permissions: ['system.role:list']
         }
       },
       {
-        path: 'user-center',
+        path: 'profile',
         name: 'Profile',
         component: RoutesAlias.Profile,
         meta: {
           title: '个人中心',
           keepAlive: true,
           isHide: true
+          // 个人中心不需要权限控制，所有用户都可以访问
         }
       }
     ]

@@ -29,7 +29,7 @@ export class AdminUserService {
   static createAdminUser(data: Api.AdminUser.AdminUserCreateRequest) {
     return request.post<Api.Http.BaseResponse<Api.AdminUser.AdminUserInfo>>({
       url: '/admin-api/admin-users',
-      params: data
+      data: data
     })
   }
 
@@ -39,7 +39,7 @@ export class AdminUserService {
   static updateAdminUser(id: number, data: Api.AdminUser.AdminUserUpdateRequest) {
     return request.put<Api.Http.BaseResponse<Api.AdminUser.AdminUserInfo>>({
       url: `/admin-api/admin-users/${id}`,
-      params: data
+      data: data
     })
   }
 

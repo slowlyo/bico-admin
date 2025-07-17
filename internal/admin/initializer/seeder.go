@@ -58,11 +58,12 @@ func (s *Seeder) createSuperAdminRole() (*models.AdminRole, error) {
 	}
 
 	// 创建超级管理员角色
+	status := 1
 	superAdminRole := &models.AdminRole{
 		Name:        "超级管理员",
 		Code:        models.RoleCodeSuperAdmin,
 		Description: "系统超级管理员，拥有所有权限且不可修改删除",
-		Status:      1,
+		Status:      &status,
 	}
 
 	if err := s.db.Create(superAdminRole).Error; err != nil {
@@ -93,11 +94,12 @@ func (s *Seeder) createSuperAdminUser() (*models.AdminUser, error) {
 	}
 
 	// 创建超级管理员用户
+	userStatus := 1
 	superAdminUser := &models.AdminUser{
 		Username: "admin",
 		Password: string(hashedPassword),
 		Name:     "超级管理员",
-		Status:   1, // 启用状态
+		Status:   &userStatus, // 启用状态
 		Remark:   "系统默认超级管理员，不可删除",
 	}
 

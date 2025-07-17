@@ -1,7 +1,7 @@
 <!-- 表格按钮 -->
 <template>
   <div
-    :class="['btn-text', buttonClass]"
+    :class="['btn-text', buttonClass, { 'is-disabled': disabled }]"
     :style="{ backgroundColor: buttonBgColor, color: iconColor }"
     @click="handleClick"
   >
@@ -25,6 +25,8 @@
     iconColor?: string
     /** 按钮背景色 */
     buttonBgColor?: string
+    /** 是否禁用 */
+    disabled?: boolean
   }
 
   const props = withDefaults(defineProps<Props>(), {})
@@ -53,7 +55,9 @@
   })
 
   const handleClick = () => {
-    emit('click')
+    if (!props.disabled) {
+      emit('click')
+    }
   }
 </script>
 
@@ -74,6 +78,15 @@
 
     &:hover {
       background-color: rgba(var(--art-gray-300-rgb), 0.5);
+    }
+
+    &.is-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+
+      &:hover {
+        background-color: rgba(var(--art-gray-200-rgb), 0.7);
+      }
     }
   }
 </style>

@@ -16,7 +16,7 @@ type AdminUser struct {
 	Avatar      string     `json:"avatar" gorm:"size:255;comment:头像"`
 	Email       string     `json:"email" gorm:"size:100;comment:邮箱"`
 	Phone       string     `json:"phone" gorm:"size:20;comment:手机号"`
-	Status      int        `json:"status" gorm:"default:1;comment:状态：1-启用，0-禁用"`
+	Status      *int       `json:"status" gorm:"default:1;comment:状态：1-启用，0-禁用"`
 	LastLoginAt *time.Time `json:"last_login_at" gorm:"comment:最后登录时间"`
 	Remark      string     `json:"remark" gorm:"size:500;comment:备注"`
 	CreatedAt   time.Time  `json:"created_at"`
@@ -33,12 +33,15 @@ func (AdminUser) TableName() string {
 
 // IsEnabled 检查用户是否启用
 func (u *AdminUser) IsEnabled() bool {
-	return u.Status == types.StatusActive
+	return u.Status != nil && *u.Status == types.StatusActive
 }
 
 // GetStatusText 获取状态文本
 func (u *AdminUser) GetStatusText() string {
-	switch u.Status {
+	if u.Status == nil {
+		return "未知"
+	}
+	switch *u.Status {
 	case types.StatusActive:
 		return "启用"
 	case types.StatusInactive:
@@ -155,6 +158,10 @@ func (u *AdminUser) GetRoleNames() []string {
 
 // ToUserInfo 转换为用户信息
 func (u *AdminUser) ToUserInfo() types.UserInfo {
+	status := 0
+	if u.Status != nil {
+		status = *u.Status
+	}
 	return types.UserInfo{
 		ID:       u.ID,
 		Username: u.Username,
@@ -162,6 +169,6 @@ func (u *AdminUser) ToUserInfo() types.UserInfo {
 		Email:    u.Email,
 		Avatar:   u.Avatar,
 		UserType: types.UserTypeAdmin, // 管理员用户类型
-		Status:   u.Status,
+		Status:   status,
 	}
 }

@@ -24,15 +24,15 @@ declare namespace Api {
     /** 分页参数 */
     interface PaginatingParams {
       /** 当前页码 */
-      current: number
+      page: number
       /** 每页条数 */
-      size: number
+      page_size: number
       /** 总条数 */
       total: number
     }
 
     /** 通用搜索参数 */
-    type PaginatingSearchParams = Pick<PaginatingParams, 'current' | 'size'>
+    type PaginatingSearchParams = Pick<PaginatingParams, 'page' | 'page_size'>
 
     /** 启用状态 */
     type EnableStatus = '1' | '2'
@@ -91,6 +91,20 @@ declare namespace Api {
       current: number
       size: number
       total: number
+    }
+
+    /** 个人信息更新请求 */
+    interface ProfileUpdateRequest {
+      name: string
+      avatar?: string
+      email?: string
+      phone?: string
+    }
+
+    /** 修改密码请求 */
+    interface ChangePasswordRequest {
+      old_password: string
+      new_password: string
     }
 
     /** 用户列表项 */
@@ -204,8 +218,20 @@ declare namespace Api {
       description?: string
       status: number
       status_text: string
+      user_count: number
+      can_edit: boolean
+      can_delete: boolean
+      permissions?: RolePermission[]
       created_at: string
       updated_at: string
+    }
+
+    /** 角色权限 */
+    interface RolePermission {
+      permission_code: string
+      permission_name: string
+      module: string
+      level: number
     }
 
     /** 角色选项 */
@@ -213,6 +239,53 @@ declare namespace Api {
       id: number
       name: string
       code: string
+      description?: string
+    }
+
+    /** 角色列表请求参数 */
+    interface RoleListParams extends Common.PaginatingParams {
+      page: number
+      page_size: number
+      name?: string
+      code?: string
+      status?: number
+      sort_by?: string
+      sort_desc?: boolean
+      [key: string]: unknown
+    }
+
+    /** 角色列表数据 */
+    interface RoleListData {
+      list: RoleInfo[]
+      total: number
+      page: number
+      page_size: number
+    }
+
+    /** 角色创建请求 */
+    interface RoleCreateRequest {
+      name: string
+      code: string
+      description?: string
+      status: number
+      permissions: string[]
+    }
+
+    /** 角色更新请求 */
+    interface RoleUpdateRequest {
+      name: string
+      description?: string
+      status: number
+      permissions: string[]
+    }
+
+    /** 权限树节点 */
+    interface PermissionTreeNode {
+      key: string
+      title: string
+      type: string
+      selected: boolean
+      children?: PermissionTreeNode[]
     }
   }
 }

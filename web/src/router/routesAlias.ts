@@ -20,6 +20,6 @@ export enum RoutesAlias {
 
   // 系统管理
   AdminUsers = '/system/admin-user', // 管理员管理
-  Roles = '/system/role', // 角色管理
-  Profile = '/system/user-center' // 个人中心
+  AdminRoles = '/system/admin-role', // 角色管理
+  Profile = '/system/profile' // 个人中心
 }

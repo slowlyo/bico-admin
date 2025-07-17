@@ -78,7 +78,7 @@ func (s *adminRoleService) CreateRole(ctx context.Context, req *types.RoleCreate
 		Name:        req.Name,
 		Code:        req.Code,
 		Description: req.Description,
-		Status:      req.Status,
+		Status:      &req.Status,
 	}
 
 	if err := s.adminRoleRepo.Create(ctx, role); err != nil {
@@ -121,7 +121,7 @@ func (s *adminRoleService) UpdateRole(ctx context.Context, id uint, req *types.R
 	// 更新角色基本信息
 	role.Name = req.Name
 	role.Description = req.Description
-	role.Status = req.Status
+	role.Status = &req.Status
 
 	if err := s.adminRoleRepo.Update(ctx, role); err != nil {
 		return nil, err
@@ -364,13 +364,18 @@ func (s *adminRoleService) convertToRoleResponse(ctx context.Context, role model
 	// 获取用户数量
 	userCount, _ := s.adminRoleRepo.CountUsersByRoleID(ctx, role.ID)
 
+	status := 0
+	if role.Status != nil {
+		status = *role.Status
+	}
+
 	return types.RoleResponse{
 		ID:          role.ID,
 		Name:        role.Name,
 		Code:        role.Code,
 		Description: role.Description,
-		Status:      role.Status,
-		StatusText:  s.getStatusText(role.Status),
+		Status:      status,
+		StatusText:  s.getStatusText(status),
 		Permissions: permissions,
 		UserCount:   userCount,
 		CanEdit:     role.CanBeEdited(),

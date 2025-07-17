@@ -138,13 +138,13 @@ export const updatePaginationFromResponse = <T>(
 ): void => {
   // 使用响应中的分页信息，如果没有则保持当前值
   pagination.total = response.total ?? pagination.total ?? 0
-  pagination.current = response.current ?? pagination.current ?? 1
-  pagination.size = response.size ?? pagination.size ?? 10
+  pagination.page = response.current ?? pagination.page ?? 1
+  pagination.page_size = response.size ?? pagination.page_size ?? 10
 
   // 边界检查：确保当前页不超过总页数
-  const maxPage = Math.max(1, Math.ceil(pagination.total / pagination.size))
-  if (pagination.current > maxPage) {
-    pagination.current = maxPage
+  const maxPage = Math.max(1, Math.ceil(pagination.total / pagination.page_size))
+  if (pagination.page > maxPage) {
+    pagination.page = maxPage
   }
 }
 

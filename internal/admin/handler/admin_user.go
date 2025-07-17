@@ -112,6 +112,11 @@ func (h *AdminUserHandler) convertToAdminUserResponse(ctx *gin.Context, user *mo
 		lastLoginAt = &ft
 	}
 
+	status := 0
+	if user.Status != nil {
+		status = *user.Status
+	}
+
 	return types.AdminUserResponse{
 		ID:          user.ID,
 		Username:    user.Username,
@@ -119,7 +124,7 @@ func (h *AdminUserHandler) convertToAdminUserResponse(ctx *gin.Context, user *mo
 		Avatar:      user.Avatar,
 		Email:       user.Email,
 		Phone:       user.Phone,
-		Status:      user.Status,
+		Status:      status,
 		StatusText:  user.GetStatusText(),
 		LastLoginAt: lastLoginAt,
 		Remark:      user.Remark,

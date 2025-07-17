@@ -15,6 +15,7 @@ import { asyncRoutes } from '../routes/asyncRoutes'
 import { loadingService } from '@/utils/ui'
 import { useCommon } from '@/composables/useCommon'
 import { useWorktabStore } from '@/store/modules/worktab'
+import { filterMenuItems, hasRoutePermission, debugMenuPermissions } from '@/utils/menuPermission'
 
 // 前端权限模式 loading 关闭延时，提升用户体验
 const LOADING_DELAY = 300
@@ -107,6 +108,12 @@ async function handleRouteGuard(
 
   // 处理已知的匹配路由
   if (to.matched.length > 0) {
+    // 检查路由权限
+    if (!checkRoutePermission(to, userStore)) {
+      next(RoutesAlias.Exception403)
+      return
+    }
+
     setWorktab(to)
     setPageTitle(to)
     next()
@@ -191,12 +198,29 @@ async function getMenuData(router: Router): Promise<void> {
  * 处理前端控制模式的菜单逻辑
  */
 async function processFrontendMenu(router: Router): Promise<void> {
-  const menuList = asyncRoutes.map((route) => menuDataToRouter(route))
+  const userStore = useUserStore()
+  const userPermissions = userStore.permissions
+
+  // 将路由配置转换为菜单数据
+  const allMenus = asyncRoutes.map((route) => menuDataToRouter(route))
+
+  // 根据用户权限过滤菜单
+  const filteredMenus = filterMenuItems(allMenus, userPermissions)
+
+  // 开发环境下输出调试信息
+  if (import.meta.env.DEV) {
+    debugMenuPermissions(allMenus, userPermissions)
+  }
+
+  // 检查过滤后是否还有可访问的菜单
+  if (filteredMenus.length === 0) {
+    throw new Error('您没有权限访问任何菜单，请联系管理员')
+  }
 
   // 添加延时以提升用户体验
   await new Promise((resolve) => setTimeout(resolve, LOADING_DELAY))
 
-  await registerAndStoreMenu(router, menuList)
+  await registerAndStoreMenu(router, filteredMenus)
 }
 
 /**
@@ -248,6 +272,26 @@ export function resetRouterState(): void {
   const menuStore = useMenuStore()
   menuStore.removeAllDynamicRoutes()
   menuStore.setMenuList([])
+}
+
+/**
+ * 检查路由权限
+ */
+function checkRoutePermission(
+  to: RouteLocationNormalized,
+  userStore: ReturnType<typeof useUserStore>
+): boolean {
+  // 如果路由没有权限要求，允许访问
+  const permissions = to.meta?.permissions as string[] | undefined
+  if (!permissions || permissions.length === 0) {
+    return true
+  }
+
+  // 检查用户是否有访问权限
+  const userPermissions = userStore.permissions
+  return permissions.some((permission: string) =>
+    userPermissions.includes(permission)
+  )
 }
 
 /**
