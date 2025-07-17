@@ -1,6 +1,6 @@
 # Bico Admin
 
-<img width=120 src="./web/src/assets/img/common/logo.png"/>
+<img width=200 src="./web/src/assets/img/common/logo.png"/>
 <br>
 
 基于 Go 语言的多端管理系统，支持 master、admin、api 三个端点的统一管理。
