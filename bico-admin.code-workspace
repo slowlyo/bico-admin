@@ -1,11 +1,29 @@
 {
 	"folders": [
 		{
+			"name": "bico-admin",
 			"path": "."
 		},
 		{
+			"name": "web",
 			"path": "web"
 		}
 	],
-	"settings": {}
+	"settings": {
+		
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Start Server",
+				"type": "go",
+				"request": "launch",
+				"mode": "debug",
+				"program": "${workspaceFolder:bico-admin}/cmd/server",
+				"cwd": "${workspaceFolder:bico-admin}",
+				"args": ["-config", "config/app.yml"]
+			}
+		]
+	}
 }
