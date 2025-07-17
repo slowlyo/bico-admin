@@ -8,23 +8,20 @@ import (
 
 	"bico-admin/internal/admin/models"
 	adminTypes "bico-admin/internal/admin/types"
+	"bico-admin/internal/shared/repository"
 	"bico-admin/internal/shared/types"
 )
 
 // AdminUserRepository 管理员用户仓储接口
 type AdminUserRepository interface {
-	// 基础CRUD
-	Create(ctx context.Context, user *models.AdminUser) error
-	GetByID(ctx context.Context, id uint) (*models.AdminUser, error)
-	GetByUsername(ctx context.Context, username string) (*models.AdminUser, error)
-	Update(ctx context.Context, user *models.AdminUser) error
-	Delete(ctx context.Context, id uint) error
+	// 继承基础仓储接口
+	repository.BaseRepositoryInterface[models.AdminUser]
 
-	// 查询方法
+	// 自定义查询方法
+	GetByUsername(ctx context.Context, username string) (*models.AdminUser, error)
 	ListWithFilter(ctx context.Context, req *adminTypes.AdminUserListRequest) ([]*models.AdminUser, int64, error)
 
 	// 状态管理
-	UpdateStatus(ctx context.Context, id uint, enabled bool) error
 	UpdateLastLoginTime(ctx context.Context, id uint) error
 	UpdatePassword(ctx context.Context, id uint, hashedPassword string) error
 
@@ -39,20 +36,20 @@ type AdminUserRepository interface {
 
 // adminUserRepository 管理员用户仓储实现
 type adminUserRepository struct {
-	*BaseRepository[models.AdminUser]
+	repository.BaseRepositoryInterface[models.AdminUser]
 }
 
 // NewAdminUserRepository 创建管理员用户仓储
 func NewAdminUserRepository(db *gorm.DB) AdminUserRepository {
 	return &adminUserRepository{
-		BaseRepository: NewBaseRepository[models.AdminUser](db),
+		BaseRepositoryInterface: repository.NewBaseRepository[models.AdminUser](db),
 	}
 }
 
 // GetByID 根据ID获取管理员用户（预加载角色和权限）
 func (r *adminUserRepository) GetByID(ctx context.Context, id uint) (*models.AdminUser, error) {
 	var user models.AdminUser
-	err := r.BaseRepository.db.WithContext(ctx).
+	err := r.DB().WithContext(ctx).
 		Preload("Roles.Role.Permissions").
 		First(&user, id).Error
 	if err != nil {
@@ -64,7 +61,7 @@ func (r *adminUserRepository) GetByID(ctx context.Context, id uint) (*models.Adm
 // GetByUsername 根据用户名获取管理员用户（预加载角色和权限）
 func (r *adminUserRepository) GetByUsername(ctx context.Context, username string) (*models.AdminUser, error) {
 	var user models.AdminUser
-	err := r.BaseRepository.db.WithContext(ctx).
+	err := r.DB().WithContext(ctx).
 		Preload("Roles.Role.Permissions").
 		Where("username = ?", username).
 		First(&user).Error
@@ -74,19 +71,10 @@ func (r *adminUserRepository) GetByUsername(ctx context.Context, username string
 	return &user, nil
 }
 
-// UpdateStatus 更新管理员用户状态
-func (r *adminUserRepository) UpdateStatus(ctx context.Context, id uint, enabled bool) error {
-	status := types.StatusInactive
-	if enabled {
-		status = types.StatusActive
-	}
-	return r.BaseRepository.UpdateStatus(ctx, id, status)
-}
-
 // UpdateLastLoginTime 更新最后登录时间
 func (r *adminUserRepository) UpdateLastLoginTime(ctx context.Context, id uint) error {
 	now := time.Now()
-	return r.BaseRepository.db.WithContext(ctx).
+	return r.DB().WithContext(ctx).
 		Model(&models.AdminUser{}).
 		Where("id = ?", id).
 		Update("last_login_at", now).Error
@@ -94,7 +82,7 @@ func (r *adminUserRepository) UpdateLastLoginTime(ctx context.Context, id uint) 
 
 // UpdatePassword 更新用户密码
 func (r *adminUserRepository) UpdatePassword(ctx context.Context, id uint, hashedPassword string) error {
-	return r.BaseRepository.db.WithContext(ctx).
+	return r.DB().WithContext(ctx).
 		Model(&models.AdminUser{}).
 		Where("id = ?", id).
 		Update("password", hashedPassword).Error
@@ -102,12 +90,12 @@ func (r *adminUserRepository) UpdatePassword(ctx context.Context, id uint, hashe
 
 // ExistsByUsername 检查用户名是否存在
 func (r *adminUserRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
-	return r.BaseRepository.ExistsByField(ctx, "username", username)
+	return r.ExistsByField(ctx, "username", username)
 }
 
 // ExistsByUsernameExcludeID 检查用户名是否存在（排除指定ID）
 func (r *adminUserRepository) ExistsByUsernameExcludeID(ctx context.Context, username string, excludeID uint) (bool, error) {
-	return r.BaseRepository.ExistsByFieldExcludeID(ctx, "username", username, excludeID)
+	return r.ExistsByFieldExcludeID(ctx, "username", username, excludeID)
 }
 
 // ListWithFilter 根据条件分页获取管理员用户列表
@@ -115,7 +103,7 @@ func (r *adminUserRepository) ListWithFilter(ctx context.Context, req *adminType
 	var users []*models.AdminUser
 	var total int64
 
-	db := r.BaseRepository.db.WithContext(ctx).Model(&models.AdminUser{})
+	db := r.DB().WithContext(ctx).Model(&models.AdminUser{})
 
 	// 条件过滤
 	if req.Username != "" {
@@ -156,7 +144,7 @@ func (r *adminUserRepository) ListWithFilter(ctx context.Context, req *adminType
 // CountSuperAdmins 统计超级管理员数量
 func (r *adminUserRepository) CountSuperAdmins(ctx context.Context) (int64, error) {
 	var count int64
-	err := r.db.WithContext(ctx).
+	err := r.DB().WithContext(ctx).
 		Table("admin_users").
 		Joins("JOIN admin_user_roles ON admin_users.id = admin_user_roles.user_id").
 		Joins("JOIN admin_roles ON admin_user_roles.role_id = admin_roles.id").
@@ -168,7 +156,7 @@ func (r *adminUserRepository) CountSuperAdmins(ctx context.Context) (int64, erro
 // CountSuperAdminsExcludeID 统计超级管理员数量（排除指定ID）
 func (r *adminUserRepository) CountSuperAdminsExcludeID(ctx context.Context, excludeID uint) (int64, error) {
 	var count int64
-	err := r.db.WithContext(ctx).
+	err := r.DB().WithContext(ctx).
 		Table("admin_users").
 		Joins("JOIN admin_user_roles ON admin_users.id = admin_user_roles.user_id").
 		Joins("JOIN admin_roles ON admin_user_roles.role_id = admin_roles.id").

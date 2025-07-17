@@ -59,6 +59,7 @@ type GenerateResponse struct {
 // TemplateData 模板数据
 type TemplateData struct {
 	PackageName    string            // 包名
+	PackagePath    string            // 包路径
 	ModelName      string            // 模型名（如User）
 	ModelNameLower string            // 模型名小写（如user）
 	ModelNameSnake string            // 模型名蛇形命名（如user_info）

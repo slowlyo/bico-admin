@@ -1,0 +1,38 @@
+package repository
+
+import (
+	"context"
+
+	"gorm.io/gorm"
+
+	"bico-admin/internal/shared/models"
+	"bico-admin/internal/shared/repository"
+	"bico-admin/internal/shared/types"
+)
+
+// {{.ModelName}}Repository {{.ModelName}}仓储接口
+type {{.ModelName}}Repository interface {
+	// 继承基础仓储接口
+	repository.BaseRepositoryInterface[models.{{.ModelName}}]
+
+	// 自定义查询方法
+	ListWithFilter(ctx context.Context, req *types.BasePageQuery) ([]*models.{{.ModelName}}, int64, error)
+}
+
+// {{.ModelNameLower}}Repository {{.ModelName}}仓储实现
+type {{.ModelNameLower}}Repository struct {
+	repository.BaseRepositoryInterface[models.{{.ModelName}}]
+}
+
+// New{{.ModelName}}Repository 创建{{.ModelName}}仓储
+func New{{.ModelName}}Repository(db *gorm.DB) {{.ModelName}}Repository {
+	return &{{.ModelNameLower}}Repository{
+		BaseRepositoryInterface: repository.NewBaseRepository[models.{{.ModelName}}](db),
+	}
+}
+
+// ListWithFilter 根据过滤条件分页查询{{.ModelName}}
+func (r *{{.ModelNameLower}}Repository) ListWithFilter(ctx context.Context, req *types.BasePageQuery) ([]*models.{{.ModelName}}, int64, error) {
+	// 使用基础仓储的分页查询，支持关键词搜索和排序
+	return r.List(ctx, req)
+}

@@ -6,17 +6,21 @@ import (
 
 // CodeGenerator 代码生成器
 type CodeGenerator struct {
-	modelGenerator *ModelGenerator
-	historyManager *HistoryManager
-	validator      *Validator
+	modelGenerator      *ModelGenerator
+	repositoryGenerator *RepositoryGenerator
+	serviceGenerator    *ServiceGenerator
+	historyManager      *HistoryManager
+	validator           *Validator
 }
 
 // NewCodeGenerator 创建代码生成器
 func NewCodeGenerator() *CodeGenerator {
 	return &CodeGenerator{
-		modelGenerator: NewModelGenerator(),
-		historyManager: NewHistoryManager(),
-		validator:      NewValidator(),
+		modelGenerator:      NewModelGenerator(),
+		repositoryGenerator: NewRepositoryGenerator(),
+		serviceGenerator:    NewServiceGenerator(),
+		historyManager:      NewHistoryManager(),
+		validator:           NewValidator(),
 	}
 }
 
@@ -30,11 +34,15 @@ func (g *CodeGenerator) Generate(req *GenerateRequest) (*GenerateResponse, error
 			Errors:  []string{errors.Error()},
 		}, nil
 	}
-	
+
 	// 根据组件类型生成代码
 	switch req.ComponentType {
 	case ComponentModel:
 		return g.generateModel(req)
+	case ComponentRepository:
+		return g.generateRepository(req)
+	case ComponentService:
+		return g.generateService(req)
 	case ComponentAll:
 		return g.generateAll(req)
 	default:
@@ -53,7 +61,7 @@ func (g *CodeGenerator) generateModel(req *GenerateRequest) (*GenerateResponse, 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 如果生成成功，更新历史记录
 	if response.Success && len(response.GeneratedFiles) > 0 {
 		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
@@ -62,7 +70,47 @@ func (g *CodeGenerator) generateModel(req *GenerateRequest) (*GenerateResponse, 
 			response.HistoryUpdated = false
 		}
 	}
-	
+
+	return response, nil
+}
+
+// generateRepository 生成Repository
+func (g *CodeGenerator) generateRepository(req *GenerateRequest) (*GenerateResponse, error) {
+	// 使用Repository生成器生成
+	response, err := g.repositoryGenerator.Generate(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果生成成功，更新历史记录
+	if response.Success && len(response.GeneratedFiles) > 0 {
+		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
+			// 历史记录更新失败不影响生成结果，只记录警告
+			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
+			response.HistoryUpdated = false
+		}
+	}
+
+	return response, nil
+}
+
+// generateService 生成Service
+func (g *CodeGenerator) generateService(req *GenerateRequest) (*GenerateResponse, error) {
+	// 使用Service生成器生成
+	response, err := g.serviceGenerator.Generate(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果生成成功，更新历史记录
+	if response.Success && len(response.GeneratedFiles) > 0 {
+		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
+			// 历史记录更新失败不影响生成结果，只记录警告
+			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
+			response.HistoryUpdated = false
+		}
+	}
+
 	return response, nil
 }
 
@@ -70,89 +118,107 @@ func (g *CodeGenerator) generateModel(req *GenerateRequest) (*GenerateResponse, 
 func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, error) {
 	var allGeneratedFiles []string
 	var allErrors []string
-	
+
 	// 1. 生成模型
 	modelReq := *req
 	modelReq.ComponentType = ComponentModel
-	
+
 	modelResponse, err := g.generateModel(&modelReq)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if modelResponse.Success {
 		allGeneratedFiles = append(allGeneratedFiles, modelResponse.GeneratedFiles...)
 	} else {
 		allErrors = append(allErrors, modelResponse.Errors...)
 	}
-	
-	// TODO: 2. 生成Repository
-	// repositoryReq := *req
-	// repositoryReq.ComponentType = ComponentRepository
-	// repositoryResponse, err := g.generateRepository(&repositoryReq)
-	// ...
-	
-	// TODO: 3. 生成Service
-	// serviceReq := *req
-	// serviceReq.ComponentType = ComponentService
-	// serviceResponse, err := g.generateService(&serviceReq)
-	// ...
-	
+
+	// 2. 生成Repository
+	repositoryReq := *req
+	repositoryReq.ComponentType = ComponentRepository
+
+	repositoryResponse, err := g.generateRepository(&repositoryReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if repositoryResponse.Success {
+		allGeneratedFiles = append(allGeneratedFiles, repositoryResponse.GeneratedFiles...)
+	} else {
+		allErrors = append(allErrors, repositoryResponse.Errors...)
+	}
+
+	// 3. 生成Service
+	serviceReq := *req
+	serviceReq.ComponentType = ComponentService
+
+	serviceResponse, err := g.generateService(&serviceReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if serviceResponse.Success {
+		allGeneratedFiles = append(allGeneratedFiles, serviceResponse.GeneratedFiles...)
+	} else {
+		allErrors = append(allErrors, serviceResponse.Errors...)
+	}
+
 	// TODO: 4. 生成Handler
 	// handlerReq := *req
 	// handlerReq.ComponentType = ComponentHandler
 	// handlerResponse, err := g.generateHandler(&handlerReq)
 	// ...
-	
+
 	// TODO: 5. 生成Routes
 	// routesReq := *req
 	// routesReq.ComponentType = ComponentRoutes
 	// routesResponse, err := g.generateRoutes(&routesReq)
 	// ...
-	
+
 	// TODO: 6. 生成Wire配置
 	// wireReq := *req
 	// wireReq.ComponentType = ComponentWire
 	// wireResponse, err := g.generateWire(&wireReq)
 	// ...
-	
+
 	// TODO: 7. 生成Migration
 	// migrationReq := *req
 	// migrationReq.ComponentType = ComponentMigration
 	// migrationResponse, err := g.generateMigration(&migrationReq)
 	// ...
-	
+
 	// TODO: 8. 生成Permission
 	// permissionReq := *req
 	// permissionReq.ComponentType = ComponentPermission
 	// permissionResponse, err := g.generatePermission(&permissionReq)
 	// ...
-	
+
 	// TODO: 9. 生成前端API
 	// frontendAPIReq := *req
 	// frontendAPIReq.ComponentType = ComponentFrontendAPI
 	// frontendAPIResponse, err := g.generateFrontendAPI(&frontendAPIReq)
 	// ...
-	
+
 	// TODO: 10. 生成前端页面
 	// frontendPageReq := *req
 	// frontendPageReq.ComponentType = ComponentFrontendPage
 	// frontendPageResponse, err := g.generateFrontendPage(&frontendPageReq)
 	// ...
-	
+
 	// TODO: 11. 生成前端表单
 	// frontendFormReq := *req
 	// frontendFormReq.ComponentType = ComponentFrontendForm
 	// frontendFormResponse, err := g.generateFrontendForm(&frontendFormReq)
 	// ...
-	
+
 	// 构建最终响应
 	success := len(allErrors) == 0
 	message := fmt.Sprintf("生成完成，共生成 %d 个文件", len(allGeneratedFiles))
 	if !success {
 		message = fmt.Sprintf("生成部分完成，共生成 %d 个文件，%d 个错误", len(allGeneratedFiles), len(allErrors))
 	}
-	
+
 	response := &GenerateResponse{
 		Success:        success,
 		GeneratedFiles: allGeneratedFiles,
@@ -160,7 +226,7 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 		HistoryUpdated: success,
 		Errors:         allErrors,
 	}
-	
+
 	// 如果有文件生成成功，更新历史记录
 	if len(allGeneratedFiles) > 0 {
 		if err := g.historyManager.AddHistory(req, allGeneratedFiles); err != nil {
@@ -168,7 +234,7 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 			response.HistoryUpdated = false
 		}
 	}
-	
+
 	return response, nil
 }
 
@@ -193,12 +259,6 @@ func (g *CodeGenerator) ClearHistory() error {
 }
 
 // TODO: 后续实现的生成器方法
-
-// generateRepository 生成Repository
-// func (g *CodeGenerator) generateRepository(req *GenerateRequest) (*GenerateResponse, error) {
-//     // TODO: 实现Repository生成逻辑
-//     return nil, fmt.Errorf("Repository生成器尚未实现")
-// }
 
 // generateService 生成Service
 // func (g *CodeGenerator) generateService(req *GenerateRequest) (*GenerateResponse, error) {

@@ -44,7 +44,7 @@ func NewAdminRoleService(adminRoleRepo repository.AdminRoleRepository, adminUser
 
 // GetRoleList 获取角色列表
 func (s *adminRoleService) GetRoleList(ctx context.Context, req *types.RoleListRequest) (*sharedTypes.PageResult, error) {
-	roles, total, err := s.adminRoleRepo.List(ctx, req)
+	roles, total, err := s.adminRoleRepo.ListRoles(ctx, req)
 	if err != nil {
 		return nil, err
 	}

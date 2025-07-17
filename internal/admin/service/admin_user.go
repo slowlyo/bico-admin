@@ -234,7 +234,11 @@ func (s *adminUserService) UpdateStatus(ctx context.Context, id uint, enabled bo
 		}
 	}
 
-	return s.adminUserRepo.UpdateStatus(ctx, id, enabled)
+	status := sharedTypes.StatusInactive
+	if enabled {
+		status = sharedTypes.StatusActive
+	}
+	return s.adminUserRepo.UpdateStatus(ctx, id, status)
 }
 
 // UpdateLastLoginTime 更新最后登录时间

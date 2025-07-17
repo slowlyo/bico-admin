@@ -7,21 +7,17 @@ import (
 
 	"bico-admin/internal/admin/models"
 	"bico-admin/internal/admin/types"
+	"bico-admin/internal/shared/repository"
 	sharedTypes "bico-admin/internal/shared/types"
 )
 
 // AdminRoleRepository 管理员角色仓储接口
 type AdminRoleRepository interface {
-	// 基础CRUD
-	Create(ctx context.Context, role *models.AdminRole) error
-	GetByID(ctx context.Context, id uint) (*models.AdminRole, error)
+	// 继承基础仓储接口
+	repository.BaseRepositoryInterface[models.AdminRole]
 
-	Update(ctx context.Context, role *models.AdminRole) error
-	Delete(ctx context.Context, id uint) error
-
-	// 查询方法
-	List(ctx context.Context, req *types.RoleListRequest) ([]*models.AdminRole, int64, error)
-
+	// 自定义查询方法
+	ListRoles(ctx context.Context, req *types.RoleListRequest) ([]*models.AdminRole, int64, error)
 	ListActiveRoles(ctx context.Context) ([]*models.AdminRole, error)
 
 	// 验证方法
@@ -38,46 +34,36 @@ type AdminRoleRepository interface {
 	GetUserPermissions(ctx context.Context, userID uint) ([]string, error)
 	CountUsersByRoleID(ctx context.Context, roleID uint) (int64, error)
 	CountUsersWithRoles(ctx context.Context) (int64, error)
-
-	// 事务支持
-	WithTx(tx *gorm.DB) AdminRoleRepository
 }
 
 // adminRoleRepository 管理员角色仓储实现
 type adminRoleRepository struct {
-	*BaseRepository[models.AdminRole]
+	repository.BaseRepositoryInterface[models.AdminRole]
 }
 
 // NewAdminRoleRepository 创建管理员角色仓储
 func NewAdminRoleRepository(db *gorm.DB) AdminRoleRepository {
 	return &adminRoleRepository{
-		BaseRepository: NewBaseRepository[models.AdminRole](db),
-	}
-}
-
-// WithTx 使用事务
-func (r *adminRoleRepository) WithTx(tx *gorm.DB) AdminRoleRepository {
-	return &adminRoleRepository{
-		BaseRepository: NewBaseRepository[models.AdminRole](tx),
+		BaseRepositoryInterface: repository.NewBaseRepository[models.AdminRole](db),
 	}
 }
 
 // GetByID 根据ID获取管理员角色
 func (r *adminRoleRepository) GetByID(ctx context.Context, id uint) (*models.AdminRole, error) {
 	var role models.AdminRole
-	err := r.BaseRepository.db.WithContext(ctx).Preload("Permissions").First(&role, id).Error
+	err := r.DB().WithContext(ctx).Preload("Permissions").First(&role, id).Error
 	if err != nil {
 		return nil, err
 	}
 	return &role, nil
 }
 
-// List 分页获取管理员角色列表
-func (r *adminRoleRepository) List(ctx context.Context, req *types.RoleListRequest) ([]*models.AdminRole, int64, error) {
+// ListRoles 分页获取管理员角色列表
+func (r *adminRoleRepository) ListRoles(ctx context.Context, req *types.RoleListRequest) ([]*models.AdminRole, int64, error) {
 	var roles []*models.AdminRole
 	var total int64
 
-	db := r.BaseRepository.db.WithContext(ctx).Model(&models.AdminRole{})
+	db := r.DB().WithContext(ctx).Model(&models.AdminRole{})
 
 	// 条件过滤
 	if req.Name != "" {
@@ -113,7 +99,7 @@ func (r *adminRoleRepository) List(ctx context.Context, req *types.RoleListReque
 // ListActiveRoles 获取所有启用的角色
 func (r *adminRoleRepository) ListActiveRoles(ctx context.Context) ([]*models.AdminRole, error) {
 	var roles []*models.AdminRole
-	err := r.BaseRepository.db.WithContext(ctx).
+	err := r.DB().WithContext(ctx).
 		Where("status = ?", sharedTypes.StatusActive).
 		Order("created_at DESC").
 		Find(&roles).Error
@@ -124,12 +110,12 @@ func (r *adminRoleRepository) ListActiveRoles(ctx context.Context) ([]*models.Ad
 
 // ExistsByCode 检查角色代码是否存在
 func (r *adminRoleRepository) ExistsByCode(ctx context.Context, code string) (bool, error) {
-	return r.BaseRepository.ExistsByField(ctx, "code", code)
+	return r.ExistsByField(ctx, "code", code)
 }
 
 // CreateRolePermissions 创建角色权限关联
 func (r *adminRoleRepository) CreateRolePermissions(ctx context.Context, tx *gorm.DB, roleID uint, permissionCodes []string) error {
-	db := r.BaseRepository.db
+	db := r.DB()
 	if tx != nil {
 		db = tx
 	}
@@ -148,7 +134,7 @@ func (r *adminRoleRepository) CreateRolePermissions(ctx context.Context, tx *gor
 
 // DeleteRolePermissions 删除角色权限关联
 func (r *adminRoleRepository) DeleteRolePermissions(ctx context.Context, tx *gorm.DB, roleID uint) error {
-	db := r.BaseRepository.db
+	db := r.DB()
 	if tx != nil {
 		db = tx
 	}
@@ -158,7 +144,7 @@ func (r *adminRoleRepository) DeleteRolePermissions(ctx context.Context, tx *gor
 
 // AssignRolesToUser 为用户分配角色
 func (r *adminRoleRepository) AssignRolesToUser(ctx context.Context, tx *gorm.DB, userID uint, roleIDs []uint) error {
-	db := r.BaseRepository.db
+	db := r.DB()
 	if tx != nil {
 		db = tx
 	}
@@ -177,7 +163,7 @@ func (r *adminRoleRepository) AssignRolesToUser(ctx context.Context, tx *gorm.DB
 
 // DeleteUserRoles 删除用户角色关联
 func (r *adminRoleRepository) DeleteUserRoles(ctx context.Context, tx *gorm.DB, userID uint) error {
-	db := r.BaseRepository.db
+	db := r.DB()
 	if tx != nil {
 		db = tx
 	}
@@ -188,7 +174,7 @@ func (r *adminRoleRepository) DeleteUserRoles(ctx context.Context, tx *gorm.DB, 
 // GetUserRoles 获取用户角色列表
 func (r *adminRoleRepository) GetUserRoles(ctx context.Context, userID uint) ([]*models.AdminRole, error) {
 	var userRoles []models.AdminUserRole
-	err := r.BaseRepository.db.WithContext(ctx).
+	err := r.DB().WithContext(ctx).
 		Preload("Role.Permissions").
 		Where("user_id = ?", userID).
 		Find(&userRoles).Error
@@ -206,7 +192,7 @@ func (r *adminRoleRepository) GetUserRoles(ctx context.Context, userID uint) ([]
 // GetUserPermissions 获取用户所有权限代码
 func (r *adminRoleRepository) GetUserPermissions(ctx context.Context, userID uint) ([]string, error) {
 	var userRoles []models.AdminUserRole
-	err := r.BaseRepository.db.WithContext(ctx).
+	err := r.DB().WithContext(ctx).
 		Preload("Role.Permissions").
 		Where("user_id = ?", userID).
 		Find(&userRoles).Error
@@ -233,7 +219,7 @@ func (r *adminRoleRepository) GetUserPermissions(ctx context.Context, userID uin
 // CountUsersByRoleID 统计使用指定角色的用户数量
 func (r *adminRoleRepository) CountUsersByRoleID(ctx context.Context, roleID uint) (int64, error) {
 	var count int64
-	err := r.BaseRepository.db.WithContext(ctx).Model(&models.AdminUserRole{}).
+	err := r.DB().WithContext(ctx).Model(&models.AdminUserRole{}).
 		Where("role_id = ?", roleID).
 		Count(&count).Error
 	return count, err
@@ -242,7 +228,7 @@ func (r *adminRoleRepository) CountUsersByRoleID(ctx context.Context, roleID uin
 // CountUsersWithRoles 统计拥有角色的用户数量
 func (r *adminRoleRepository) CountUsersWithRoles(ctx context.Context) (int64, error) {
 	var count int64
-	err := r.BaseRepository.db.WithContext(ctx).Model(&models.AdminUserRole{}).
+	err := r.DB().WithContext(ctx).Model(&models.AdminUserRole{}).
 		Distinct("user_id").
 		Count(&count).Error
 	return count, err

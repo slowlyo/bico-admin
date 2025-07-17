@@ -96,6 +96,7 @@ func (g *ModelGenerator) prepareTemplateData(req *GenerateRequest) (*TemplateDat
 
 	templateData := &TemplateData{
 		PackageName:    packageName,
+		PackagePath:    "", // Model 不需要 PackagePath
 		ModelName:      req.ModelName,
 		ModelNameLower: strings.ToLower(req.ModelName),
 		ModelNameSnake: ToSnakeCase(req.ModelName),
