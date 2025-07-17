@@ -54,7 +54,7 @@ export const asyncRoutes: AppRouteRecord[] = [
         name: 'AdminUsers',
         component: RoutesAlias.AdminUsers,
         meta: {
-          title: '管理员管理',
+          title: '管理员列表',
           keepAlive: true,
           // 管理员管理页面需要查看权限
           permissions: ['system.admin_user:list']
@@ -65,7 +65,7 @@ export const asyncRoutes: AppRouteRecord[] = [
         name: 'AdminRoles',
         component: RoutesAlias.AdminRoles,
         meta: {
-          title: '角色管理',
+          title: '角色列表',
           keepAlive: true,
           // 角色管理页面需要查看权限
           permissions: ['system.role:list']

@@ -4,9 +4,11 @@
 <template>
   <div class="admin-role-page art-full-height">
     <!-- 搜索栏 -->
-    <AdminRoleSearch
-      @reset="resetSearchParams"
-      @search="handleSearch"
+    <ArtSearchBar
+      v-model:filter="searchForm"
+      :items="searchItems"
+      @reset="handleSearchReset"
+      @search="handleSearchSubmit"
     />
 
     <ElCard class="art-table-card" shadow="never">
@@ -46,8 +48,8 @@
         @submit="handleDialogSubmit"
       />
 
-      <!-- 权限配置弹窗 -->
-      <AdminRolePermissionDialog
+      <!-- 权限配置抽屉 -->
+      <AdminRolePermissionDrawer
         v-model:visible="permissionDialogVisible"
         :role-data="currentRoleData"
         @submit="handlePermissionSubmit"
@@ -63,11 +65,10 @@
   import { useTable } from '@/composables/useTable'
   import { useAuth } from '@/composables/useAuth'
   import { AdminRoleService } from '@/api/adminRoleApi'
-  import AdminRoleSearch from './modules/admin-role-search.vue'
   import AdminRoleDialog from './modules/admin-role-dialog.vue'
-  import AdminRolePermissionDialog from './modules/admin-role-permission-dialog.vue'
+  import AdminRolePermissionDrawer from './modules/admin-role-permission-drawer.vue'
   import { ElMessage, ElMessageBox, ElSwitch } from 'element-plus'
-  import type { ColumnOption } from '@/types/component'
+  import type { ColumnOption, SearchFormItem } from '@/types/component'
 
   defineOptions({ name: 'AdminRole' })
 
@@ -85,6 +86,59 @@
 
   // 选中行
   const selectedRows = ref<RoleInfo[]>([])
+
+  // 搜索表单
+  const searchForm = ref({
+    name: '',
+    code: '',
+    status: undefined
+  })
+
+  // 搜索配置项
+  const searchItems: SearchFormItem[] = [
+    {
+      label: '角色名称',
+      prop: 'name',
+      type: 'input',
+      config: {
+        clearable: true,
+        placeholder: '请输入角色名称'
+      }
+    },
+    {
+      label: '角色代码',
+      prop: 'code',
+      type: 'input',
+      config: {
+        clearable: true,
+        placeholder: '请输入角色代码'
+      }
+    },
+    {
+      label: '状态',
+      prop: 'status',
+      type: 'select',
+      config: {
+        clearable: true,
+        placeholder: '请选择状态'
+      },
+      options: () => [
+        { label: '启用', value: 1 },
+        { label: '禁用', value: 0 }
+      ]
+    }
+  ]
+
+  // 重置搜索
+  const handleSearchReset = () => {
+    resetSearchParams()
+  }
+
+  // 执行搜索
+  const handleSearchSubmit = () => {
+    console.log('搜索表单数据:', searchForm.value)
+    handleSearch(searchForm.value)
+  }
 
   const {
     columns,

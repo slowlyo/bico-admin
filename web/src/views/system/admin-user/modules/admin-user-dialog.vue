@@ -78,6 +78,7 @@
         <ElSelect 
           v-model="formData.role_ids" 
           multiple 
+          filterable
           placeholder="请选择角色"
           style="width: 100%"
         >
@@ -122,13 +123,14 @@
 <script setup lang="ts">
   import type { FormInstance, FormRules } from 'element-plus'
   import { ElMessage } from 'element-plus'
-  import { AdminUserService, RoleService } from '@/api/adminUserApi'
+  import { AdminUserService } from '@/api/adminUserApi'
   import AvatarUpload from '@/components/custom/avatar-upload/index.vue'
 
   interface Props {
     visible: boolean
     type: string
     userData?: Api.AdminUser.AdminUserInfo
+    roleOptions: Api.Role.RoleOption[]
   }
 
   interface Emits {
@@ -139,8 +141,8 @@
   const props = defineProps<Props>()
   const emit = defineEmits<Emits>()
 
-  // 角色列表数据
-  const roleList = ref<Api.Role.RoleOption[]>([])
+  // 角色列表数据 - 使用 props 传入的数据
+  const roleList = computed(() => props.roleOptions)
   const submitLoading = ref(false)
 
   // 对话框显示控制
@@ -228,15 +230,7 @@
     ]
   }
 
-  // 加载角色列表
-  const loadRoles = async () => {
-    try {
-      const response = await RoleService.getActiveRoles()
-      roleList.value = response || []
-    } catch (error) {
-      console.error('获取角色列表失败:', error)
-    }
-  }
+
 
   // 初始化表单数据
   const initFormData = () => {
@@ -327,10 +321,7 @@
     })
   }
 
-  // 组件挂载时加载角色列表
-  onMounted(() => {
-    loadRoles()
-  })
+
 </script>
 
 <style lang="scss" scoped>

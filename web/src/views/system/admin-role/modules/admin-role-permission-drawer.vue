@@ -1,11 +1,13 @@
 <template>
-  <ElDialog
-    v-model="dialogVisible"
+  <ElDrawer
+    v-model="drawerVisible"
     :title="`配置权限 - ${roleData?.name || ''}`"
-    width="600px"
-    align-center
+    direction="rtl"
+    size="600px"
+    :before-close="handleClose"
   >
     <div v-loading="loading" class="permission-container">
+      <!-- 操作按钮区域 -->
       <div class="permission-actions">
         <ElButton @click="toggleExpandAll">
           {{ isExpandAll ? '全部收起' : '全部展开' }}
@@ -15,30 +17,34 @@
         </ElButton>
       </div>
 
-      <ElScrollbar height="400px" class="permission-tree-container">
-        <ElTree
-          ref="treeRef"
-          :data="permissionTree"
-          show-checkbox
-          node-key="key"
-          :default-expand-all="isExpandAll"
-          :default-checked-keys="selectedPermissions"
-          :props="treeProps"
-          @check="handleTreeCheck"
-        >
-        </ElTree>
-      </ElScrollbar>
+      <!-- 权限树区域 -->
+      <div class="permission-tree-wrapper">
+        <ElScrollbar class="permission-tree-container">
+          <ElTree
+            ref="treeRef"
+            :data="permissionTree"
+            show-checkbox
+            node-key="key"
+            :default-expand-all="isExpandAll"
+            :default-checked-keys="selectedPermissions"
+            :props="treeProps"
+            @check="handleTreeCheck"
+          >
+          </ElTree>
+        </ElScrollbar>
+      </div>
     </div>
 
+    <!-- 底部操作按钮 -->
     <template #footer>
-      <div class="dialog-footer">
-        <ElButton @click="dialogVisible = false">取消</ElButton>
+      <div class="drawer-footer">
+        <ElButton @click="handleClose">取消</ElButton>
         <ElButton type="primary" :loading="submitLoading" @click="handleSubmit">
           保存
         </ElButton>
       </div>
     </template>
-  </ElDialog>
+  </ElDrawer>
 </template>
 
 <script setup lang="ts">
@@ -68,11 +74,16 @@
   const permissionTree = ref<Api.Role.PermissionTreeNode[]>([])
   const selectedPermissions = ref<string[]>([])
 
-  // 对话框显示控制
-  const dialogVisible = computed({
+  // 抽屉显示控制
+  const drawerVisible = computed({
     get: () => props.visible,
     set: (value) => emit('update:visible', value)
   })
+
+  // 处理抽屉关闭
+  const handleClose = () => {
+    drawerVisible.value = false
+  }
 
   // 树组件属性配置
   const treeProps = {
@@ -191,7 +202,7 @@
       await AdminRoleService.updateRolePermissions(props.roleData.id, checkedKeys)
       
       ElMessage.success('权限配置成功')
-      dialogVisible.value = false
+      drawerVisible.value = false
       emit('submit')
     } catch (error) {
       console.error('权限配置失败:', error)
@@ -201,7 +212,7 @@
     }
   }
 
-  // 监听对话框显示状态
+  // 监听抽屉显示状态
   watch(
     () => props.visible,
     (visible) => {
@@ -215,16 +226,31 @@
 
 <style lang="scss" scoped>
   .permission-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
     .permission-actions {
       margin-bottom: 16px;
       display: flex;
       gap: 8px;
+      flex-shrink: 0;
     }
 
-    .permission-tree-container {
+    .permission-tree-wrapper {
+      flex: 1;
+      overflow: hidden;
       border: 1px solid var(--el-border-color);
       border-radius: 4px;
-      padding: 8px;
+
+      .permission-tree-container {
+        height: 100%;
+        padding: 8px;
+
+        :deep(.el-scrollbar__view) {
+          height: 100%;
+        }
+      }
     }
 
     .tree-node {
@@ -232,14 +258,31 @@
       align-items: center;
       justify-content: space-between;
       width: 100%;
-      
+
       .node-label {
         flex: 1;
       }
     }
   }
 
-  .dialog-footer {
-    text-align: right;
+  .drawer-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 0 0 0;
+    border-top: 1px solid var(--el-border-color);
+  }
+
+  // 抽屉内容区域样式优化
+  :deep(.el-drawer__body) {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 20px;
+  }
+
+  :deep(.el-drawer__footer) {
+    padding: 0 20px 20px 20px;
+    margin-top: auto;
   }
 </style>

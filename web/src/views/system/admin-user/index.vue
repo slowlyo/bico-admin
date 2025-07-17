@@ -4,9 +4,11 @@
 <template>
   <div class="admin-user-page art-full-height">
     <!-- 搜索栏 -->
-    <AdminUserSearch
-      @reset="resetSearchParams"
-      @search="handleSearch"
+    <ArtSearchBar
+      v-model:filter="searchForm"
+      :items="searchItems"
+      @reset="handleSearchReset"
+      @search="handleSearchSubmit"
     />
 
     <ElCard class="art-table-card" shadow="never">
@@ -43,6 +45,7 @@
         v-model:visible="dialogVisible"
         :type="dialogType"
         :user-data="currentUserData"
+        :role-options="roleList"
         @submit="handleDialogSubmit"
       />
     </ElCard>
@@ -54,10 +57,9 @@
   import { useTable } from '@/composables/useTable'
   import { useAuth } from '@/composables/useAuth'
   import { AdminUserService, RoleService } from '@/api/adminUserApi'
-  import AdminUserSearch from './modules/admin-user-search.vue'
   import AdminUserDialog from './modules/admin-user-dialog.vue'
   import { ElMessage, ElMessageBox, ElSwitch, ElTag } from 'element-plus'
-  import type { ColumnOption } from '@/types/component'
+  import type { ColumnOption, SearchFormItem } from '@/types/component'
 
   defineOptions({ name: 'AdminUser' })
 
@@ -78,8 +80,78 @@
   // 角色列表
   const roleList = ref<Api.Role.RoleOption[]>([])
 
+  // 计算角色选项 - 用于搜索下拉框
+  const roleSelectOptions = computed(() =>
+    roleList.value.map(role => ({
+      label: role.name,
+      value: role.id
+    }))
+  )
 
+  // 搜索表单
+  const searchForm = ref({
+    username: '',
+    name: '',
+    status: undefined,
+    role_id: undefined
+  })
 
+  // 搜索配置项
+  const searchItems = computed<SearchFormItem[]>(() => [
+    {
+      label: '用户名',
+      prop: 'username',
+      type: 'input',
+      config: {
+        clearable: true,
+        placeholder: '请输入用户名'
+      }
+    },
+    {
+      label: '姓名',
+      prop: 'name',
+      type: 'input',
+      config: {
+        clearable: true,
+        placeholder: '请输入姓名'
+      }
+    },
+    {
+      label: '状态',
+      prop: 'status',
+      type: 'select',
+      config: {
+        clearable: true,
+        placeholder: '请选择状态'
+      },
+      options: () => [
+        { label: '启用', value: 1 },
+        { label: '禁用', value: 0 }
+      ]
+    },
+    {
+      label: '角色',
+      prop: 'role_id',
+      type: 'select',
+      config: {
+        clearable: true,
+        filterable: true,
+        placeholder: '请选择角色'
+      },
+      options: () => roleSelectOptions.value
+    }
+  ])
+
+  // 重置搜索
+  const handleSearchReset = () => {
+    resetSearchParams()
+  }
+
+  // 执行搜索
+  const handleSearchSubmit = () => {
+    console.log('搜索表单数据:', searchForm.value)
+    handleSearch(searchForm.value)
+  }
 
 
   /**
