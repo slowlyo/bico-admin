@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -53,6 +54,9 @@ func main() {
 
 	// 运行字段类型测试
 	runner.runFieldTypeTests()
+
+	// 运行编译测试
+	runner.runCompilationTests()
 
 	// 生成测试报告
 	runner.generateReport()
@@ -184,7 +188,7 @@ func (r *TestRunner) runBusinessScenarioTests() {
 	fmt.Println("\n🏢 运行业务场景测试...")
 
 	// 加载业务场景测试数据
-	scenariosFile := "testdata/requests/business_scenarios.json"
+	scenariosFile := "tests/generator/testdata/requests/business_scenarios.json"
 	data, err := os.ReadFile(scenariosFile)
 	if err != nil {
 		log.Printf("⚠️  无法加载业务场景测试数据: %v", err)
@@ -211,7 +215,7 @@ func (r *TestRunner) runEdgeCaseTests() {
 	fmt.Println("\n⚠️  运行边界情况测试...")
 
 	// 加载边界情况测试数据
-	edgeCasesFile := "testdata/requests/edge_cases.json"
+	edgeCasesFile := "tests/generator/testdata/requests/edge_cases.json"
 	data, err := os.ReadFile(edgeCasesFile)
 	if err != nil {
 		log.Printf("⚠️  无法加载边界情况测试数据: %v", err)
@@ -231,6 +235,21 @@ func (r *TestRunner) runEdgeCaseTests() {
 	}
 
 	for _, edgeCase := range edgeCases {
+		// 特殊处理字段数量超限测试
+		if edgeCase.Name == "too_many_fields" {
+			// 动态生成51个字段
+			fields := make([]generator.FieldDefinition, 51)
+			for i := 0; i < 51; i++ {
+				fields[i] = generator.FieldDefinition{
+					Name:    fmt.Sprintf("Field%d", i+1),
+					Type:    "string",
+					JsonTag: fmt.Sprintf("field_%d", i+1),
+					Comment: fmt.Sprintf("字段%d", i+1),
+				}
+			}
+			edgeCase.Request.Fields = fields
+		}
+
 		// 对于边界情况，我们期望生成失败
 		result := r.runSingleTestWithExpectedFailure(edgeCase.Name, edgeCase.Description, &edgeCase.Request, edgeCase.ExpectedError)
 		r.testResults = append(r.testResults, result)
@@ -241,7 +260,7 @@ func (r *TestRunner) runFieldTypeTests() {
 	fmt.Println("\n🔧 运行字段类型测试...")
 
 	// 加载字段类型测试数据
-	fieldTypesFile := "testdata/requests/field_types_comprehensive.json"
+	fieldTypesFile := "tests/generator/testdata/requests/field_types_comprehensive.json"
 	data, err := os.ReadFile(fieldTypesFile)
 	if err != nil {
 		log.Printf("⚠️  无法加载字段类型测试数据: %v", err)
@@ -449,4 +468,91 @@ func (r *TestRunner) generateReport() {
 	}
 
 	fmt.Printf("\n💾 测试报告已保存到: %s\n", reportFile)
+}
+
+func (r *TestRunner) runCompilationTests() {
+	fmt.Println("\n🔨 运行编译测试...")
+
+	// 测试生成的代码是否能正常编译
+	compilationTests := []struct {
+		name        string
+		description string
+		buildPath   string
+	}{
+		{
+			name:        "模型编译测试",
+			description: "验证生成的模型文件能否正常编译",
+			buildPath:   "./internal/shared/models/...",
+		},
+		{
+			name:        "Repository编译测试",
+			description: "验证生成的Repository文件能否正常编译",
+			buildPath:   "./internal/admin/repository/...",
+		},
+		{
+			name:        "Service编译测试",
+			description: "验证生成的Service文件能否正常编译",
+			buildPath:   "./internal/admin/service/...",
+		},
+		{
+			name:        "Handler编译测试",
+			description: "验证生成的Handler文件能否正常编译",
+			buildPath:   "./internal/admin/handler/...",
+		},
+		{
+			name:        "Routes编译测试",
+			description: "验证生成的Routes文件能否正常编译",
+			buildPath:   "./internal/admin/routes/...",
+		},
+		{
+			name:        "Wire编译测试",
+			description: "验证生成的Wire文件能否正常编译",
+			buildPath:   "./internal/admin/wire/...",
+		},
+		{
+			name:        "Permission编译测试",
+			description: "验证生成的Permission文件能否正常编译",
+			buildPath:   "./internal/admin/definitions/...",
+		},
+	}
+
+	for _, test := range compilationTests {
+		r.runCompilationTest(test.name, test.description, test.buildPath)
+	}
+}
+
+func (r *TestRunner) runCompilationTest(name, description, buildPath string) {
+	fmt.Printf("  🔨 编译测试: %s\n", name)
+
+	startTime := time.Now()
+
+	// 执行 go build 命令
+	cmd := exec.Command("go", "build", buildPath)
+	cmd.Dir = "." // 设置工作目录
+
+	output, err := cmd.CombinedOutput()
+	duration := time.Since(startTime)
+
+	result := TestResult{
+		Name:        name,
+		Duration:    duration,
+		Description: description,
+	}
+
+	if err != nil {
+		result.Success = false
+		result.Errors = []string{
+			fmt.Sprintf("编译失败: %v", err),
+			fmt.Sprintf("编译输出: %s", string(output)),
+		}
+		fmt.Printf("    ❌ 编译失败: %v\n", err)
+		if len(output) > 0 {
+			fmt.Printf("    编译输出: %s\n", string(output))
+		}
+	} else {
+		result.Success = true
+		fmt.Printf("    ✅ 编译通过\n")
+	}
+
+	r.testResults = append(r.testResults, result)
 }

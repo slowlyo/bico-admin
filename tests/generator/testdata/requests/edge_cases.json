@@ -47,7 +47,7 @@
     "description": "Go关键字模型名称测试",
     "request": {
       "component_type": "model",
-      "model_name": "Type",
+      "model_name": "Interface",
       "fields": [
         {
           "name": "Name",
