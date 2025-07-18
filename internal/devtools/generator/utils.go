@@ -45,6 +45,21 @@ func ToCamelCase(str string) string {
 	return result
 }
 
+// ToLowerCamelCase 将PascalCase转换为camelCase（首字母小写的驼峰）
+func ToLowerCamelCase(str string) string {
+	if str == "" {
+		return ""
+	}
+
+	// 如果字符串只有一个字符，直接转小写
+	if len(str) == 1 {
+		return strings.ToLower(str)
+	}
+
+	// 首字母小写，其余保持不变
+	return strings.ToLower(string(str[0])) + str[1:]
+}
+
 // ToPascalCase 转换为帕斯卡命名（首字母大写的驼峰）
 func ToPascalCase(str string) string {
 	if str == "" {
@@ -215,6 +230,11 @@ func SanitizeGoIdentifier(name string) string {
 		sanitized += "Field"
 	}
 
+	// 确保首字母大写（导出字段）
+	if len(sanitized) > 0 {
+		sanitized = strings.ToUpper(string(sanitized[0])) + sanitized[1:]
+	}
+
 	return sanitized
 }
 
@@ -226,23 +246,24 @@ func GetGoType(fieldType string) string {
 	}
 
 	typeMap := map[string]string{
-		"string":    "string",
-		"int":       "int",
-		"int32":     "int32",
-		"int64":     "int64",
-		"uint":      "uint",
-		"uint32":    "uint32",
-		"uint64":    "uint64",
-		"float32":   "float32",
-		"float64":   "float64",
-		"bool":      "bool",
-		"time":      "*time.Time",
-		"date":      "*time.Time",
-		"datetime":  "*time.Time",
-		"timestamp": "*time.Time",
-		"text":      "string",
-		"json":      "string",
-		"decimal":   "float64",
+		"string":          "string",
+		"int":             "int",
+		"int32":           "int32",
+		"int64":           "int64",
+		"uint":            "uint",
+		"uint32":          "uint32",
+		"uint64":          "uint64",
+		"float32":         "float32",
+		"float64":         "float64",
+		"bool":            "bool",
+		"time":            "*time.Time",
+		"date":            "*time.Time",
+		"datetime":        "*time.Time",
+		"timestamp":       "*time.Time",
+		"text":            "string",
+		"json":            "string",
+		"decimal":         "float64",
+		"decimal.decimal": "float64",
 	}
 
 	if goType, exists := typeMap[strings.ToLower(fieldType)]; exists {
@@ -262,6 +283,32 @@ func NeedsTimeImport(fields []FieldDefinition) bool {
 		}
 	}
 	return false
+}
+
+// NeedsDecimalImport 检查是否需要导入decimal包
+func NeedsDecimalImport(fields []FieldDefinition) bool {
+	for _, field := range fields {
+		goType := GetGoType(field.Type)
+		if strings.Contains(goType, "decimal.Decimal") {
+			return true
+		}
+	}
+	return false
+}
+
+// removeDuplicateStrings 去除字符串切片中的重复项
+func removeDuplicateStrings(slice []string) []string {
+	seen := make(map[string]bool)
+	var result []string
+
+	for _, item := range slice {
+		if !seen[item] {
+			seen[item] = true
+			result = append(result, item)
+		}
+	}
+
+	return result
 }
 
 // NeedsValidationImport 检查是否需要导入验证包

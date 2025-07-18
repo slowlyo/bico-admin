@@ -74,7 +74,6 @@ func (g *PermissionGenerator) Generate(req *GenerateRequest) (*GenerateResponse,
 // prepareTemplateData 准备模板数据
 func (g *PermissionGenerator) prepareTemplateData(req *GenerateRequest) *PermissionTemplateData {
 	modelName := req.ModelName
-	modelNameLower := strings.ToLower(modelName)
 	modelNameSnake := toSnakeCase(modelName)
 	packageName := getPackageNameFromPath(req.PackagePath)
 
@@ -136,7 +135,7 @@ func (g *PermissionGenerator) prepareTemplateData(req *GenerateRequest) *Permiss
 		PackageName:    packageName,
 		PackagePath:    req.PackagePath,
 		ModelName:      modelName,
-		ModelNameLower: modelNameLower,
+		ModelNameLower: ToLowerCamelCase(modelName),
 		ModelNameSnake: modelNameSnake,
 		Permissions:    permissions,
 		Timestamp:      time.Now(),
@@ -213,7 +212,7 @@ func (g *PermissionGenerator) generateNewPermissionFile(data *PermissionTemplate
 // generateImports 生成导入语句
 func (g *PermissionGenerator) generateImports() []string {
 	return []string{
-		"strings",
+		// 权限生成器暂时不需要额外的导入
 	}
 }
 
@@ -361,8 +360,8 @@ var {{.ModelNameLower}}PermissionDefs = []PermissionDef{
 
 // {{.ModelName}}权限常量
 const (
-{{$modelName := .ModelName}}{{range .Permissions}}{{if eq .Type "action"}}	// {{.Description}}
-	{{$modelName}}_{{.Type}}_{{.Level}} = "{{.Code}}"
+{{$modelName := .ModelName}}{{range $i, $perm := .Permissions}}{{if eq $perm.Type "action"}}	// {{$perm.Description}}
+	{{$modelName}}_action_{{$i}} = "{{$perm.Code}}"
 {{end}}{{end}})
 {{end}}
 

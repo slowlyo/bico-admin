@@ -74,14 +74,13 @@ func (g *MigrationGenerator) Generate(req *GenerateRequest) (*GenerateResponse, 
 // prepareTemplateData 准备模板数据
 func (g *MigrationGenerator) prepareTemplateData(req *GenerateRequest) *MigrationTemplateData {
 	modelName := req.ModelName
-	modelNameLower := strings.ToLower(modelName)
 	packageName := getPackageNameFromPath(req.PackagePath)
 
 	return &MigrationTemplateData{
 		PackageName:    packageName,
 		PackagePath:    req.PackagePath,
 		ModelName:      modelName,
-		ModelNameLower: modelNameLower,
+		ModelNameLower: ToLowerCamelCase(modelName),
 		Timestamp:      time.Now(),
 	}
 }
@@ -157,7 +156,7 @@ func (g *MigrationGenerator) generateNewMigrationFile(data *MigrationTemplateDat
 func (g *MigrationGenerator) generateImports(packagePath string) []string {
 	return []string{
 		"gorm.io/gorm",
-		packagePath + "/models",
+		"bico-admin/internal/shared/models",
 	}
 }
 

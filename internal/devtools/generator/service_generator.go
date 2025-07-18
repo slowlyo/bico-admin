@@ -79,7 +79,7 @@ func (g *ServiceGenerator) prepareTemplateData(req *GenerateRequest) (*TemplateD
 		PackageName:    packageName,
 		PackagePath:    packagePath,
 		ModelName:      req.ModelName,
-		ModelNameLower: strings.ToLower(req.ModelName),
+		ModelNameLower: ToLowerCamelCase(req.ModelName),
 		ModelNameSnake: ToSnakeCase(req.ModelName),
 		TableName:      tableName,
 		Fields:         req.Fields,
@@ -177,17 +177,19 @@ func (g *ServiceGenerator) loadTemplate(templateName string) (string, error) {
 // getTemplateFuncs 获取模板函数
 func (g *ServiceGenerator) getTemplateFuncs() template.FuncMap {
 	return template.FuncMap{
-		"ToLower":     strings.ToLower,
-		"ToUpper":     strings.ToUpper,
-		"ToTitle":     strings.Title,
-		"ToSnakeCase": ToSnakeCase,
-		"ToCamelCase": ToCamelCase,
-		"Contains":    strings.Contains,
-		"HasPrefix":   strings.HasPrefix,
-		"HasSuffix":   strings.HasSuffix,
-		"Replace":     strings.Replace,
-		"Split":       strings.Split,
-		"Join":        strings.Join,
+		"ToLower":          strings.ToLower,
+		"ToUpper":          strings.ToUpper,
+		"ToTitle":          strings.Title,
+		"ToSnakeCase":      ToSnakeCase,
+		"ToCamelCase":      ToCamelCase,
+		"ToLowerCamelCase": ToLowerCamelCase,
+		"ToPascalCase":     ToPascalCase,
+		"Contains":         strings.Contains,
+		"HasPrefix":        strings.HasPrefix,
+		"HasSuffix":        strings.HasSuffix,
+		"Replace":          strings.Replace,
+		"Split":            strings.Split,
+		"Join":             strings.Join,
 	}
 }
 

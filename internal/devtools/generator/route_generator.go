@@ -74,7 +74,7 @@ func (g *RouteGenerator) Generate(req *GenerateRequest) (*GenerateResponse, erro
 // prepareTemplateData 准备模板数据
 func (g *RouteGenerator) prepareTemplateData(req *GenerateRequest) *RouteTemplateData {
 	modelName := req.ModelName
-	modelNameLower := strings.ToLower(modelName)
+	modelNameLower := ToLowerCamelCase(modelName)
 	modelNameSnake := toSnakeCase(modelName)
 	packageName := getPackageNameFromPath(req.PackagePath)
 

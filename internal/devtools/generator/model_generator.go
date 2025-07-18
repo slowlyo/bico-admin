@@ -87,8 +87,8 @@ func (g *ModelGenerator) prepareTemplateData(req *GenerateRequest) (*TemplateDat
 		fields[i].Name = SanitizeGoIdentifier(fields[i].Name)
 	}
 
-	// 确定导入包（在字段类型转换之前检查）
-	hasTimeField := NeedsTimeImport(req.Fields) // 使用原始字段检查
+	// 确定导入包（在字段类型转换之后检查）
+	hasTimeField := NeedsTimeImport(fields) // 使用处理后的字段检查
 	imports := g.determineImports(fields)
 
 	// 包名固定为models（shared/models目录）
@@ -98,7 +98,7 @@ func (g *ModelGenerator) prepareTemplateData(req *GenerateRequest) (*TemplateDat
 		PackageName:    packageName,
 		PackagePath:    "", // Model 不需要 PackagePath
 		ModelName:      req.ModelName,
-		ModelNameLower: strings.ToLower(req.ModelName),
+		ModelNameLower: ToLowerCamelCase(req.ModelName),
 		ModelNameSnake: ToSnakeCase(req.ModelName),
 		TableName:      tableName,
 		Fields:         fields,

@@ -74,14 +74,13 @@ func (g *WireGenerator) Generate(req *GenerateRequest) (*GenerateResponse, error
 // prepareTemplateData 准备模板数据
 func (g *WireGenerator) prepareTemplateData(req *GenerateRequest) *WireTemplateData {
 	modelName := req.ModelName
-	modelNameLower := strings.ToLower(modelName)
 	packageName := getPackageNameFromPath(req.PackagePath)
 
 	return &WireTemplateData{
 		PackageName:    packageName,
 		PackagePath:    req.PackagePath,
 		ModelName:      modelName,
-		ModelNameLower: modelNameLower,
+		ModelNameLower: ToLowerCamelCase(modelName),
 		Timestamp:      time.Now(),
 	}
 }
@@ -158,9 +157,9 @@ func (g *WireGenerator) generateImports(packagePath string) []string {
 	return []string{
 		"github.com/google/wire",
 		"gorm.io/gorm",
-		packagePath + "/repository",
-		packagePath + "/service",
-		packagePath + "/handler",
+		"bico-admin/" + packagePath + "/repository",
+		"bico-admin/" + packagePath + "/service",
+		"bico-admin/" + packagePath + "/handler",
 	}
 }
 

@@ -1,17 +1,13 @@
 package handler
 
 import (
-{{- if .HasTimeField }}
-	"time"
+{{- range .Imports }}
+	{{- if contains . `"`}}
+	{{.}}
+	{{- else }}
+	"{{.}}"
+	{{- end }}
 {{- end }}
-
-	"github.com/gin-gonic/gin"
-
-	"bico-admin/internal/shared/models"
-	"bico-admin/internal/shared/service"
-	"bico-admin/internal/admin/types"
-	sharedTypes "bico-admin/internal/shared/types"
-	"bico-admin/pkg/utils"
 )
 
 // {{.HandlerName}} {{.ModelName}}处理器

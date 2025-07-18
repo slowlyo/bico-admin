@@ -89,7 +89,7 @@ func (g *HandlerGenerator) prepareTemplateData(req *GenerateRequest) (*HandlerTe
 	templateData := &HandlerTemplateData{
 		PackageName:    packageName,
 		ModelName:      req.ModelName,
-		ModelNameLower: strings.ToLower(req.ModelName),
+		ModelNameLower: ToLowerCamelCase(req.ModelName),
 		ModelNameSnake: ToSnakeCase(req.ModelName),
 		Fields:         fields,
 		Imports:        imports,
@@ -121,22 +121,23 @@ func (g *HandlerGenerator) prepareTemplateData(req *GenerateRequest) (*HandlerTe
 func (g *HandlerGenerator) determineImports(fields []FieldDefinition) []string {
 	var imports []string
 
-	// 基础导入
-	imports = append(imports, "github.com/gin-gonic/gin")
-
-	// 模型和类型导入
-	imports = append(imports, "bico-admin/internal/shared/models")
-	imports = append(imports, "bico-admin/internal/shared/service")
-	imports = append(imports, "bico-admin/internal/admin/types")
-	imports = append(imports, "bico-admin/internal/shared/types")
-	imports = append(imports, "bico-admin/pkg/utils")
-
 	// 检查是否需要时间包
 	if NeedsTimeImport(fields) {
 		imports = append(imports, "time")
 	}
 
-	return imports
+	// 基础导入
+	imports = append(imports, "github.com/gin-gonic/gin")
+
+	// 模型和类型导入
+	imports = append(imports, "bico-admin/internal/shared/models")
+	imports = append(imports, "bico-admin/internal/admin/service")
+	imports = append(imports, "bico-admin/internal/admin/types")
+	imports = append(imports, `sharedTypes "bico-admin/internal/shared/types"`)
+	imports = append(imports, "bico-admin/pkg/utils")
+
+	// 去重
+	return removeDuplicateStrings(imports)
 }
 
 // generateFiles 生成文件
@@ -275,16 +276,17 @@ func (g *HandlerGenerator) loadTemplate(templateName string) (string, error) {
 // getTemplateFuncs 获取模板函数
 func (g *HandlerGenerator) getTemplateFuncs() template.FuncMap {
 	return template.FuncMap{
-		"contains":     strings.Contains,
-		"hasPrefix":    strings.HasPrefix,
-		"hasSuffix":    strings.HasSuffix,
-		"toLower":      strings.ToLower,
-		"toUpper":      strings.ToUpper,
-		"toSnakeCase":  ToSnakeCase,
-		"toCamelCase":  ToCamelCase,
-		"toPascalCase": ToPascalCase,
-		"toKebabCase":  ToKebabCase,
-		"GetGoType":    GetGoType,
+		"contains":         strings.Contains,
+		"hasPrefix":        strings.HasPrefix,
+		"hasSuffix":        strings.HasSuffix,
+		"toLower":          strings.ToLower,
+		"toUpper":          strings.ToUpper,
+		"toSnakeCase":      ToSnakeCase,
+		"toCamelCase":      ToCamelCase,
+		"toLowerCamelCase": ToLowerCamelCase,
+		"toPascalCase":     ToPascalCase,
+		"toKebabCase":      ToKebabCase,
+		"GetGoType":        GetGoType,
 		"hasStatusField": func(fields []FieldDefinition) bool {
 			for _, field := range fields {
 				if field.Name == "Status" {
