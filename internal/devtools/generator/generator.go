@@ -10,6 +10,7 @@ type CodeGenerator struct {
 	repositoryGenerator *RepositoryGenerator
 	serviceGenerator    *ServiceGenerator
 	handlerGenerator    *HandlerGenerator
+	routeGenerator      *RouteGenerator
 	historyManager      *HistoryManager
 	validator           *Validator
 }
@@ -21,6 +22,7 @@ func NewCodeGenerator() *CodeGenerator {
 		repositoryGenerator: NewRepositoryGenerator(),
 		serviceGenerator:    NewServiceGenerator(),
 		handlerGenerator:    NewHandlerGenerator(),
+		routeGenerator:      NewRouteGenerator(),
 		historyManager:      NewHistoryManager(),
 		validator:           NewValidator(),
 	}
@@ -47,6 +49,8 @@ func (g *CodeGenerator) Generate(req *GenerateRequest) (*GenerateResponse, error
 		return g.generateService(req)
 	case ComponentHandler:
 		return g.generateHandler(req)
+	case ComponentRoutes:
+		return g.generateRoutes(req)
 	case ComponentAll:
 		return g.generateAll(req)
 	default:
@@ -138,6 +142,26 @@ func (g *CodeGenerator) generateHandler(req *GenerateRequest) (*GenerateResponse
 	return response, nil
 }
 
+// generateRoutes 生成Routes
+func (g *CodeGenerator) generateRoutes(req *GenerateRequest) (*GenerateResponse, error) {
+	// 使用Routes生成器生成
+	response, err := g.routeGenerator.Generate(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果生成成功，更新历史记录
+	if response.Success && len(response.GeneratedFiles) > 0 {
+		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
+			// 历史记录更新失败不影响生成结果，只记录警告
+			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
+			response.HistoryUpdated = false
+		}
+	}
+
+	return response, nil
+}
+
 // generateAll 生成所有组件
 func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, error) {
 	var allGeneratedFiles []string
@@ -203,11 +227,20 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 		allErrors = append(allErrors, handlerResponse.Errors...)
 	}
 
-	// TODO: 5. 生成Routes
-	// routesReq := *req
-	// routesReq.ComponentType = ComponentRoutes
-	// routesResponse, err := g.generateRoutes(&routesReq)
-	// ...
+	// 5. 生成Routes
+	routesReq := *req
+	routesReq.ComponentType = ComponentRoutes
+
+	routesResponse, err := g.generateRoutes(&routesReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if routesResponse.Success {
+		allGeneratedFiles = append(allGeneratedFiles, routesResponse.GeneratedFiles...)
+	} else {
+		allErrors = append(allErrors, routesResponse.Errors...)
+	}
 
 	// TODO: 6. 生成Wire配置
 	// wireReq := *req
