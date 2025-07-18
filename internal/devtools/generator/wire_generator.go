@@ -274,7 +274,8 @@ package {{.PackageName}}
 
 import (
 {{range .Imports}}	"{{.}}"
-{{end}})
+{{end}}	"bico-admin/internal/admin/routes"
+)
 
 {{range .Models}}
 // {{.ModelName}}ProviderRegistrar {{.ModelName}} Provider 注册器
@@ -312,12 +313,49 @@ var {{.ModelName}}ProviderSet = wire.NewSet(
 )
 {{end}}
 
-// init 自动注册所有 Provider
+// HandlerExtender 处理器扩展器接口
+type HandlerExtender interface {
+	ExtendHandlers(base *routes.Handlers) *routes.Handlers
+}
+
+// GeneratedHandlerExtender 生成的处理器扩展器
+type GeneratedHandlerExtender struct{}
+
+// ExtendHandlers 扩展处理器集合
+func (e *GeneratedHandlerExtender) ExtendHandlers(base *routes.Handlers) *routes.Handlers {
+	// 创建扩展的处理器集合
+	extended := *base // 复制基础处理器
+
+{{range .Models}}	// 添加{{.ModelName}}Handler（如果存在）
+	if {{.ModelNameLower}}Handler := GetGenerated{{.ModelName}}Handler(); {{.ModelNameLower}}Handler != nil {
+		extended.{{.ModelName}}Handler = {{.ModelNameLower}}Handler
+	}
+{{end}}
+
+	return &extended
+}
+
+{{range .Models}}
+// GetGenerated{{.ModelName}}Handler 获取生成的{{.ModelName}}Handler
+// 这个函数会在运行时通过反射或其他机制获取实际的handler实例
+var GetGenerated{{.ModelName}}Handler = func() *handler.{{.ModelName}}Handler {
+	// 这里应该通过某种机制获取实际的handler实例
+	// 暂时返回nil，实际实现需要在wire生成后处理
+	return nil
+}
+{{end}}
+
+// init 自动注册所有 Provider 和扩展器
 func init() {
 {{range .Models}}	// 注册{{.ModelName}} Provider
 	{{.ModelNameLower}}ProviderRegistrar := &{{.ModelName}}ProviderRegistrar{}
 	RegisterProviderRegistrar({{.ModelNameLower}}ProviderRegistrar)
-{{end}}}
+{{end}}
+
+	// 注册处理器扩展器
+	extender := &GeneratedHandlerExtender{}
+	RegisterHandlerExtender(extender)
+}
 
 // GeneratedProviderSet 生成的 Provider 集合
 // 可以在 wire.Build 中使用这个 ProviderSet

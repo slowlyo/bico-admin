@@ -66,6 +66,11 @@ func ToPascalCase(str string) string {
 		return ""
 	}
 
+	// 如果字符串已经是有效的PascalCase，直接返回
+	if isPascalCase(str) {
+		return str
+	}
+
 	// 分割字符串
 	parts := strings.FieldsFunc(str, func(c rune) bool {
 		return c == '_' || c == '-' || c == ' '
@@ -87,6 +92,32 @@ func ToPascalCase(str string) string {
 	}
 
 	return result.String()
+}
+
+// isPascalCase 检查字符串是否已经是PascalCase格式
+func isPascalCase(str string) bool {
+	if str == "" {
+		return false
+	}
+
+	// 首字母必须是大写
+	if !unicode.IsUpper(rune(str[0])) {
+		return false
+	}
+
+	// 不能包含下划线、短横线或空格
+	if strings.ContainsAny(str, "_- ") {
+		return false
+	}
+
+	// 检查是否只包含字母和数字
+	for _, r := range str {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // ToKebabCase 转换为短横线命名

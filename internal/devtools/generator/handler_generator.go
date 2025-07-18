@@ -76,8 +76,8 @@ func (g *HandlerGenerator) prepareTemplateData(req *GenerateRequest) (*HandlerTe
 			fields[i].JsonTag = ToSnakeCase(fields[i].Name)
 		}
 
-		// 清理字段名
-		fields[i].Name = SanitizeGoIdentifier(fields[i].Name)
+		// 转换字段名为PascalCase（Go结构体字段命名规范）
+		fields[i].Name = ToPascalCase(fields[i].Name)
 	}
 
 	// 确定导入包
@@ -290,6 +290,14 @@ func (g *HandlerGenerator) getTemplateFuncs() template.FuncMap {
 		"hasStatusField": func(fields []FieldDefinition) bool {
 			for _, field := range fields {
 				if field.Name == "Status" {
+					return true
+				}
+			}
+			return false
+		},
+		"hasPointerStatusField": func(fields []FieldDefinition) bool {
+			for _, field := range fields {
+				if field.Name == "Status" && strings.HasPrefix(field.Type, "*") {
 					return true
 				}
 			}

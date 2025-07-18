@@ -40,8 +40,13 @@ func (h *{{.HandlerName}}) ConvertToResponse(c *gin.Context, entity *models.{{.M
 		ID: entity.ID,
 {{- range .Fields }}
 {{- if eq .Name "Status" }}
+	{{- if eq .Type "int" }}
+		{{.Name}}: entity.{{.Name}},
+		StatusText: h.getStatusText(entity.{{.Name}}),
+	{{- else }}
 		{{.Name}}: h.getStatusValue(entity.{{.Name}}),
 		StatusText: h.getStatusText(h.getStatusValue(entity.{{.Name}})),
+	{{- end }}
 {{- else if contains .Type "*time.Time" }}
 		{{.Name}}: h.formatTime(entity.{{.Name}}),
 {{- else }}
@@ -117,17 +122,15 @@ func (h *{{.HandlerName}}) ConvertListToResponse(c *gin.Context, list any) []typ
 	return responses
 }
 
+{{- if hasPointerStatusField .Fields }}
 // getStatusValue 获取状态值
 func (h *{{.HandlerName}}) getStatusValue(status *int) int {
 	if status == nil {
-{{- if hasStatusField .Fields }}
 		return sharedTypes.StatusInactive
-{{- else }}
-		return 0
-{{- end }}
 	}
 	return *status
 }
+{{- end }}
 
 // getStatusText 获取状态文本
 func (h *{{.HandlerName}}) getStatusText(status int) string {

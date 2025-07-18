@@ -83,8 +83,8 @@ func (g *ModelGenerator) prepareTemplateData(req *GenerateRequest) (*TemplateDat
 			fields[i].JsonTag = ToSnakeCase(fields[i].Name)
 		}
 
-		// 清理字段名
-		fields[i].Name = SanitizeGoIdentifier(fields[i].Name)
+		// 转换字段名为PascalCase（Go结构体字段命名规范）
+		fields[i].Name = ToPascalCase(fields[i].Name)
 	}
 
 	// 确定导入包（在字段类型转换之后检查）
