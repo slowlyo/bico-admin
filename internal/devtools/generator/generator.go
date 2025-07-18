@@ -11,6 +11,9 @@ type CodeGenerator struct {
 	serviceGenerator    *ServiceGenerator
 	handlerGenerator    *HandlerGenerator
 	routeGenerator      *RouteGenerator
+	wireGenerator       *WireGenerator
+	migrationGenerator  *MigrationGenerator
+	permissionGenerator *PermissionGenerator
 	historyManager      *HistoryManager
 	validator           *Validator
 }
@@ -23,6 +26,9 @@ func NewCodeGenerator() *CodeGenerator {
 		serviceGenerator:    NewServiceGenerator(),
 		handlerGenerator:    NewHandlerGenerator(),
 		routeGenerator:      NewRouteGenerator(),
+		wireGenerator:       NewWireGenerator(),
+		migrationGenerator:  NewMigrationGenerator(),
+		permissionGenerator: NewPermissionGenerator(),
 		historyManager:      NewHistoryManager(),
 		validator:           NewValidator(),
 	}
@@ -51,6 +57,12 @@ func (g *CodeGenerator) Generate(req *GenerateRequest) (*GenerateResponse, error
 		return g.generateHandler(req)
 	case ComponentRoutes:
 		return g.generateRoutes(req)
+	case ComponentWire:
+		return g.generateWire(req)
+	case ComponentMigration:
+		return g.generateMigration(req)
+	case ComponentPermission:
+		return g.generatePermission(req)
 	case ComponentAll:
 		return g.generateAll(req)
 	default:
@@ -162,6 +174,66 @@ func (g *CodeGenerator) generateRoutes(req *GenerateRequest) (*GenerateResponse,
 	return response, nil
 }
 
+// generateWire 生成Wire Provider
+func (g *CodeGenerator) generateWire(req *GenerateRequest) (*GenerateResponse, error) {
+	// 使用Wire生成器生成
+	response, err := g.wireGenerator.Generate(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果生成成功，更新历史记录
+	if response.Success && len(response.GeneratedFiles) > 0 {
+		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
+			// 历史记录更新失败不影响生成结果，只记录警告
+			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
+			response.HistoryUpdated = false
+		}
+	}
+
+	return response, nil
+}
+
+// generateMigration 生成Migration
+func (g *CodeGenerator) generateMigration(req *GenerateRequest) (*GenerateResponse, error) {
+	// 使用Migration生成器生成
+	response, err := g.migrationGenerator.Generate(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果生成成功，更新历史记录
+	if response.Success && len(response.GeneratedFiles) > 0 {
+		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
+			// 历史记录更新失败不影响生成结果，只记录警告
+			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
+			response.HistoryUpdated = false
+		}
+	}
+
+	return response, nil
+}
+
+// generatePermission 生成Permission
+func (g *CodeGenerator) generatePermission(req *GenerateRequest) (*GenerateResponse, error) {
+	// 使用Permission生成器生成
+	response, err := g.permissionGenerator.Generate(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果生成成功，更新历史记录
+	if response.Success && len(response.GeneratedFiles) > 0 {
+		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
+			// 历史记录更新失败不影响生成结果，只记录警告
+			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
+			response.HistoryUpdated = false
+		}
+	}
+
+	return response, nil
+}
+
 // generateAll 生成所有组件
 func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, error) {
 	var allGeneratedFiles []string
@@ -242,23 +314,50 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 		allErrors = append(allErrors, routesResponse.Errors...)
 	}
 
-	// TODO: 6. 生成Wire配置
-	// wireReq := *req
-	// wireReq.ComponentType = ComponentWire
-	// wireResponse, err := g.generateWire(&wireReq)
-	// ...
+	// 6. 生成Wire Provider
+	wireReq := *req
+	wireReq.ComponentType = ComponentWire
 
-	// TODO: 7. 生成Migration
-	// migrationReq := *req
-	// migrationReq.ComponentType = ComponentMigration
-	// migrationResponse, err := g.generateMigration(&migrationReq)
-	// ...
+	wireResponse, err := g.generateWire(&wireReq)
+	if err != nil {
+		return nil, err
+	}
 
-	// TODO: 8. 生成Permission
-	// permissionReq := *req
-	// permissionReq.ComponentType = ComponentPermission
-	// permissionResponse, err := g.generatePermission(&permissionReq)
-	// ...
+	if wireResponse.Success {
+		allGeneratedFiles = append(allGeneratedFiles, wireResponse.GeneratedFiles...)
+	} else {
+		allErrors = append(allErrors, wireResponse.Errors...)
+	}
+
+	// 7. 生成Migration
+	migrationReq := *req
+	migrationReq.ComponentType = ComponentMigration
+
+	migrationResponse, err := g.generateMigration(&migrationReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if migrationResponse.Success {
+		allGeneratedFiles = append(allGeneratedFiles, migrationResponse.GeneratedFiles...)
+	} else {
+		allErrors = append(allErrors, migrationResponse.Errors...)
+	}
+
+	// 8. 生成Permission
+	permissionReq := *req
+	permissionReq.ComponentType = ComponentPermission
+
+	permissionResponse, err := g.generatePermission(&permissionReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if permissionResponse.Success {
+		allGeneratedFiles = append(allGeneratedFiles, permissionResponse.GeneratedFiles...)
+	} else {
+		allErrors = append(allErrors, permissionResponse.Errors...)
+	}
 
 	// TODO: 9. 生成前端API
 	// frontendAPIReq := *req
@@ -325,42 +424,6 @@ func (g *CodeGenerator) ClearHistory() error {
 }
 
 // TODO: 后续实现的生成器方法
-
-// generateService 生成Service
-// func (g *CodeGenerator) generateService(req *GenerateRequest) (*GenerateResponse, error) {
-//     // TODO: 实现Service生成逻辑
-//     return nil, fmt.Errorf("Service生成器尚未实现")
-// }
-
-// generateHandler 生成Handler
-// func (g *CodeGenerator) generateHandler(req *GenerateRequest) (*GenerateResponse, error) {
-//     // TODO: 实现Handler生成逻辑
-//     return nil, fmt.Errorf("Handler生成器尚未实现")
-// }
-
-// generateRoutes 生成Routes
-// func (g *CodeGenerator) generateRoutes(req *GenerateRequest) (*GenerateResponse, error) {
-//     // TODO: 实现Routes生成逻辑
-//     return nil, fmt.Errorf("Routes生成器尚未实现")
-// }
-
-// generateWire 生成Wire配置
-// func (g *CodeGenerator) generateWire(req *GenerateRequest) (*GenerateResponse, error) {
-//     // TODO: 实现Wire生成逻辑
-//     return nil, fmt.Errorf("Wire生成器尚未实现")
-// }
-
-// generateMigration 生成Migration
-// func (g *CodeGenerator) generateMigration(req *GenerateRequest) (*GenerateResponse, error) {
-//     // TODO: 实现Migration生成逻辑
-//     return nil, fmt.Errorf("Migration生成器尚未实现")
-// }
-
-// generatePermission 生成Permission
-// func (g *CodeGenerator) generatePermission(req *GenerateRequest) (*GenerateResponse, error) {
-//     // TODO: 实现Permission生成逻辑
-//     return nil, fmt.Errorf("Permission生成器尚未实现")
-// }
 
 // generateFrontendAPI 生成前端API
 // func (g *CodeGenerator) generateFrontendAPI(req *GenerateRequest) (*GenerateResponse, error) {

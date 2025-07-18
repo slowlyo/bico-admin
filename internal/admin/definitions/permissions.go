@@ -4,6 +4,21 @@ import (
 	"strings"
 )
 
+// PermissionRegistrar Permission 注册器接口
+// 用于支持动态 Permission 注册，生成的 Permission 代码可以实现此接口
+type PermissionRegistrar interface {
+	GetPermissions() []PermissionDef
+}
+
+// permissionRegistrars 存储所有注册的 Permission 注册器
+var permissionRegistrars []PermissionRegistrar
+
+// RegisterPermissionRegistrar 注册 Permission 注册器
+// 生成的 Permission 代码可以调用此函数来注册自己
+func RegisterPermissionRegistrar(registrar PermissionRegistrar) {
+	permissionRegistrars = append(permissionRegistrars, registrar)
+}
+
 // Permission 权限定义（静态配置，程序中定义）
 type Permission struct {
 	Code     string       `json:"code"`      // 权限代码，如 "system.admin_user:list"
@@ -46,21 +61,31 @@ type PermissionDef struct {
 	APIs    string // 逗号分隔
 }
 
-// 权限定义数据（扁平化，程序自动构建树形结构）
-var permissionDefs = []PermissionDef{
-	// 系统管理
-	{"system", "系统管理", "", "module", 1, "", ""},
-	{"system.admin_user", "管理员", "system", "module", 1, "", ""},
-	{"system.admin_user:list", "查看管理员列表", "system.admin_user", "action", 1, "search,filter", "/admin-api/admin-users,/admin-api/admin-users/:id"},
-	{"system.admin_user:create", "创建管理员", "system.admin_user", "action", 3, "create", "/admin-api/admin-users,/admin-api/roles/options"},
-	{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/admin-api/admin-users/:id,/admin-api/admin-users/:id/status,/admin-api/roles/options"},
-	{"system.admin_user:delete", "删除管理员", "system.admin_user", "action", 4, "delete", "/admin-api/admin-users/:id"},
+// getAllPermissionDefs 获取所有权限定义（包括生成的）
+func getAllPermissionDefs() []PermissionDef {
+	// 基础权限定义
+	baseDefs := []PermissionDef{
+		// 系统管理
+		{"system", "系统管理", "", "module", 1, "", ""},
+		{"system.admin_user", "管理员", "system", "module", 1, "", ""},
+		{"system.admin_user:list", "查看管理员列表", "system.admin_user", "action", 1, "search,filter", "/admin-api/admin-users,/admin-api/admin-users/:id"},
+		{"system.admin_user:create", "创建管理员", "system.admin_user", "action", 3, "create", "/admin-api/admin-users,/admin-api/roles/options"},
+		{"system.admin_user:update", "编辑管理员", "system.admin_user", "action", 3, "edit,save", "/admin-api/admin-users/:id,/admin-api/admin-users/:id/status,/admin-api/roles/options"},
+		{"system.admin_user:delete", "删除管理员", "system.admin_user", "action", 4, "delete", "/admin-api/admin-users/:id"},
 
-	{"system.role", "角色", "system", "module", 1, "", ""},
-	{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/admin-api/roles,/admin-api/roles/:id"},
-	{"system.role:create", "创建角色", "system.role", "action", 3, "create", "/admin-api/roles,/admin-api/roles/permissions"},
-	{"system.role:update", "编辑角色", "system.role", "action", 3, "edit,save,assign_permissions", "/admin-api/roles/:id,/admin-api/roles/:id/status,/admin-api/roles/:id/permissions,/admin-api/roles/permissions,/admin-api/roles/assign"},
-	{"system.role:delete", "删除角色", "system.role", "action", 4, "delete", "/admin-api/roles/:id"},
+		{"system.role", "角色", "system", "module", 1, "", ""},
+		{"system.role:list", "查看角色列表", "system.role", "action", 1, "search,filter", "/admin-api/roles,/admin-api/roles/:id"},
+		{"system.role:create", "创建角色", "system.role", "action", 3, "create", "/admin-api/roles,/admin-api/roles/permissions"},
+		{"system.role:update", "编辑角色", "system.role", "action", 3, "edit,save,assign_permissions", "/admin-api/roles/:id,/admin-api/roles/:id/status,/admin-api/roles/:id/permissions,/admin-api/roles/permissions,/admin-api/roles/assign"},
+		{"system.role:delete", "删除角色", "system.role", "action", 4, "delete", "/admin-api/roles/:id"},
+	}
+
+	// 添加所有注册的权限
+	for _, registrar := range permissionRegistrars {
+		baseDefs = append(baseDefs, registrar.GetPermissions()...)
+	}
+
+	return baseDefs
 }
 
 // splitString 分割字符串并去除空白
@@ -80,9 +105,12 @@ func splitString(s string) []string {
 
 // buildPermissionTree 从扁平化定义构建权限树
 func buildPermissionTree() []Permission {
+	// 获取所有权限定义
+	allDefs := getAllPermissionDefs()
+
 	// 先构建所有权限的映射
 	permMap := make(map[string]*Permission)
-	for _, def := range permissionDefs {
+	for _, def := range allDefs {
 		perm := &Permission{
 			Code:     def.Code,
 			Name:     def.Name,
@@ -100,7 +128,7 @@ func buildPermissionTree() []Permission {
 	var buildChildren func(parentCode string) []Permission
 	buildChildren = func(parentCode string) []Permission {
 		var children []Permission
-		for _, def := range permissionDefs {
+		for _, def := range allDefs {
 			if def.Parent == parentCode {
 				perm := permMap[def.Code]
 				// 递归构建子权限
@@ -113,7 +141,7 @@ func buildPermissionTree() []Permission {
 
 	// 收集根权限并构建完整的树
 	var roots []Permission
-	for _, def := range permissionDefs {
+	for _, def := range allDefs {
 		if def.Parent == "" {
 			perm := permMap[def.Code]
 			perm.Children = buildChildren(def.Code)

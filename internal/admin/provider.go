@@ -13,7 +13,35 @@ import (
 	"bico-admin/internal/admin/service"
 )
 
+// ProviderRegistrar Provider 注册器接口
+// 用于支持动态 Provider 注册，生成的 Provider 代码可以实现此接口
+type ProviderRegistrar interface {
+	GetProviders() []interface{}
+}
+
+// providerRegistrars 存储所有注册的 Provider 注册器
+var providerRegistrars []ProviderRegistrar
+
+// RegisterProviderRegistrar 注册 Provider 注册器
+// 生成的 Provider 代码可以调用此函数来注册自己
+func RegisterProviderRegistrar(registrar ProviderRegistrar) {
+	providerRegistrars = append(providerRegistrars, registrar)
+}
+
+// GetGeneratedProviders 获取所有生成的 Provider
+func GetGeneratedProviders() []interface{} {
+	var allProviders []interface{}
+
+	// 添加所有注册的 Provider
+	for _, registrar := range providerRegistrars {
+		allProviders = append(allProviders, registrar.GetProviders()...)
+	}
+
+	return allProviders
+}
+
 // ProviderSet Admin端Provider集合
+// 注意：生成的 Provider 需要手动添加到这里，或者使用 wire.Build 时包含生成的 ProviderSet
 var ProviderSet = wire.NewSet(
 	// Repository层
 	repository.NewAdminUserRepository,

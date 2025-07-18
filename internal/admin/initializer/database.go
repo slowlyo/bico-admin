@@ -9,6 +9,21 @@ import (
 	pkgLogger "bico-admin/pkg/logger"
 )
 
+// MigrationRegistrar Migration 注册器接口
+// 用于支持动态 Migration 注册，生成的 Migration 代码可以实现此接口
+type MigrationRegistrar interface {
+	GetMigrations() []interface{}
+}
+
+// migrationRegistrars 存储所有注册的 Migration 注册器
+var migrationRegistrars []MigrationRegistrar
+
+// RegisterMigrationRegistrar 注册 Migration 注册器
+// 生成的 Migration 代码可以调用此函数来注册自己
+func RegisterMigrationRegistrar(registrar MigrationRegistrar) {
+	migrationRegistrars = append(migrationRegistrars, registrar)
+}
+
 // DatabaseInitializer 数据库初始化器
 type DatabaseInitializer struct {
 	db *gorm.DB
@@ -23,11 +38,17 @@ func NewDatabaseInitializer(db *gorm.DB) *DatabaseInitializer {
 
 // AutoMigrateAdminModels 自动迁移Admin模块的数据库表
 func (d *DatabaseInitializer) AutoMigrateAdminModels() error {
+	// 基础模型列表
 	modelList := []interface{}{
 		&models.AdminUser{},
 		&models.AdminRole{},
 		&models.AdminUserRole{},
 		&models.AdminRolePermission{},
+	}
+
+	// 添加所有注册的模型
+	for _, registrar := range migrationRegistrars {
+		modelList = append(modelList, registrar.GetMigrations()...)
 	}
 
 	if err := d.db.AutoMigrate(modelList...); err != nil {
