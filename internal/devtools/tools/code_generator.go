@@ -116,6 +116,7 @@ func (t *CodeGeneratorTool) Handle(ctx context.Context, request mcp.CallToolRequ
 			"component_type":  componentType,
 			"model_name":      modelName,
 			"generated_files": response.GeneratedFiles,
+			"code_snippets":   response.CodeSnippets,
 			"history_updated": response.HistoryUpdated,
 			"package_path":    packagePath,
 			"table_name":      tableName,
