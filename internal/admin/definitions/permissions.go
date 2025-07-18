@@ -4,20 +4,8 @@ import (
 	"strings"
 )
 
-// PermissionRegistrar Permission 注册器接口
-// 用于支持动态 Permission 注册，生成的 Permission 代码可以实现此接口
-type PermissionRegistrar interface {
-	GetPermissions() []PermissionDef
-}
-
-// permissionRegistrars 存储所有注册的 Permission 注册器
-var permissionRegistrars []PermissionRegistrar
-
-// RegisterPermissionRegistrar 注册 Permission 注册器
-// 生成的 Permission 代码可以调用此函数来注册自己
-func RegisterPermissionRegistrar(registrar PermissionRegistrar) {
-	permissionRegistrars = append(permissionRegistrars, registrar)
-}
+// 注意：生成的权限代码应该直接添加到 getAllPermissionDefs 函数中
+// 不再使用动态注册模式，代码生成器会提供具体的插入位置指导
 
 // Permission 权限定义（静态配置，程序中定义）
 type Permission struct {
@@ -80,10 +68,8 @@ func getAllPermissionDefs() []PermissionDef {
 		{"system.role:delete", "删除角色", "system.role", "action", 4, "delete", "/admin-api/roles/:id"},
 	}
 
-	// 添加所有注册的权限
-	for _, registrar := range permissionRegistrars {
-		baseDefs = append(baseDefs, registrar.GetPermissions()...)
-	}
+	// 注意：生成的权限定义应该直接添加到上面的 baseDefs 数组中
+	// 不再使用动态注册模式
 
 	return baseDefs
 }

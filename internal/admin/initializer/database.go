@@ -9,20 +9,8 @@ import (
 	pkgLogger "bico-admin/pkg/logger"
 )
 
-// MigrationRegistrar Migration 注册器接口
-// 用于支持动态 Migration 注册，生成的 Migration 代码可以实现此接口
-type MigrationRegistrar interface {
-	GetMigrations() []interface{}
-}
-
-// migrationRegistrars 存储所有注册的 Migration 注册器
-var migrationRegistrars []MigrationRegistrar
-
-// RegisterMigrationRegistrar 注册 Migration 注册器
-// 生成的 Migration 代码可以调用此函数来注册自己
-func RegisterMigrationRegistrar(registrar MigrationRegistrar) {
-	migrationRegistrars = append(migrationRegistrars, registrar)
-}
+// 注意：生成的 Migration 代码应该直接添加到 AutoMigrateAdminModels 函数中
+// 不再使用动态注册模式，代码生成器会提供具体的插入位置指导
 
 // DatabaseInitializer 数据库初始化器
 type DatabaseInitializer struct {
@@ -46,10 +34,8 @@ func (d *DatabaseInitializer) AutoMigrateAdminModels() error {
 		&models.AdminRolePermission{},
 	}
 
-	// 添加所有注册的模型
-	for _, registrar := range migrationRegistrars {
-		modelList = append(modelList, registrar.GetMigrations()...)
-	}
+	// 注意：生成的模型应该直接添加到上面的 modelList 数组中
+	// 不再使用动态注册模式
 
 	if err := d.db.AutoMigrate(modelList...); err != nil {
 		return fmt.Errorf("Admin模块数据库迁移失败: %w", err)

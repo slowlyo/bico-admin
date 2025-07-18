@@ -47,13 +47,24 @@ type GenerateOptions struct {
 	OptimizeImports   bool `json:"optimize_imports"`   // 是否优化导入
 }
 
+// CodeSnippet 代码片段信息
+type CodeSnippet struct {
+	Content      string `json:"content"`       // 代码片段内容
+	TargetFile   string `json:"target_file"`   // 目标文件路径
+	InsertPoint  string `json:"insert_point"`  // 插入位置说明
+	InsertAfter  string `json:"insert_after"`  // 在指定内容之后插入
+	InsertBefore string `json:"insert_before"` // 在指定内容之前插入
+	Description  string `json:"description"`   // 插入说明
+}
+
 // GenerateResponse 生成响应
 type GenerateResponse struct {
-	Success        bool     `json:"success"`
-	GeneratedFiles []string `json:"generated_files"`
-	Message        string   `json:"message"`
-	HistoryUpdated bool     `json:"history_updated"`
-	Errors         []string `json:"errors,omitempty"`
+	Success        bool          `json:"success"`
+	GeneratedFiles []string      `json:"generated_files"`
+	CodeSnippets   []CodeSnippet `json:"code_snippets,omitempty"` // 代码片段（用于routes、wire、migration、permission）
+	Message        string        `json:"message"`
+	HistoryUpdated bool          `json:"history_updated"`
+	Errors         []string      `json:"errors,omitempty"`
 }
 
 // TemplateData 模板数据

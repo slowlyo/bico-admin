@@ -156,87 +156,56 @@ func (g *CodeGenerator) generateHandler(req *GenerateRequest) (*GenerateResponse
 
 // generateRoutes 生成Routes
 func (g *CodeGenerator) generateRoutes(req *GenerateRequest) (*GenerateResponse, error) {
-	// 使用Routes生成器生成
-	response, err := g.routeGenerator.Generate(req)
+	// 使用Routes生成器生成代码片段
+	response, err := g.routeGenerator.GenerateSnippet(req)
 	if err != nil {
 		return nil, err
 	}
 
-	// 如果生成成功，更新历史记录
-	if response.Success && len(response.GeneratedFiles) > 0 {
-		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
-			// 历史记录更新失败不影响生成结果，只记录警告
-			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
-			response.HistoryUpdated = false
-		}
-	}
-
+	// Routes组件生成代码片段，不需要更新历史记录
 	return response, nil
 }
 
 // generateWire 生成Wire Provider
 func (g *CodeGenerator) generateWire(req *GenerateRequest) (*GenerateResponse, error) {
-	// 使用Wire生成器生成
-	response, err := g.wireGenerator.Generate(req)
+	// 使用Wire生成器生成代码片段
+	response, err := g.wireGenerator.GenerateSnippet(req)
 	if err != nil {
 		return nil, err
 	}
 
-	// 如果生成成功，更新历史记录
-	if response.Success && len(response.GeneratedFiles) > 0 {
-		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
-			// 历史记录更新失败不影响生成结果，只记录警告
-			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
-			response.HistoryUpdated = false
-		}
-	}
-
+	// Wire组件生成代码片段，不需要更新历史记录
 	return response, nil
 }
 
 // generateMigration 生成Migration
 func (g *CodeGenerator) generateMigration(req *GenerateRequest) (*GenerateResponse, error) {
-	// 使用Migration生成器生成
-	response, err := g.migrationGenerator.Generate(req)
+	// 使用Migration生成器生成代码片段
+	response, err := g.migrationGenerator.GenerateSnippet(req)
 	if err != nil {
 		return nil, err
 	}
 
-	// 如果生成成功，更新历史记录
-	if response.Success && len(response.GeneratedFiles) > 0 {
-		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
-			// 历史记录更新失败不影响生成结果，只记录警告
-			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
-			response.HistoryUpdated = false
-		}
-	}
-
+	// Migration组件生成代码片段，不需要更新历史记录
 	return response, nil
 }
 
 // generatePermission 生成Permission
 func (g *CodeGenerator) generatePermission(req *GenerateRequest) (*GenerateResponse, error) {
-	// 使用Permission生成器生成
-	response, err := g.permissionGenerator.Generate(req)
+	// 使用Permission生成器生成代码片段
+	response, err := g.permissionGenerator.GenerateSnippet(req)
 	if err != nil {
 		return nil, err
 	}
 
-	// 如果生成成功，更新历史记录
-	if response.Success && len(response.GeneratedFiles) > 0 {
-		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
-			// 历史记录更新失败不影响生成结果，只记录警告
-			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
-			response.HistoryUpdated = false
-		}
-	}
-
+	// Permission组件生成代码片段，不需要更新历史记录
 	return response, nil
 }
 
 // generateAll 生成所有组件
 func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, error) {
 	var allGeneratedFiles []string
+	var allCodeSnippets []CodeSnippet
 	var allErrors []string
 
 	// 1. 生成模型
@@ -299,7 +268,7 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 		allErrors = append(allErrors, handlerResponse.Errors...)
 	}
 
-	// 5. 生成Routes
+	// 5. 生成Routes（代码片段模式）
 	routesReq := *req
 	routesReq.ComponentType = ComponentRoutes
 
@@ -309,12 +278,12 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 	}
 
 	if routesResponse.Success {
-		allGeneratedFiles = append(allGeneratedFiles, routesResponse.GeneratedFiles...)
+		allCodeSnippets = append(allCodeSnippets, routesResponse.CodeSnippets...)
 	} else {
 		allErrors = append(allErrors, routesResponse.Errors...)
 	}
 
-	// 6. 生成Wire Provider
+	// 6. 生成Wire Provider（代码片段模式）
 	wireReq := *req
 	wireReq.ComponentType = ComponentWire
 
@@ -324,12 +293,12 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 	}
 
 	if wireResponse.Success {
-		allGeneratedFiles = append(allGeneratedFiles, wireResponse.GeneratedFiles...)
+		allCodeSnippets = append(allCodeSnippets, wireResponse.CodeSnippets...)
 	} else {
 		allErrors = append(allErrors, wireResponse.Errors...)
 	}
 
-	// 7. 生成Migration
+	// 7. 生成Migration（代码片段模式）
 	migrationReq := *req
 	migrationReq.ComponentType = ComponentMigration
 
@@ -339,12 +308,12 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 	}
 
 	if migrationResponse.Success {
-		allGeneratedFiles = append(allGeneratedFiles, migrationResponse.GeneratedFiles...)
+		allCodeSnippets = append(allCodeSnippets, migrationResponse.CodeSnippets...)
 	} else {
 		allErrors = append(allErrors, migrationResponse.Errors...)
 	}
 
-	// 8. 生成Permission
+	// 8. 生成Permission（代码片段模式）
 	permissionReq := *req
 	permissionReq.ComponentType = ComponentPermission
 
@@ -354,7 +323,7 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 	}
 
 	if permissionResponse.Success {
-		allGeneratedFiles = append(allGeneratedFiles, permissionResponse.GeneratedFiles...)
+		allCodeSnippets = append(allCodeSnippets, permissionResponse.CodeSnippets...)
 	} else {
 		allErrors = append(allErrors, permissionResponse.Errors...)
 	}
@@ -379,14 +348,15 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 
 	// 构建最终响应
 	success := len(allErrors) == 0
-	message := fmt.Sprintf("生成完成，共生成 %d 个文件", len(allGeneratedFiles))
+	message := fmt.Sprintf("生成完成，共生成 %d 个文件和 %d 个代码片段", len(allGeneratedFiles), len(allCodeSnippets))
 	if !success {
-		message = fmt.Sprintf("生成部分完成，共生成 %d 个文件，%d 个错误", len(allGeneratedFiles), len(allErrors))
+		message = fmt.Sprintf("生成部分完成，共生成 %d 个文件和 %d 个代码片段，%d 个错误", len(allGeneratedFiles), len(allCodeSnippets), len(allErrors))
 	}
 
 	response := &GenerateResponse{
 		Success:        success,
 		GeneratedFiles: allGeneratedFiles,
+		CodeSnippets:   allCodeSnippets,
 		Message:        message,
 		HistoryUpdated: success,
 		Errors:         allErrors,

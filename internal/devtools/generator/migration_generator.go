@@ -2,9 +2,6 @@ package generator
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"regexp"
 	"strings"
 	"text/template"
 	"time"
@@ -22,8 +19,8 @@ func NewMigrationGenerator() *MigrationGenerator {
 	}
 }
 
-// Generate 生成 Migration 代码
-func (g *MigrationGenerator) Generate(req *GenerateRequest) (*GenerateResponse, error) {
+// GenerateSnippet 生成Migration代码片段
+func (g *MigrationGenerator) GenerateSnippet(req *GenerateRequest) (*GenerateResponse, error) {
 	// 验证请求参数
 	if req.ModelName == "" {
 		return &GenerateResponse{
@@ -33,41 +30,23 @@ func (g *MigrationGenerator) Generate(req *GenerateRequest) (*GenerateResponse, 
 		}, nil
 	}
 
-	if req.PackagePath == "" {
-		return &GenerateResponse{
-			Success: false,
-			Message: "包路径不能为空",
-			Errors:  []string{"PackagePath is required"},
-		}, nil
-	}
-
 	// 准备模板数据
 	templateData := g.prepareTemplateData(req)
 
-	// 生成文件
-	var generatedFiles []string
-	var errors []string
-
-	// 生成 Migration 文件
-	migrationFile, err := g.generateMigrationFile(templateData)
+	// 生成代码片段
+	snippets, err := g.generateMigrationSnippets(templateData, req.Fields)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("生成Migration文件失败: %v", err))
-	} else {
-		generatedFiles = append(generatedFiles, migrationFile)
-	}
-
-	// 构建响应
-	success := len(errors) == 0
-	message := fmt.Sprintf("Migration生成完成，共生成 %d 个文件", len(generatedFiles))
-	if !success {
-		message = fmt.Sprintf("Migration生成部分完成，共生成 %d 个文件，%d 个错误", len(generatedFiles), len(errors))
+		return &GenerateResponse{
+			Success: false,
+			Message: "生成Migration代码片段失败",
+			Errors:  []string{err.Error()},
+		}, nil
 	}
 
 	return &GenerateResponse{
-		Success:        success,
-		GeneratedFiles: generatedFiles,
-		Message:        message,
-		Errors:         errors,
+		Success:      true,
+		CodeSnippets: snippets,
+		Message:      fmt.Sprintf("Migration代码片段生成完成，共生成 %d 个片段", len(snippets)),
 	}, nil
 }
 
@@ -85,81 +64,6 @@ func (g *MigrationGenerator) prepareTemplateData(req *GenerateRequest) *Migratio
 	}
 }
 
-// generateMigrationFile 生成统一的 Migration 文件
-func (g *MigrationGenerator) generateMigrationFile(data *MigrationTemplateData) (string, error) {
-	// 确定输出目录和文件路径
-	outputDir := data.PackagePath + "/initializer"
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return "", fmt.Errorf("创建输出目录失败: %w", err)
-	}
-
-	// 统一的文件名
-	fileName := "migration_gen.go"
-	outputPath := filepath.Join(outputDir, fileName)
-
-	// 检查文件是否存在
-	existingContent, err := g.readExistingFile(outputPath)
-	if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("读取现有文件失败: %w", err)
-	}
-
-	// 生成新的 Migration 内容
-	newContent, err := g.generateMigrationContent(data, existingContent)
-	if err != nil {
-		return "", fmt.Errorf("生成Migration内容失败: %w", err)
-	}
-
-	// 写入文件
-	if err := os.WriteFile(outputPath, []byte(newContent), 0644); err != nil {
-		return "", fmt.Errorf("写入文件失败: %w", err)
-	}
-
-	return outputPath, nil
-}
-
-// readExistingFile 读取现有文件内容
-func (g *MigrationGenerator) readExistingFile(filePath string) (string, error) {
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		return "", err
-	}
-	return string(content), nil
-}
-
-// generateMigrationContent 生成 Migration 内容
-func (g *MigrationGenerator) generateMigrationContent(data *MigrationTemplateData, existingContent string) (string, error) {
-	if existingContent == "" {
-		// 如果文件不存在，创建新文件
-		return g.generateNewMigrationFile(data)
-	}
-
-	// 如果文件存在，合并内容
-	return g.mergeMigrationContent(data, existingContent)
-}
-
-// generateNewMigrationFile 生成新的 Migration 文件内容
-func (g *MigrationGenerator) generateNewMigrationFile(data *MigrationTemplateData) (string, error) {
-	// 创建统一的 Migration 文件模板数据
-	unifiedData := &UnifiedMigrationData{
-		PackageName: data.PackageName,
-		PackagePath: data.PackagePath,
-		Timestamp:   data.Timestamp,
-		Models:      []MigrationTemplateData{*data},
-		Imports:     g.generateImports(data.PackagePath),
-	}
-
-	// 使用统一模板生成内容
-	return g.executeUnifiedTemplate(unifiedData)
-}
-
-// generateImports 生成导入语句
-func (g *MigrationGenerator) generateImports(packagePath string) []string {
-	return []string{
-		"gorm.io/gorm",
-		"bico-admin/internal/shared/models",
-	}
-}
-
 // MigrationTemplateData Migration 模板数据
 type MigrationTemplateData struct {
 	PackageName    string    // 包名
@@ -169,132 +73,67 @@ type MigrationTemplateData struct {
 	Timestamp      time.Time // 生成时间戳
 }
 
-// UnifiedMigrationData 统一 Migration 文件的模板数据
-type UnifiedMigrationData struct {
-	PackageName string                  // 包名
-	PackagePath string                  // 包路径
-	Timestamp   time.Time               // 生成时间戳
-	Models      []MigrationTemplateData // 所有模型的 Migration 数据
-	Imports     []string                // 导入语句
-}
+// generateMigrationSnippets 生成Migration代码片段
+func (g *MigrationGenerator) generateMigrationSnippets(data *MigrationTemplateData, fields []FieldDefinition) ([]CodeSnippet, error) {
+	var snippets []CodeSnippet
 
-// executeUnifiedTemplate 执行统一模板
-func (g *MigrationGenerator) executeUnifiedTemplate(data *UnifiedMigrationData) (string, error) {
-	// 创建统一的 Migration 文件模板
-	templateContent := g.getUnifiedTemplate()
-
-	// 解析模板
-	tmpl, err := template.New("unified_migration").Parse(templateContent)
+	// 1. 生成Migration模型片段
+	modelSnippet, err := g.generateMigrationRegistrarSnippet(data, fields)
 	if err != nil {
-		return "", fmt.Errorf("解析统一模板失败: %w", err)
+		return nil, fmt.Errorf("生成Migration模型片段失败: %w", err)
 	}
+	snippets = append(snippets, modelSnippet)
 
-	// 执行模板
-	var result strings.Builder
-	if err := tmpl.Execute(&result, data); err != nil {
-		return "", fmt.Errorf("执行统一模板失败: %w", err)
-	}
-
-	return result.String(), nil
+	return snippets, nil
 }
 
-// mergeMigrationContent 合并 Migration 内容
-func (g *MigrationGenerator) mergeMigrationContent(data *MigrationTemplateData, existingContent string) (string, error) {
-	// 解析现有文件，提取已存在的模型
-	existingModels, err := g.parseExistingModels(existingContent)
+// generateMigrationRegistrarSnippet 生成Migration模型片段
+func (g *MigrationGenerator) generateMigrationRegistrarSnippet(data *MigrationTemplateData, fields []FieldDefinition) (CodeSnippet, error) {
+	tmplContent := `		&models.{{.ModelName}}{},`
+
+	tmpl, err := template.New("migration_model").Parse(tmplContent)
 	if err != nil {
-		return "", fmt.Errorf("解析现有模型失败: %w", err)
+		return CodeSnippet{}, fmt.Errorf("解析Migration模型模板失败: %w", err)
 	}
 
-	// 检查是否已存在相同的模型
-	modelExists := false
-	for i, model := range existingModels {
-		if model.ModelName == data.ModelName {
-			// 更新现有模型
-			existingModels[i] = *data
-			modelExists = true
-			break
-		}
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return CodeSnippet{}, fmt.Errorf("执行Migration模型模板失败: %w", err)
 	}
 
-	// 如果模型不存在，添加新模型
-	if !modelExists {
-		existingModels = append(existingModels, *data)
-	}
-
-	// 创建统一的 Migration 文件模板数据
-	unifiedData := &UnifiedMigrationData{
-		PackageName: data.PackageName,
-		PackagePath: data.PackagePath,
-		Timestamp:   time.Now(),
-		Models:      existingModels,
-		Imports:     g.generateImports(data.PackagePath),
-	}
-
-	// 使用统一模板生成内容
-	return g.executeUnifiedTemplate(unifiedData)
+	return CodeSnippet{
+		Content:      buf.String(),
+		TargetFile:   data.PackagePath + "/initializer/database.go",
+		InsertPoint:  "在 modelList 数组中，注释之前",
+		InsertBefore: "// 注意：生成的模型应该直接添加到上面的 modelList 数组中",
+		Description:  fmt.Sprintf("在 modelList 中添加 %s 模型", data.ModelName),
+	}, nil
 }
 
-// parseExistingModels 解析现有文件中的模型
-func (g *MigrationGenerator) parseExistingModels(content string) ([]MigrationTemplateData, error) {
-	var models []MigrationTemplateData
-
-	// 使用正则表达式提取模型信息
-	// 匹配 "type XXXMigrationRegistrar struct{}" 模式
-	registrarPattern := regexp.MustCompile(`type\s+(\w+)MigrationRegistrar\s+struct\{\}`)
-	matches := registrarPattern.FindAllStringSubmatch(content, -1)
-
-	for _, match := range matches {
-		if len(match) > 1 {
-			modelName := match[1]
-
-			// 为每个找到的模型创建基本的模板数据
-			model := MigrationTemplateData{
-				ModelName:      modelName,
-				ModelNameLower: strings.ToLower(modelName),
-				Timestamp:      time.Now(),
-			}
-
-			models = append(models, model)
-		}
+// mapFieldTypeToSQL 将Go字段类型映射为SQL类型
+func (g *MigrationGenerator) mapFieldTypeToSQL(goType string) string {
+	switch goType {
+	case "string":
+		return "string"
+	case "int", "int32":
+		return "int"
+	case "int64":
+		return "int64"
+	case "uint", "uint32":
+		return "uint"
+	case "uint64":
+		return "uint64"
+	case "float32":
+		return "float32"
+	case "float64":
+		return "float64"
+	case "bool":
+		return "bool"
+	case "time.Time", "*time.Time":
+		return "time.Time"
+	case "[]byte":
+		return "[]byte"
+	default:
+		return "string" // 默认为string类型
 	}
-
-	return models, nil
-}
-
-// getUnifiedTemplate 获取统一的 Migration 模板
-func (g *MigrationGenerator) getUnifiedTemplate() string {
-	return `// Code generated by bico-admin code generator. DO NOT EDIT.
-// Generated at: {{.Timestamp.Format "2006-01-02 15:04:05"}}
-
-package initializer
-
-import (
-{{range .Imports}}	"{{.}}"
-{{end}})
-
-{{range .Models}}
-// {{.ModelName}}MigrationRegistrar {{.ModelName}} Migration 注册器
-type {{.ModelName}}MigrationRegistrar struct{}
-
-// GetMigrations 实现 MigrationRegistrar 接口
-func (r *{{.ModelName}}MigrationRegistrar) GetMigrations() []interface{} {
-	return []interface{}{
-		&models.{{.ModelName}}{},
-	}
-}
-
-// Migrate{{.ModelName}}Table 迁移{{.ModelName}}表
-func Migrate{{.ModelName}}Table(db *gorm.DB) error {
-	return db.AutoMigrate(&models.{{.ModelName}}{})
-}
-{{end}}
-
-// init 自动注册所有 Migration
-func init() {
-{{range .Models}}	// 注册{{.ModelName}} Migration
-	{{.ModelNameLower}}MigrationRegistrar := &{{.ModelName}}MigrationRegistrar{}
-	RegisterMigrationRegistrar({{.ModelNameLower}}MigrationRegistrar)
-{{end}}}
-`
 }
