@@ -11,11 +11,11 @@ func ToSnakeCase(str string) string {
 	// 处理连续的大写字母
 	re1 := regexp.MustCompile("([A-Z]+)([A-Z][a-z])")
 	str = re1.ReplaceAllString(str, "${1}_${2}")
-	
+
 	// 处理大写字母前插入下划线
 	re2 := regexp.MustCompile("([a-z\\d])([A-Z])")
 	str = re2.ReplaceAllString(str, "${1}_${2}")
-	
+
 	return strings.ToLower(str)
 }
 
@@ -24,16 +24,16 @@ func ToCamelCase(str string) string {
 	if str == "" {
 		return ""
 	}
-	
+
 	// 分割字符串
 	parts := strings.FieldsFunc(str, func(c rune) bool {
 		return c == '_' || c == '-' || c == ' '
 	})
-	
+
 	if len(parts) == 0 {
 		return ""
 	}
-	
+
 	// 第一个单词小写，其余单词首字母大写
 	result := strings.ToLower(parts[0])
 	for i := 1; i < len(parts); i++ {
@@ -41,7 +41,7 @@ func ToCamelCase(str string) string {
 			result += strings.ToUpper(string(parts[i][0])) + strings.ToLower(parts[i][1:])
 		}
 	}
-	
+
 	return result
 }
 
@@ -50,16 +50,16 @@ func ToPascalCase(str string) string {
 	if str == "" {
 		return ""
 	}
-	
+
 	// 分割字符串
 	parts := strings.FieldsFunc(str, func(c rune) bool {
 		return c == '_' || c == '-' || c == ' '
 	})
-	
+
 	if len(parts) == 0 {
 		return ""
 	}
-	
+
 	// 所有单词首字母大写
 	var result strings.Builder
 	for _, part := range parts {
@@ -70,8 +70,19 @@ func ToPascalCase(str string) string {
 			}
 		}
 	}
-	
+
 	return result.String()
+}
+
+// ToKebabCase 转换为短横线命名
+func ToKebabCase(str string) string {
+	if str == "" {
+		return ""
+	}
+
+	// 先转换为蛇形命名，然后替换下划线为短横线
+	snakeCase := ToSnakeCase(str)
+	return strings.ReplaceAll(snakeCase, "_", "-")
 }
 
 // ToPlural 转换为复数形式（简单实现）
@@ -79,9 +90,9 @@ func ToPlural(str string) string {
 	if str == "" {
 		return ""
 	}
-	
+
 	str = strings.ToLower(str)
-	
+
 	// 特殊复数形式
 	irregulars := map[string]string{
 		"person": "people",
@@ -93,11 +104,11 @@ func ToPlural(str string) string {
 		"man":    "men",
 		"woman":  "women",
 	}
-	
+
 	if plural, exists := irregulars[str]; exists {
 		return plural
 	}
-	
+
 	// 规则变化
 	if strings.HasSuffix(str, "y") && len(str) > 1 {
 		// 辅音字母+y结尾，变y为ies
@@ -105,21 +116,21 @@ func ToPlural(str string) string {
 			return str[:len(str)-1] + "ies"
 		}
 	}
-	
-	if strings.HasSuffix(str, "s") || strings.HasSuffix(str, "sh") || 
-	   strings.HasSuffix(str, "ch") || strings.HasSuffix(str, "x") || 
-	   strings.HasSuffix(str, "z") {
+
+	if strings.HasSuffix(str, "s") || strings.HasSuffix(str, "sh") ||
+		strings.HasSuffix(str, "ch") || strings.HasSuffix(str, "x") ||
+		strings.HasSuffix(str, "z") {
 		return str + "es"
 	}
-	
+
 	if strings.HasSuffix(str, "f") {
 		return str[:len(str)-1] + "ves"
 	}
-	
+
 	if strings.HasSuffix(str, "fe") {
 		return str[:len(str)-2] + "ves"
 	}
-	
+
 	// 默认加s
 	return str + "s"
 }
@@ -135,19 +146,19 @@ func IsValidGoIdentifier(name string) bool {
 	if name == "" {
 		return false
 	}
-	
+
 	// 第一个字符必须是字母或下划线
 	if !unicode.IsLetter(rune(name[0])) && name[0] != '_' {
 		return false
 	}
-	
+
 	// 其余字符必须是字母、数字或下划线
 	for _, r := range name[1:] {
 		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -159,13 +170,13 @@ func IsGoKeyword(name string) bool {
 		"interface", "map", "package", "range", "return", "select", "struct",
 		"switch", "type", "var",
 	}
-	
+
 	for _, keyword := range keywords {
 		if name == keyword {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -174,7 +185,7 @@ func SanitizeGoIdentifier(name string) string {
 	if name == "" {
 		return "Field"
 	}
-	
+
 	// 移除非法字符
 	var result strings.Builder
 	for i, r := range name {
@@ -193,22 +204,27 @@ func SanitizeGoIdentifier(name string) string {
 			}
 		}
 	}
-	
+
 	sanitized := result.String()
 	if sanitized == "" {
 		return "Field"
 	}
-	
+
 	// 如果是关键字，添加后缀
 	if IsGoKeyword(sanitized) {
 		sanitized += "Field"
 	}
-	
+
 	return sanitized
 }
 
 // GetGoType 获取Go类型
 func GetGoType(fieldType string) string {
+	// 如果已经是完整的Go类型（包含指针、包名等），直接返回
+	if strings.Contains(fieldType, "*") || strings.Contains(fieldType, ".") {
+		return fieldType
+	}
+
 	typeMap := map[string]string{
 		"string":    "string",
 		"int":       "int",
@@ -228,11 +244,11 @@ func GetGoType(fieldType string) string {
 		"json":      "string",
 		"decimal":   "float64",
 	}
-	
+
 	if goType, exists := typeMap[strings.ToLower(fieldType)]; exists {
 		return goType
 	}
-	
+
 	// 默认返回string
 	return "string"
 }

@@ -1,0 +1,164 @@
+package handler
+
+import (
+{{- if .HasTimeField }}
+	"time"
+{{- end }}
+
+	"github.com/gin-gonic/gin"
+
+	"bico-admin/internal/shared/models"
+	"bico-admin/internal/shared/service"
+	"bico-admin/internal/admin/types"
+	sharedTypes "bico-admin/internal/shared/types"
+	"bico-admin/pkg/utils"
+)
+
+// {{.HandlerName}} {{.ModelName}}处理器
+type {{.HandlerName}} struct {
+	*BaseHandler[models.{{.ModelName}}, types.{{.CreateRequestName}}, types.{{.UpdateRequestName}}, types.{{.ListRequestName}}, types.{{.ResponseName}}]
+	{{.ModelNameLower}}Service service.{{.ServiceInterface}}
+}
+
+// New{{.HandlerName}} 创建{{.ModelName}}处理器
+func New{{.HandlerName}}({{.ModelNameLower}}Service service.{{.ServiceInterface}}) *{{.HandlerName}} {
+	// 创建默认选项
+	options := DefaultHandlerOptions()
+
+	// 根据需要调整选项
+	options.EnableSoftDelete = true
+	options.EnableStatusManagement = {{hasStatusField .Fields}}
+	options.EnableBatchOperations = true
+
+	baseHandler := NewBaseHandler[models.{{.ModelName}}, types.{{.CreateRequestName}}, types.{{.UpdateRequestName}}, types.{{.ListRequestName}}, types.{{.ResponseName}}]({{.ModelNameLower}}Service, options)
+
+	return &{{.HandlerName}}{
+		BaseHandler: baseHandler,
+		{{.ModelNameLower}}Service: {{.ModelNameLower}}Service,
+	}
+}
+
+// ConvertToResponse 转换实体为响应格式
+func (h *{{.HandlerName}}) ConvertToResponse(c *gin.Context, entity *models.{{.ModelName}}) types.{{.ResponseName}} {
+	return types.{{.ResponseName}}{
+		ID: entity.ID,
+{{- range .Fields }}
+{{- if eq .Name "Status" }}
+		{{.Name}}: h.getStatusValue(entity.{{.Name}}),
+		StatusText: h.getStatusText(h.getStatusValue(entity.{{.Name}})),
+{{- else if contains .Type "*time.Time" }}
+		{{.Name}}: h.formatTime(entity.{{.Name}}),
+{{- else }}
+		{{.Name}}: entity.{{.Name}},
+{{- end }}
+{{- end }}
+		CreatedAt: utils.NewFormattedTime(entity.CreatedAt),
+		UpdatedAt: utils.NewFormattedTime(entity.UpdatedAt),
+	}
+}
+
+// ConvertCreateRequest 转换创建请求为实体
+func (h *{{.HandlerName}}) ConvertCreateRequest(c *gin.Context, req *types.{{.CreateRequestName}}) *models.{{.ModelName}} {
+	entity := &models.{{.ModelName}}{
+{{- range .Fields }}
+{{- if eq .Name "Status" }}
+		{{.Name}}: req.{{.Name}},
+{{- else }}
+		{{.Name}}: req.{{.Name}},
+{{- end }}
+{{- end }}
+	}
+
+	return entity
+}
+
+// ConvertUpdateRequest 转换更新请求为实体
+func (h *{{.HandlerName}}) ConvertUpdateRequest(c *gin.Context, id uint, req *types.{{.UpdateRequestName}}) *models.{{.ModelName}} {
+	entity := &models.{{.ModelName}}{
+		BaseModel: sharedTypes.BaseModel{ID: id},
+{{- range .Fields }}
+{{- if eq .Name "Status" }}
+		{{.Name}}: req.{{.Name}},
+{{- else }}
+		{{.Name}}: req.{{.Name}},
+{{- end }}
+{{- end }}
+	}
+
+	return entity
+}
+
+// ConvertListRequest 转换列表请求为基础分页查询
+func (h *{{.HandlerName}}) ConvertListRequest(c *gin.Context, req *types.{{.ListRequestName}}) *sharedTypes.BasePageQuery {
+	// 设置默认值
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.PageSize <= 0 {
+		req.PageSize = 10
+	}
+	if req.PageSize > 100 {
+		req.PageSize = 100
+	}
+
+	// 这里可以处理特殊的筛选条件
+	// 将业务筛选条件转换为通用的关键词搜索或其他查询参数
+
+	return &req.BasePageQuery
+}
+
+// ConvertListToResponse 转换列表为响应格式
+func (h *{{.HandlerName}}) ConvertListToResponse(c *gin.Context, list any) []types.{{.ResponseName}} {
+	entities, ok := list.([]*models.{{.ModelName}})
+	if !ok {
+		return []types.{{.ResponseName}}{}
+	}
+
+	var responses []types.{{.ResponseName}}
+	for _, entity := range entities {
+		responses = append(responses, h.ConvertToResponse(c, entity))
+	}
+	return responses
+}
+
+// getStatusValue 获取状态值
+func (h *{{.HandlerName}}) getStatusValue(status *int) int {
+	if status == nil {
+{{- if hasStatusField .Fields }}
+		return sharedTypes.StatusInactive
+{{- else }}
+		return 0
+{{- end }}
+	}
+	return *status
+}
+
+// getStatusText 获取状态文本
+func (h *{{.HandlerName}}) getStatusText(status int) string {
+{{- if hasStatusField .Fields }}
+	switch status {
+	case sharedTypes.StatusActive:
+		return "启用"
+	case sharedTypes.StatusInactive:
+		return "禁用"
+	case sharedTypes.StatusDeleted:
+		return "已删除"
+	default:
+		return "未知"
+	}
+{{- else }}
+	return "正常"
+{{- end }}
+}
+
+{{- if .HasTimeField }}
+
+// formatTime 格式化时间
+func (h *{{.HandlerName}}) formatTime(t *time.Time) *utils.FormattedTime {
+	if t == nil {
+		return nil
+	}
+	ft := utils.NewFormattedTime(*t)
+	return &ft
+}
+{{- end }}

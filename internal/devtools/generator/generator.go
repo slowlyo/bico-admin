@@ -9,6 +9,7 @@ type CodeGenerator struct {
 	modelGenerator      *ModelGenerator
 	repositoryGenerator *RepositoryGenerator
 	serviceGenerator    *ServiceGenerator
+	handlerGenerator    *HandlerGenerator
 	historyManager      *HistoryManager
 	validator           *Validator
 }
@@ -19,6 +20,7 @@ func NewCodeGenerator() *CodeGenerator {
 		modelGenerator:      NewModelGenerator(),
 		repositoryGenerator: NewRepositoryGenerator(),
 		serviceGenerator:    NewServiceGenerator(),
+		handlerGenerator:    NewHandlerGenerator(),
 		historyManager:      NewHistoryManager(),
 		validator:           NewValidator(),
 	}
@@ -43,6 +45,8 @@ func (g *CodeGenerator) Generate(req *GenerateRequest) (*GenerateResponse, error
 		return g.generateRepository(req)
 	case ComponentService:
 		return g.generateService(req)
+	case ComponentHandler:
+		return g.generateHandler(req)
 	case ComponentAll:
 		return g.generateAll(req)
 	default:
@@ -114,6 +118,26 @@ func (g *CodeGenerator) generateService(req *GenerateRequest) (*GenerateResponse
 	return response, nil
 }
 
+// generateHandler 生成Handler
+func (g *CodeGenerator) generateHandler(req *GenerateRequest) (*GenerateResponse, error) {
+	// 使用Handler生成器生成
+	response, err := g.handlerGenerator.Generate(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果生成成功，更新历史记录
+	if response.Success && len(response.GeneratedFiles) > 0 {
+		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
+			// 历史记录更新失败不影响生成结果，只记录警告
+			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
+			response.HistoryUpdated = false
+		}
+	}
+
+	return response, nil
+}
+
 // generateAll 生成所有组件
 func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, error) {
 	var allGeneratedFiles []string
@@ -164,11 +188,20 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 		allErrors = append(allErrors, serviceResponse.Errors...)
 	}
 
-	// TODO: 4. 生成Handler
-	// handlerReq := *req
-	// handlerReq.ComponentType = ComponentHandler
-	// handlerResponse, err := g.generateHandler(&handlerReq)
-	// ...
+	// 4. 生成Handler
+	handlerReq := *req
+	handlerReq.ComponentType = ComponentHandler
+
+	handlerResponse, err := g.generateHandler(&handlerReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if handlerResponse.Success {
+		allGeneratedFiles = append(allGeneratedFiles, handlerResponse.GeneratedFiles...)
+	} else {
+		allErrors = append(allErrors, handlerResponse.Errors...)
+	}
 
 	// TODO: 5. 生成Routes
 	// routesReq := *req

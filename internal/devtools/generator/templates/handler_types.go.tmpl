@@ -1,0 +1,225 @@
+package types
+
+import (
+{{- if .HasTimeField }}
+	"time"
+{{- end }}
+
+	"bico-admin/internal/shared/types"
+	"bico-admin/pkg/utils"
+)
+
+// {{.CreateRequestName}} 创建{{.ModelName}}请求
+type {{.CreateRequestName}} struct {
+{{- range .Fields }}
+	{{.Name}} {{.Type}} `json:"{{.JsonTag}}"{{getValidationTag .}}`{{if .Comment}} // {{.Comment}}{{end}}
+{{- end }}
+}
+
+// {{.UpdateRequestName}} 更新{{.ModelName}}请求
+type {{.UpdateRequestName}} struct {
+{{- range .Fields }}
+	{{.Name}} {{.Type}} `json:"{{.JsonTag}}"{{getValidationTag .}}`{{if .Comment}} // {{.Comment}}{{end}}
+{{- end }}
+}
+
+// {{.ListRequestName}} {{.ModelName}}列表请求
+type {{.ListRequestName}} struct {
+	types.BasePageQuery
+{{- range .Fields }}
+{{- if or (eq .Type "string") (eq .Type "*string") }}
+	{{.Name}} string `form:"{{.JsonTag}}" json:"{{.JsonTag}}"` // {{.Comment}}筛选
+{{- else if or (eq .Type "int") (eq .Type "*int") (eq .Name "Status") }}
+	{{.Name}} *int `form:"{{.JsonTag}}" json:"{{.JsonTag}}"` // {{.Comment}}筛选
+{{- end }}
+{{- end }}
+}
+
+// {{.ResponseName}} {{.ModelName}}响应
+type {{.ResponseName}} struct {
+	ID uint `json:"id"`
+{{- range .Fields }}
+{{- if eq .Name "Status" }}
+	{{.Name}}     int    `json:"{{.JsonTag}}"`
+	StatusText string `json:"status_text"`
+{{- else if contains .Type "time.Time" }}
+	{{.Name}} *utils.FormattedTime `json:"{{.JsonTag}}"`
+{{- else }}
+	{{.Name}} {{.Type}} `json:"{{.JsonTag}}"`
+{{- end }}
+{{- if .Comment }}
+	// {{.Comment}}
+{{- end }}
+{{- end }}
+{{- if not (hasStatusField .Fields) }}
+	Status     int    `json:"status"`
+	StatusText string `json:"status_text"`
+{{- end }}
+	CreatedAt utils.FormattedTime `json:"created_at"`
+	UpdatedAt utils.FormattedTime `json:"updated_at"`
+}
+
+// {{.ModelName}}OptionResponse {{.ModelName}}选项响应（用于下拉选择）
+type {{.ModelName}}OptionResponse struct {
+	ID    uint   `json:"id"`
+{{- range .Fields }}
+{{- if or (eq .Name "Name") (eq .Name "Title") (eq .Name "Label") }}
+	{{.Name}} {{.Type}} `json:"{{.JsonTag}}"`
+{{- end }}
+{{- end }}
+{{- range .Fields }}
+{{- if eq .Name "Description" }}
+	Description {{.Type}} `json:"description"`
+{{- end }}
+{{- end }}
+}
+
+// {{.ModelName}}StatusUpdateRequest {{.ModelName}}状态更新请求
+type {{.ModelName}}StatusUpdateRequest struct {
+	Status int `json:"status" binding:"oneof=0 1 -1"`
+}
+
+// {{.ModelName}}BatchDeleteRequest {{.ModelName}}批量删除请求
+type {{.ModelName}}BatchDeleteRequest struct {
+	IDs []uint `json:"ids" binding:"required,min=1"`
+}
+
+// {{.ModelName}}BatchStatusRequest {{.ModelName}}批量状态更新请求
+type {{.ModelName}}BatchStatusRequest struct {
+	IDs    []uint `json:"ids" binding:"required,min=1"`
+	Status int    `json:"status" binding:"oneof=0 1 -1"`
+}
+
+// {{.ModelName}}ImportRequest {{.ModelName}}导入请求
+type {{.ModelName}}ImportRequest struct {
+	File     string `json:"file" binding:"required"`      // 文件路径
+	Override bool   `json:"override"`                     // 是否覆盖已存在的记录
+	DryRun   bool   `json:"dry_run"`                      // 是否为试运行
+}
+
+// {{.ModelName}}ExportRequest {{.ModelName}}导出请求
+type {{.ModelName}}ExportRequest struct {
+	Format string   `json:"format" binding:"oneof=xlsx csv json"` // 导出格式
+	Fields []string `json:"fields"`                               // 导出字段
+	Filter {{.ListRequestName}} `json:"filter"`                  // 筛选条件
+}
+
+// {{.ModelName}}ImportResult {{.ModelName}}导入结果
+type {{.ModelName}}ImportResult struct {
+	Total     int      `json:"total"`      // 总记录数
+	Success   int      `json:"success"`    // 成功导入数
+	Failed    int      `json:"failed"`     // 失败数
+	Errors    []string `json:"errors"`     // 错误信息
+	Warnings  []string `json:"warnings"`   // 警告信息
+}
+
+// {{.ModelName}}ExportResult {{.ModelName}}导出结果
+type {{.ModelName}}ExportResult struct {
+	FileName string `json:"file_name"` // 文件名
+	FilePath string `json:"file_path"` // 文件路径
+	FileURL  string `json:"file_url"`  // 下载链接
+	Total    int    `json:"total"`     // 导出记录数
+}
+
+// {{.ModelName}}StatisticsResponse {{.ModelName}}统计响应
+type {{.ModelName}}StatisticsResponse struct {
+	Total      int64                        `json:"total"`       // 总数
+	Active     int64                        `json:"active"`      // 启用数
+	Inactive   int64                        `json:"inactive"`    // 禁用数
+	Deleted    int64                        `json:"deleted"`     // 删除数
+	Recent     []{{.ResponseName}}          `json:"recent"`      // 最近记录
+	Trends     []{{.ModelName}}TrendData    `json:"trends"`      // 趋势数据
+	Categories []{{.ModelName}}CategoryData `json:"categories"`  // 分类统计
+}
+
+// {{.ModelName}}TrendData {{.ModelName}}趋势数据
+type {{.ModelName}}TrendData struct {
+	Date  string `json:"date"`  // 日期
+	Count int64  `json:"count"` // 数量
+}
+
+// {{.ModelName}}CategoryData {{.ModelName}}分类数据
+type {{.ModelName}}CategoryData struct {
+	Category string `json:"category"` // 分类名称
+	Count    int64  `json:"count"`    // 数量
+	Percent  float64 `json:"percent"`  // 百分比
+}
+
+// Validate{{.CreateRequestName}} 验证创建请求
+func (req *{{.CreateRequestName}}) Validate() error {
+	// TODO: 添加自定义验证逻辑
+	return nil
+}
+
+// Validate{{.UpdateRequestName}} 验证更新请求
+func (req *{{.UpdateRequestName}}) Validate() error {
+	// TODO: 添加自定义验证逻辑
+	return nil
+}
+
+// Validate{{.ListRequestName}} 验证列表请求
+func (req *{{.ListRequestName}}) Validate() error {
+	// 验证分页参数
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.PageSize <= 0 {
+		req.PageSize = 10
+	}
+	if req.PageSize > 100 {
+		req.PageSize = 100
+	}
+	
+	// TODO: 添加自定义验证逻辑
+	return nil
+}
+
+// ToCreateRequest 从更新请求转换为创建请求
+func (req *{{.UpdateRequestName}}) ToCreateRequest() *{{.CreateRequestName}} {
+	return &{{.CreateRequestName}}{
+{{- range .Fields }}
+		{{.Name}}: req.{{.Name}},
+{{- end }}
+	}
+}
+
+// ToUpdateRequest 从创建请求转换为更新请求
+func (req *{{.CreateRequestName}}) ToUpdateRequest() *{{.UpdateRequestName}} {
+	return &{{.UpdateRequestName}}{
+{{- range .Fields }}
+		{{.Name}}: req.{{.Name}},
+{{- end }}
+	}
+}
+
+// GetSearchFields 获取可搜索字段
+func (req *{{.ListRequestName}}) GetSearchFields() []string {
+	var fields []string
+{{- range .Fields }}
+{{- if or (eq .Type "string") (eq .Type "*string") }}
+	if req.{{.Name}} != "" {
+		fields = append(fields, "{{.JsonTag}}")
+	}
+{{- end }}
+{{- end }}
+	return fields
+}
+
+// GetFilterConditions 获取筛选条件
+func (req *{{.ListRequestName}}) GetFilterConditions() map[string]interface{} {
+	conditions := make(map[string]interface{})
+	
+{{- range .Fields }}
+{{- if or (eq .Type "string") (eq .Type "*string") }}
+	if req.{{.Name}} != "" {
+		conditions["{{.JsonTag}}"] = req.{{.Name}}
+	}
+{{- else if or (eq .Type "int") (eq .Type "*int") (eq .Name "Status") }}
+	if req.{{.Name}} != nil {
+		conditions["{{.JsonTag}}"] = *req.{{.Name}}
+	}
+{{- end }}
+{{- end }}
+	
+	return conditions
+}
