@@ -1,0 +1,37 @@
+{
+  "component_type": "model",
+  "model_name": "User",
+  "fields": [
+    {
+      "name": "Username",
+      "type": "string",
+      "gorm_tag": "uniqueIndex;size:50;not null",
+      "json_tag": "username",
+      "validate": "required,min=3,max=50",
+      "comment": "用户名"
+    },
+    {
+      "name": "Email",
+      "type": "string",
+      "gorm_tag": "uniqueIndex;size:100",
+      "json_tag": "email",
+      "validate": "required,email",
+      "comment": "邮箱"
+    },
+    {
+      "name": "Status",
+      "type": "int",
+      "gorm_tag": "default:1",
+      "json_tag": "status",
+      "validate": "oneof=0 1",
+      "comment": "状态：0-禁用，1-启用"
+    }
+  ],
+  "table_name": "users",
+  "package_path": "internal/admin",
+  "options": {
+    "overwrite_existing": true,
+    "format_code": true,
+    "optimize_imports": true
+  }
+}

@@ -1,0 +1,253 @@
+[
+  {
+    "name": "empty_fields",
+    "description": "空字段列表测试",
+    "request": {
+      "component_type": "model",
+      "model_name": "EmptyModel",
+      "fields": [],
+      "table_name": "empty_models",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    },
+    "expected_error": "至少需要定义一个字段"
+  },
+  {
+    "name": "invalid_model_name",
+    "description": "无效模型名称测试",
+    "request": {
+      "component_type": "model",
+      "model_name": "123Invalid",
+      "fields": [
+        {
+          "name": "Name",
+          "type": "string",
+          "gorm_tag": "size:100",
+          "json_tag": "name",
+          "validate": "required",
+          "comment": "名称"
+        }
+      ],
+      "table_name": "invalid_models",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    },
+    "expected_error": "模型名称必须是有效的Go标识符"
+  },
+  {
+    "name": "go_keyword_model_name",
+    "description": "Go关键字模型名称测试",
+    "request": {
+      "component_type": "model",
+      "model_name": "Type",
+      "fields": [
+        {
+          "name": "Name",
+          "type": "string",
+          "gorm_tag": "size:100",
+          "json_tag": "name",
+          "validate": "required",
+          "comment": "名称"
+        }
+      ],
+      "table_name": "types",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    },
+    "expected_error": "模型名称不能是Go关键字"
+  },
+  {
+    "name": "duplicate_field_names",
+    "description": "重复字段名称测试",
+    "request": {
+      "component_type": "model",
+      "model_name": "DuplicateModel",
+      "fields": [
+        {
+          "name": "Name",
+          "type": "string",
+          "gorm_tag": "size:100",
+          "json_tag": "name",
+          "validate": "required",
+          "comment": "名称1"
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "gorm_tag": "size:200",
+          "json_tag": "name2",
+          "validate": "required",
+          "comment": "名称2"
+        }
+      ],
+      "table_name": "duplicate_models",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    },
+    "expected_error": "字段名称'Name'重复"
+  },
+  {
+    "name": "too_many_fields",
+    "description": "字段数量超限测试",
+    "request": {
+      "component_type": "model",
+      "model_name": "TooManyFieldsModel",
+      "fields": [],
+      "table_name": "too_many_fields_models",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    },
+    "expected_error": "字段数量不能超过50个",
+    "note": "fields数组将在测试中动态生成51个字段"
+  },
+  {
+    "name": "invalid_field_name",
+    "description": "无效字段名称测试",
+    "request": {
+      "component_type": "model",
+      "model_name": "InvalidFieldModel",
+      "fields": [
+        {
+          "name": "123invalid",
+          "type": "string",
+          "gorm_tag": "size:100",
+          "json_tag": "invalid",
+          "validate": "required",
+          "comment": "无效字段名"
+        }
+      ],
+      "table_name": "invalid_field_models",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    },
+    "expected_error": "不是有效的Go标识符"
+  },
+  {
+    "name": "go_keyword_field_name",
+    "description": "Go关键字字段名称测试",
+    "request": {
+      "component_type": "model",
+      "model_name": "KeywordFieldModel",
+      "fields": [
+        {
+          "name": "type",
+          "type": "string",
+          "gorm_tag": "size:100",
+          "json_tag": "type",
+          "validate": "required",
+          "comment": "类型字段"
+        }
+      ],
+      "table_name": "keyword_field_models",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    },
+    "expected_error": "不能是Go关键字"
+  },
+  {
+    "name": "empty_field_type",
+    "description": "空字段类型测试",
+    "request": {
+      "component_type": "model",
+      "model_name": "EmptyTypeModel",
+      "fields": [
+        {
+          "name": "Name",
+          "type": "",
+          "gorm_tag": "size:100",
+          "json_tag": "name",
+          "validate": "required",
+          "comment": "名称"
+        }
+      ],
+      "table_name": "empty_type_models",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    },
+    "expected_error": "的类型不能为空"
+  },
+  {
+    "name": "invalid_component_type",
+    "description": "无效组件类型测试",
+    "request": {
+      "component_type": "invalid_component",
+      "model_name": "TestModel",
+      "fields": [
+        {
+          "name": "Name",
+          "type": "string",
+          "gorm_tag": "size:100",
+          "json_tag": "name",
+          "validate": "required",
+          "comment": "名称"
+        }
+      ],
+      "table_name": "test_models",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    },
+    "expected_error": "无效的组件类型"
+  },
+  {
+    "name": "long_model_name",
+    "description": "超长模型名称测试",
+    "request": {
+      "component_type": "model",
+      "model_name": "ThisIsAVeryLongModelNameThatExceedsTheFiftyCharacterLimit",
+      "fields": [
+        {
+          "name": "Name",
+          "type": "string",
+          "gorm_tag": "size:100",
+          "json_tag": "name",
+          "validate": "required",
+          "comment": "名称"
+        }
+      ],
+      "table_name": "long_name_models",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    },
+    "expected_error": "模型名称长度不能超过50个字符"
+  }
+]

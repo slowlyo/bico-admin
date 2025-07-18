@@ -1,0 +1,117 @@
+{
+  "component_type": "all",
+  "model_name": "Product",
+  "fields": [
+    {
+      "name": "Name",
+      "type": "string",
+      "gorm_tag": "size:200;not null;index",
+      "json_tag": "name",
+      "validate": "required,max=200",
+      "comment": "产品名称"
+    },
+    {
+      "name": "SKU",
+      "type": "string",
+      "gorm_tag": "uniqueIndex;size:50;not null",
+      "json_tag": "sku",
+      "validate": "required,max=50",
+      "comment": "产品SKU"
+    },
+    {
+      "name": "Price",
+      "type": "float64",
+      "gorm_tag": "type:decimal(10,2);not null",
+      "json_tag": "price",
+      "validate": "required,min=0",
+      "comment": "价格"
+    },
+    {
+      "name": "Stock",
+      "type": "int",
+      "gorm_tag": "default:0;check:stock >= 0",
+      "json_tag": "stock",
+      "validate": "min=0",
+      "comment": "库存数量"
+    },
+    {
+      "name": "CategoryID",
+      "type": "uint",
+      "gorm_tag": "not null;index",
+      "json_tag": "category_id",
+      "validate": "required",
+      "comment": "分类ID"
+    },
+    {
+      "name": "Description",
+      "type": "string",
+      "gorm_tag": "type:text",
+      "json_tag": "description",
+      "validate": "",
+      "comment": "产品描述"
+    },
+    {
+      "name": "Images",
+      "type": "string",
+      "gorm_tag": "type:json",
+      "json_tag": "images",
+      "validate": "",
+      "comment": "产品图片JSON数组"
+    },
+    {
+      "name": "Attributes",
+      "type": "string",
+      "gorm_tag": "type:json",
+      "json_tag": "attributes",
+      "validate": "",
+      "comment": "产品属性JSON"
+    },
+    {
+      "name": "IsActive",
+      "type": "bool",
+      "gorm_tag": "default:true",
+      "json_tag": "is_active",
+      "validate": "",
+      "comment": "是否激活"
+    },
+    {
+      "name": "Status",
+      "type": "int",
+      "gorm_tag": "default:1;index",
+      "json_tag": "status",
+      "validate": "oneof=0 1 2",
+      "comment": "状态：0-下架，1-上架，2-预售"
+    },
+    {
+      "name": "Weight",
+      "type": "float64",
+      "gorm_tag": "type:decimal(8,3);default:0.000",
+      "json_tag": "weight",
+      "validate": "min=0",
+      "comment": "重量(kg)"
+    },
+    {
+      "name": "PublishedAt",
+      "type": "*time.Time",
+      "gorm_tag": "",
+      "json_tag": "published_at",
+      "validate": "",
+      "comment": "发布时间"
+    },
+    {
+      "name": "ExpiredAt",
+      "type": "*time.Time",
+      "gorm_tag": "",
+      "json_tag": "expired_at",
+      "validate": "",
+      "comment": "过期时间"
+    }
+  ],
+  "table_name": "products",
+  "package_path": "internal/admin",
+  "options": {
+    "overwrite_existing": true,
+    "format_code": true,
+    "optimize_imports": true
+  }
+}

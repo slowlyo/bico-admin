@@ -1,0 +1,197 @@
+{
+  "component_type": "all",
+  "model_name": "FieldTypesTest",
+  "fields": [
+    {
+      "name": "StringField",
+      "type": "string",
+      "gorm_tag": "size:255;not null",
+      "json_tag": "string_field",
+      "validate": "required,max=255",
+      "comment": "字符串字段"
+    },
+    {
+      "name": "TextLongField",
+      "type": "string",
+      "gorm_tag": "type:text",
+      "json_tag": "text_long_field",
+      "validate": "",
+      "comment": "长文本字段"
+    },
+    {
+      "name": "IntField",
+      "type": "int",
+      "gorm_tag": "not null",
+      "json_tag": "int_field",
+      "validate": "required",
+      "comment": "整数字段"
+    },
+    {
+      "name": "Int32Field",
+      "type": "int32",
+      "gorm_tag": "not null",
+      "json_tag": "int32_field",
+      "validate": "required",
+      "comment": "32位整数字段"
+    },
+    {
+      "name": "Int64Field",
+      "type": "int64",
+      "gorm_tag": "not null",
+      "json_tag": "int64_field",
+      "validate": "required",
+      "comment": "64位整数字段"
+    },
+    {
+      "name": "UintField",
+      "type": "uint",
+      "gorm_tag": "not null",
+      "json_tag": "uint_field",
+      "validate": "required,min=0",
+      "comment": "无符号整数字段"
+    },
+    {
+      "name": "Uint32Field",
+      "type": "uint32",
+      "gorm_tag": "not null",
+      "json_tag": "uint32_field",
+      "validate": "required,min=0",
+      "comment": "32位无符号整数字段"
+    },
+    {
+      "name": "Uint64Field",
+      "type": "uint64",
+      "gorm_tag": "not null",
+      "json_tag": "uint64_field",
+      "validate": "required,min=0",
+      "comment": "64位无符号整数字段"
+    },
+    {
+      "name": "Float32Field",
+      "type": "float32",
+      "gorm_tag": "not null",
+      "json_tag": "float32_field",
+      "validate": "required",
+      "comment": "32位浮点数字段"
+    },
+    {
+      "name": "Float64Field",
+      "type": "float64",
+      "gorm_tag": "not null",
+      "json_tag": "float64_field",
+      "validate": "required",
+      "comment": "64位浮点数字段"
+    },
+    {
+      "name": "DecimalField",
+      "type": "float64",
+      "gorm_tag": "type:decimal(10,2);not null",
+      "json_tag": "decimal_field",
+      "validate": "required,min=0",
+      "comment": "小数字段"
+    },
+    {
+      "name": "BoolField",
+      "type": "bool",
+      "gorm_tag": "default:false",
+      "json_tag": "bool_field",
+      "validate": "",
+      "comment": "布尔字段"
+    },
+    {
+      "name": "TimeField",
+      "type": "*time.Time",
+      "gorm_tag": "",
+      "json_tag": "time_field",
+      "validate": "",
+      "comment": "时间字段"
+    },
+    {
+      "name": "DateField",
+      "type": "*time.Time",
+      "gorm_tag": "type:date",
+      "json_tag": "date_field",
+      "validate": "",
+      "comment": "日期字段"
+    },
+    {
+      "name": "DatetimeField",
+      "type": "*time.Time",
+      "gorm_tag": "type:datetime",
+      "json_tag": "datetime_field",
+      "validate": "",
+      "comment": "日期时间字段"
+    },
+    {
+      "name": "TimestampField",
+      "type": "*time.Time",
+      "gorm_tag": "type:timestamp",
+      "json_tag": "timestamp_field",
+      "validate": "",
+      "comment": "时间戳字段"
+    },
+    {
+      "name": "JsonField",
+      "type": "string",
+      "gorm_tag": "type:json",
+      "json_tag": "json_field",
+      "validate": "",
+      "comment": "JSON字段"
+    },
+    {
+      "name": "Status",
+      "type": "int",
+      "gorm_tag": "default:1;index",
+      "json_tag": "status",
+      "validate": "oneof=0 1 2",
+      "comment": "状态字段：0-禁用，1-启用，2-待审核"
+    },
+    {
+      "name": "NullableStringField",
+      "type": "*string",
+      "gorm_tag": "size:100",
+      "json_tag": "nullable_string_field",
+      "validate": "",
+      "comment": "可空字符串字段"
+    },
+    {
+      "name": "NullableIntField",
+      "type": "*int",
+      "gorm_tag": "",
+      "json_tag": "nullable_int_field",
+      "validate": "",
+      "comment": "可空整数字段"
+    },
+    {
+      "name": "NullableBoolField",
+      "type": "*bool",
+      "gorm_tag": "",
+      "json_tag": "nullable_bool_field",
+      "validate": "",
+      "comment": "可空布尔字段"
+    },
+    {
+      "name": "BytesField",
+      "type": "[]byte",
+      "gorm_tag": "type:blob",
+      "json_tag": "bytes_field",
+      "validate": "",
+      "comment": "字节数组字段"
+    },
+    {
+      "name": "EnumField",
+      "type": "string",
+      "gorm_tag": "type:enum('option1','option2','option3');default:'option1'",
+      "json_tag": "enum_field",
+      "validate": "oneof=option1 option2 option3",
+      "comment": "枚举字段"
+    }
+  ],
+  "table_name": "field_types_tests",
+  "package_path": "internal/admin",
+  "options": {
+    "overwrite_existing": true,
+    "format_code": true,
+    "optimize_imports": true
+  }
+}

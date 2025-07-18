@@ -1,0 +1,90 @@
+{
+  "version": "1.0.0",
+  "history": [
+    {
+      "module_name": "CompleteTestModel",
+      "generated_at": "2025-07-18T16:06:30.19745681+08:00",
+      "components": [
+        "model"
+      ],
+      "model_name": "CompleteTestModel",
+      "table_name": "complete_test_models",
+      "package_path": "internal/admin",
+      "generated_by": "MCP Code Generator",
+      "generated_files": [
+        "internal/admin/routes/routes_gen.go",
+        "internal/admin/provider_gen.go",
+        "internal/admin/initializer/migration_gen.go",
+        "internal/admin/definitions/permission_gen.go"
+      ]
+    },
+    {
+      "module_name": "Order",
+      "generated_at": "2025-07-18T16:06:30.200490597+08:00",
+      "components": [
+        "model"
+      ],
+      "model_name": "Order",
+      "table_name": "orders",
+      "package_path": "internal/admin",
+      "generated_by": "MCP Code Generator",
+      "generated_files": [
+        "internal/admin/routes/routes_gen.go",
+        "internal/admin/provider_gen.go",
+        "internal/admin/initializer/migration_gen.go",
+        "internal/admin/definitions/permission_gen.go"
+      ]
+    },
+    {
+      "module_name": "User",
+      "generated_at": "2025-07-18T16:06:30.202938125+08:00",
+      "components": [
+        "model"
+      ],
+      "model_name": "User",
+      "table_name": "users",
+      "package_path": "internal/admin",
+      "generated_by": "MCP Code Generator",
+      "generated_files": [
+        "internal/admin/routes/routes_gen.go",
+        "internal/admin/provider_gen.go",
+        "internal/admin/initializer/migration_gen.go",
+        "internal/admin/definitions/permission_gen.go"
+      ]
+    },
+    {
+      "module_name": "Article",
+      "generated_at": "2025-07-18T16:06:30.205131951+08:00",
+      "components": [
+        "model"
+      ],
+      "model_name": "Article",
+      "table_name": "articles",
+      "package_path": "internal/admin",
+      "generated_by": "MCP Code Generator",
+      "generated_files": [
+        "internal/admin/routes/routes_gen.go",
+        "internal/admin/provider_gen.go",
+        "internal/admin/initializer/migration_gen.go",
+        "internal/admin/definitions/permission_gen.go"
+      ]
+    },
+    {
+      "module_name": "FieldTypesTest",
+      "generated_at": "2025-07-18T16:06:30.209281277+08:00",
+      "components": [
+        "model"
+      ],
+      "model_name": "FieldTypesTest",
+      "table_name": "field_types_tests",
+      "package_path": "internal/admin",
+      "generated_by": "MCP Code Generator",
+      "generated_files": [
+        "internal/admin/routes/routes_gen.go",
+        "internal/admin/provider_gen.go",
+        "internal/admin/initializer/migration_gen.go",
+        "internal/admin/definitions/permission_gen.go"
+      ]
+    }
+  ]
+}

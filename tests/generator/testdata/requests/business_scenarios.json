@@ -1,0 +1,413 @@
+[
+  {
+    "name": "电商订单系统",
+    "description": "完整的电商订单管理系统模型",
+    "request": {
+      "component_type": "all",
+      "model_name": "Order",
+      "fields": [
+        {
+          "name": "OrderNo",
+          "type": "string",
+          "gorm_tag": "uniqueIndex;size:50;not null",
+          "json_tag": "order_no",
+          "validate": "required,max=50",
+          "comment": "订单号"
+        },
+        {
+          "name": "UserID",
+          "type": "uint",
+          "gorm_tag": "not null;index",
+          "json_tag": "user_id",
+          "validate": "required",
+          "comment": "用户ID"
+        },
+        {
+          "name": "TotalAmount",
+          "type": "float64",
+          "gorm_tag": "type:decimal(10,2);not null",
+          "json_tag": "total_amount",
+          "validate": "required,min=0",
+          "comment": "订单总金额"
+        },
+        {
+          "name": "DiscountAmount",
+          "type": "float64",
+          "gorm_tag": "type:decimal(10,2);default:0.00",
+          "json_tag": "discount_amount",
+          "validate": "min=0",
+          "comment": "折扣金额"
+        },
+        {
+          "name": "PaymentAmount",
+          "type": "float64",
+          "gorm_tag": "type:decimal(10,2);not null",
+          "json_tag": "payment_amount",
+          "validate": "required,min=0",
+          "comment": "实付金额"
+        },
+        {
+          "name": "PaymentMethod",
+          "type": "string",
+          "gorm_tag": "size:20;not null",
+          "json_tag": "payment_method",
+          "validate": "required,oneof=alipay wechat bank_card cash",
+          "comment": "支付方式"
+        },
+        {
+          "name": "Status",
+          "type": "int",
+          "gorm_tag": "default:0;index",
+          "json_tag": "status",
+          "validate": "oneof=0 1 2 3 4 5",
+          "comment": "订单状态：0-待支付，1-已支付，2-已发货，3-已收货，4-已完成，5-已取消"
+        },
+        {
+          "name": "ShippingAddress",
+          "type": "string",
+          "gorm_tag": "type:json",
+          "json_tag": "shipping_address",
+          "validate": "",
+          "comment": "收货地址JSON"
+        },
+        {
+          "name": "Remark",
+          "type": "string",
+          "gorm_tag": "type:text",
+          "json_tag": "remark",
+          "validate": "",
+          "comment": "订单备注"
+        },
+        {
+          "name": "PaidAt",
+          "type": "*time.Time",
+          "gorm_tag": "",
+          "json_tag": "paid_at",
+          "validate": "",
+          "comment": "支付时间"
+        },
+        {
+          "name": "ShippedAt",
+          "type": "*time.Time",
+          "gorm_tag": "",
+          "json_tag": "shipped_at",
+          "validate": "",
+          "comment": "发货时间"
+        },
+        {
+          "name": "CompletedAt",
+          "type": "*time.Time",
+          "gorm_tag": "",
+          "json_tag": "completed_at",
+          "validate": "",
+          "comment": "完成时间"
+        }
+      ],
+      "table_name": "orders",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    }
+  },
+  {
+    "name": "用户管理系统",
+    "description": "完整的用户管理系统模型",
+    "request": {
+      "component_type": "all",
+      "model_name": "User",
+      "fields": [
+        {
+          "name": "Username",
+          "type": "string",
+          "gorm_tag": "uniqueIndex;size:50;not null",
+          "json_tag": "username",
+          "validate": "required,min=3,max=50,alphanum",
+          "comment": "用户名"
+        },
+        {
+          "name": "Email",
+          "type": "string",
+          "gorm_tag": "uniqueIndex;size:100;not null",
+          "json_tag": "email",
+          "validate": "required,email",
+          "comment": "邮箱"
+        },
+        {
+          "name": "Phone",
+          "type": "string",
+          "gorm_tag": "uniqueIndex;size:20",
+          "json_tag": "phone",
+          "validate": "omitempty,len=11,numeric",
+          "comment": "手机号"
+        },
+        {
+          "name": "Password",
+          "type": "string",
+          "gorm_tag": "size:255;not null",
+          "json_tag": "-",
+          "validate": "required,min=6",
+          "comment": "密码"
+        },
+        {
+          "name": "Nickname",
+          "type": "string",
+          "gorm_tag": "size:50",
+          "json_tag": "nickname",
+          "validate": "max=50",
+          "comment": "昵称"
+        },
+        {
+          "name": "Avatar",
+          "type": "string",
+          "gorm_tag": "size:255",
+          "json_tag": "avatar",
+          "validate": "omitempty,url",
+          "comment": "头像URL"
+        },
+        {
+          "name": "Gender",
+          "type": "int",
+          "gorm_tag": "default:0",
+          "json_tag": "gender",
+          "validate": "oneof=0 1 2",
+          "comment": "性别：0-未知，1-男，2-女"
+        },
+        {
+          "name": "Birthday",
+          "type": "*time.Time",
+          "gorm_tag": "type:date",
+          "json_tag": "birthday",
+          "validate": "",
+          "comment": "生日"
+        },
+        {
+          "name": "Status",
+          "type": "int",
+          "gorm_tag": "default:1;index",
+          "json_tag": "status",
+          "validate": "oneof=0 1 2",
+          "comment": "状态：0-禁用，1-正常，2-待验证"
+        },
+        {
+          "name": "IsEmailVerified",
+          "type": "bool",
+          "gorm_tag": "default:false",
+          "json_tag": "is_email_verified",
+          "validate": "",
+          "comment": "邮箱是否已验证"
+        },
+        {
+          "name": "IsPhoneVerified",
+          "type": "bool",
+          "gorm_tag": "default:false",
+          "json_tag": "is_phone_verified",
+          "validate": "",
+          "comment": "手机是否已验证"
+        },
+        {
+          "name": "LastLoginAt",
+          "type": "*time.Time",
+          "gorm_tag": "",
+          "json_tag": "last_login_at",
+          "validate": "",
+          "comment": "最后登录时间"
+        },
+        {
+          "name": "LastLoginIP",
+          "type": "string",
+          "gorm_tag": "size:45",
+          "json_tag": "last_login_ip",
+          "validate": "omitempty,ip",
+          "comment": "最后登录IP"
+        },
+        {
+          "name": "LoginCount",
+          "type": "int",
+          "gorm_tag": "default:0",
+          "json_tag": "login_count",
+          "validate": "min=0",
+          "comment": "登录次数"
+        },
+        {
+          "name": "Profile",
+          "type": "string",
+          "gorm_tag": "type:json",
+          "json_tag": "profile",
+          "validate": "",
+          "comment": "用户资料JSON"
+        }
+      ],
+      "table_name": "users",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    }
+  },
+  {
+    "name": "内容管理系统",
+    "description": "文章内容管理系统模型",
+    "request": {
+      "component_type": "all",
+      "model_name": "Article",
+      "fields": [
+        {
+          "name": "Title",
+          "type": "string",
+          "gorm_tag": "size:200;not null;index",
+          "json_tag": "title",
+          "validate": "required,max=200",
+          "comment": "文章标题"
+        },
+        {
+          "name": "Slug",
+          "type": "string",
+          "gorm_tag": "uniqueIndex;size:200;not null",
+          "json_tag": "slug",
+          "validate": "required,max=200,alphanum",
+          "comment": "文章别名"
+        },
+        {
+          "name": "Summary",
+          "type": "string",
+          "gorm_tag": "size:500",
+          "json_tag": "summary",
+          "validate": "max=500",
+          "comment": "文章摘要"
+        },
+        {
+          "name": "Content",
+          "type": "string",
+          "gorm_tag": "type:longtext;not null",
+          "json_tag": "content",
+          "validate": "required",
+          "comment": "文章内容"
+        },
+        {
+          "name": "AuthorID",
+          "type": "uint",
+          "gorm_tag": "not null;index",
+          "json_tag": "author_id",
+          "validate": "required",
+          "comment": "作者ID"
+        },
+        {
+          "name": "CategoryID",
+          "type": "uint",
+          "gorm_tag": "not null;index",
+          "json_tag": "category_id",
+          "validate": "required",
+          "comment": "分类ID"
+        },
+        {
+          "name": "Tags",
+          "type": "string",
+          "gorm_tag": "type:json",
+          "json_tag": "tags",
+          "validate": "",
+          "comment": "标签JSON数组"
+        },
+        {
+          "name": "FeaturedImage",
+          "type": "string",
+          "gorm_tag": "size:255",
+          "json_tag": "featured_image",
+          "validate": "omitempty,url",
+          "comment": "特色图片URL"
+        },
+        {
+          "name": "ViewCount",
+          "type": "int",
+          "gorm_tag": "default:0;index",
+          "json_tag": "view_count",
+          "validate": "min=0",
+          "comment": "浏览次数"
+        },
+        {
+          "name": "LikeCount",
+          "type": "int",
+          "gorm_tag": "default:0",
+          "json_tag": "like_count",
+          "validate": "min=0",
+          "comment": "点赞次数"
+        },
+        {
+          "name": "CommentCount",
+          "type": "int",
+          "gorm_tag": "default:0",
+          "json_tag": "comment_count",
+          "validate": "min=0",
+          "comment": "评论次数"
+        },
+        {
+          "name": "Status",
+          "type": "int",
+          "gorm_tag": "default:0;index",
+          "json_tag": "status",
+          "validate": "oneof=0 1 2 3",
+          "comment": "状态：0-草稿，1-已发布，2-已下线，3-待审核"
+        },
+        {
+          "name": "IsTop",
+          "type": "bool",
+          "gorm_tag": "default:false;index",
+          "json_tag": "is_top",
+          "validate": "",
+          "comment": "是否置顶"
+        },
+        {
+          "name": "IsRecommend",
+          "type": "bool",
+          "gorm_tag": "default:false;index",
+          "json_tag": "is_recommend",
+          "validate": "",
+          "comment": "是否推荐"
+        },
+        {
+          "name": "PublishedAt",
+          "type": "*time.Time",
+          "gorm_tag": "index",
+          "json_tag": "published_at",
+          "validate": "",
+          "comment": "发布时间"
+        },
+        {
+          "name": "SEOTitle",
+          "type": "string",
+          "gorm_tag": "size:200",
+          "json_tag": "seo_title",
+          "validate": "max=200",
+          "comment": "SEO标题"
+        },
+        {
+          "name": "SEODescription",
+          "type": "string",
+          "gorm_tag": "size:500",
+          "json_tag": "seo_description",
+          "validate": "max=500",
+          "comment": "SEO描述"
+        },
+        {
+          "name": "SEOKeywords",
+          "type": "string",
+          "gorm_tag": "size:200",
+          "json_tag": "seo_keywords",
+          "validate": "max=200",
+          "comment": "SEO关键词"
+        }
+      ],
+      "table_name": "articles",
+      "package_path": "internal/admin",
+      "options": {
+        "overwrite_existing": true,
+        "format_code": true,
+        "optimize_imports": true
+      }
+    }
+  }
+]
