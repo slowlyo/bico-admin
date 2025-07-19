@@ -81,6 +81,24 @@ func (s *MCPDevServer) registerTools() error {
 		log.Printf("已注册工具: generate_code")
 	}
 
+	// 注册目录树工具
+	if s.config.Tools.DirectoryTree {
+		treeTool := tools.NewDirectoryTreeTool()
+		if err := s.registerTool("read_directory_tree", treeTool); err != nil {
+			return fmt.Errorf("注册目录树工具失败: %w", err)
+		}
+		log.Printf("已注册工具: read_directory_tree")
+	}
+
+	// 注册表结构查看工具
+	if s.config.Tools.TableSchema {
+		schemaTool := tools.NewTableSchemaTool()
+		if err := s.registerTool("inspect_table_schema", schemaTool); err != nil {
+			return fmt.Errorf("注册表结构查看工具失败: %w", err)
+		}
+		log.Printf("已注册工具: inspect_table_schema")
+	}
+
 	// TODO: 后续添加其他工具
 
 	return nil

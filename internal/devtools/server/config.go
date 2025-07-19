@@ -53,6 +53,12 @@ type ToolsConfig struct {
 	// 是否启用代码生成工具
 	CodeGenerator bool `yaml:"code_generator" json:"code_generator"`
 
+	// 是否启用目录树工具
+	DirectoryTree bool `yaml:"directory_tree" json:"directory_tree"`
+
+	// 是否启用表结构查看工具
+	TableSchema bool `yaml:"table_schema" json:"table_schema"`
+
 	// 是否启用CRUD生成工具（后续实现）
 	CRUDGenerator bool `yaml:"crud_generator" json:"crud_generator"`
 
@@ -83,6 +89,8 @@ func DefaultConfig() *Config {
 			ConfigReader:  true,
 			DatabaseTool:  true,  // 数据库操作工具
 			CodeGenerator: true,  // 代码生成工具
+			DirectoryTree: true,  // 目录树工具
+			TableSchema:   true,  // 表结构查看工具
 			CRUDGenerator: false, // 后续实现
 			DBHelper:      false, // 后续实现
 		},
