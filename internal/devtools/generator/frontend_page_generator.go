@@ -307,8 +307,8 @@ func (g *FrontendPageGenerator) generateSearchFormFields(fields []FieldDefinitio
 
 // generatePageFile 生成页面文件
 func (g *FrontendPageGenerator) generatePageFile(data *FrontendPageTemplateData) (string, string, error) {
-	// 生成文件路径
-	dirPath := filepath.Join("web/src/views/system", ToKebabCase(data.ModelNameLower))
+	// 生成文件路径 - 直接放在views目录下，不放在system子目录
+	dirPath := filepath.Join("web/src/views", ToKebabCase(data.ModelNameLower))
 	fileName := "index.vue"
 	filePath := filepath.Join(dirPath, fileName)
 

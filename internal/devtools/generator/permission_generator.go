@@ -188,10 +188,13 @@ var {{.ModelNameLower}}PermissionDefs = []PermissionDef{
 }`
 
 	return CodeSnippet{
+		ID:           fmt.Sprintf("permission_def_%s", strings.ToLower(data.ModelName)),
 		Content:      tmplContent,
 		TargetFile:   data.PackagePath + "/definitions/permissions.go",
 		InsertPoint:  "在 baseDefs 数组中，注释之前",
 		InsertBefore: "// 注意：生成的权限定义应该直接添加到上面的 baseDefs 数组中",
 		Description:  fmt.Sprintf("添加 %s 权限定义", data.ModelName),
+		Priority:     1,
+		Category:     "permission_def",
 	}, nil
 }

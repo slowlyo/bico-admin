@@ -77,62 +77,31 @@ type WireTemplateData struct {
 func (g *WireGenerator) generateWireSnippets(data *WireTemplateData) ([]CodeSnippet, error) {
 	var snippets []CodeSnippet
 
-	// 1. 生成Provider函数片段
-	providerFuncSnippet, err := g.generateProviderFuncSnippet(data)
-	if err != nil {
-		return nil, fmt.Errorf("生成Provider函数片段失败: %w", err)
-	}
-	snippets = append(snippets, providerFuncSnippet)
-
-	// 2. 生成ProviderSet更新片段
+	// 1. 生成ProviderSet更新片段
 	providerSetUpdateSnippet, err := g.generateProviderSetUpdateSnippet(data)
 	if err != nil {
 		return nil, fmt.Errorf("生成ProviderSet更新片段失败: %w", err)
 	}
 	snippets = append(snippets, providerSetUpdateSnippet)
 
+	// 2. 生成ProvideHandlers函数更新片段
+	handlersUpdateSnippet, err := g.generateHandlersUpdateSnippet(data)
+	if err != nil {
+		return nil, fmt.Errorf("生成ProvideHandlers更新片段失败: %w", err)
+	}
+	snippets = append(snippets, handlersUpdateSnippet)
+
 	return snippets, nil
 }
 
-// generateProviderFuncSnippet 生成Provider函数片段
-func (g *WireGenerator) generateProviderFuncSnippet(data *WireTemplateData) (CodeSnippet, error) {
-	tmplContent := `// Provide{{.ModelName}}Repository 提供{{.ModelName}} Repository
-func Provide{{.ModelName}}Repository(db *gorm.DB) repository.{{.ModelName}}Repository {
-	return repository.New{{.ModelName}}Repository(db)
-}
-
-// Provide{{.ModelName}}Service 提供{{.ModelName}} Service
-func Provide{{.ModelName}}Service(repo repository.{{.ModelName}}Repository) service.{{.ModelName}}Service {
-	return service.New{{.ModelName}}Service(repo)
-}
-
-// Provide{{.ModelName}}Handler 提供{{.ModelName}} Handler
-func Provide{{.ModelName}}Handler(svc service.{{.ModelName}}Service) *handler.{{.ModelName}}Handler {
-	return handler.New{{.ModelName}}Handler(svc)
-}`
-
-	tmpl, err := template.New("provider_func").Parse(tmplContent)
-	if err != nil {
-		return CodeSnippet{}, fmt.Errorf("解析Provider函数模板失败: %w", err)
-	}
-
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return CodeSnippet{}, fmt.Errorf("执行Provider函数模板失败: %w", err)
-	}
-
-	return CodeSnippet{
-		Content:     buf.String(),
-		TargetFile:  data.PackagePath + "/provider.go",
-		InsertPoint: "在 ProvidePermissionMiddleware 函数之后",
-		InsertAfter: "func ProvidePermissionMiddleware\\(.*\\) gin\\.HandlerFunc \\{[\\s\\S]*?\\}",
-		Description: fmt.Sprintf("添加 %s Provider函数", data.ModelName),
-	}, nil
-}
-
-// generateProviderSetUpdateSnippet 生成GeneratedProviderSet更新片段
+// generateProviderSetUpdateSnippet 生成ProviderSet更新片段
 func (g *WireGenerator) generateProviderSetUpdateSnippet(data *WireTemplateData) (CodeSnippet, error) {
-	tmplContent := `	{{.ModelName}}ProviderSet,`
+	// 根据provider.go的结构，生成需要添加到ProviderSet中的构造函数调用
+	tmplContent := `
+	// {{.ModelName}} 相关Provider
+	repository.New{{.ModelName}}Repository,
+	service.New{{.ModelName}}Service,
+	handler.New{{.ModelName}}Handler,`
 
 	tmpl, err := template.New("provider_set_update").Parse(tmplContent)
 	if err != nil {
@@ -145,10 +114,41 @@ func (g *WireGenerator) generateProviderSetUpdateSnippet(data *WireTemplateData)
 	}
 
 	return CodeSnippet{
+		ID:          fmt.Sprintf("wire_provider_set_%s", strings.ToLower(data.ModelName)),
 		Content:     buf.String(),
 		TargetFile:  data.PackagePath + "/provider.go",
-		InsertPoint: "在 ProviderSet 中，权限中间件之后",
-		InsertAfter: "ProvidePermissionMiddleware,",
-		Description: fmt.Sprintf("在 ProviderSet 中添加 %s Provider", data.ModelName),
+		InsertPoint: "在 ProviderSet 中的 Handler层 部分",
+		InsertAfter: "handler\\.NewCommonHandler,",
+		Description: fmt.Sprintf("在 ProviderSet 中添加 %s 相关的Repository、Service和Handler", data.ModelName),
+		Priority:    1,
+		Category:    "wire_provider",
+	}, nil
+}
+
+// generateHandlersUpdateSnippet 生成ProvideHandlers函数更新片段
+func (g *WireGenerator) generateHandlersUpdateSnippet(data *WireTemplateData) (CodeSnippet, error) {
+	// 生成需要添加到ProvideHandlers函数的参数和字段
+	parameterSnippet := fmt.Sprintf("\t\t%sHandler *handler.%sHandler,", ToLowerCamelCase(data.ModelName), data.ModelName)
+	fieldSnippet := fmt.Sprintf("\t\t\t%sHandler: %sHandler,", data.ModelName, ToLowerCamelCase(data.ModelName))
+
+	content := fmt.Sprintf(`
+需要手动更新 ProvideHandlers 函数：
+
+1. 在函数参数中添加：
+%s
+
+2. 在返回的 routes.Handlers 结构体中添加：
+%s
+
+3. 确保 routes.Handlers 结构体中也定义了对应的字段`, parameterSnippet, fieldSnippet)
+
+	return CodeSnippet{
+		ID:          fmt.Sprintf("wire_handlers_%s", strings.ToLower(data.ModelName)),
+		Content:     content,
+		TargetFile:  data.PackagePath + "/provider.go",
+		InsertPoint: "ProvideHandlers 函数需要手动更新",
+		Description: fmt.Sprintf("更新 ProvideHandlers 函数以包含 %s Handler", data.ModelName),
+		Priority:    2,
+		Category:    "wire_handlers",
 	}, nil
 }

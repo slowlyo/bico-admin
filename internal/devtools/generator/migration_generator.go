@@ -46,7 +46,7 @@ func (g *MigrationGenerator) GenerateSnippet(req *GenerateRequest) (*GenerateRes
 	return &GenerateResponse{
 		Success:      true,
 		CodeSnippets: snippets,
-		Message:      fmt.Sprintf("Migration代码片段生成完成，共生成 %d 个片段 (注意: shared 模块下的模型需要通过别名 import)", len(snippets)),
+		Message:      fmt.Sprintf("Migration代码片段生成完成，共生成 %d 个片段 (注意严格遵守: 需要先插入代码内容, 最后处理导入)", len(snippets)),
 	}, nil
 }
 
@@ -102,11 +102,14 @@ func (g *MigrationGenerator) generateMigrationRegistrarSnippet(data *MigrationTe
 	}
 
 	return CodeSnippet{
+		ID:           fmt.Sprintf("migration_model_%s", strings.ToLower(data.ModelName)),
 		Content:      buf.String(),
 		TargetFile:   data.PackagePath + "/initializer/database.go",
 		InsertPoint:  "在 modelList 数组中，注释之前",
 		InsertBefore: "// 注意：生成的模型应该直接添加到上面的 modelList 数组中, model 就应该在 shared 模块下, 这是正确的",
 		Description:  fmt.Sprintf("在 modelList 中添加 %s 模型", data.ModelName),
+		Priority:     1,
+		Category:     "migration_model",
 	}, nil
 }
 

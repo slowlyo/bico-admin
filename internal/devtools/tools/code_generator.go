@@ -114,6 +114,32 @@ func (t *CodeGeneratorTool) Handle(ctx context.Context, request mcp.CallToolRequ
 		return mcp.NewToolResultError(fmt.Sprintf("代码生成失败: %v", err)), nil
 	}
 
+	// 构建响应消息，包含详细的代码片段处理指导
+	message := response.Message
+	if len(response.CodeSnippets) > 0 {
+		message += fmt.Sprintf("\n\n🚨 【重要】需要处理 %d 个代码片段，这是最高优先级任务！", len(response.CodeSnippets))
+		message += "\n📋 代码片段处理清单："
+
+		// 按优先级排序显示
+		for i, snippet := range response.CodeSnippets {
+			message += fmt.Sprintf("\n  %d. [%s] 📁 %s", i+1, snippet.Category, snippet.TargetFile)
+			message += fmt.Sprintf("\n     🆔 ID: %s", snippet.ID)
+			message += fmt.Sprintf("\n     📍 位置: %s", snippet.InsertPoint)
+			message += fmt.Sprintf("\n     📝 说明: %s", snippet.Description)
+			message += fmt.Sprintf("\n     🔢 优先级: %d", snippet.Priority)
+			if i < len(response.CodeSnippets)-1 {
+				message += "\n"
+			}
+		}
+
+		message += "\n\n⚠️  处理规则："
+		message += "\n  1. 请按照上述顺序逐个处理每个代码片段"
+		message += "\n  2. 处理完一个片段后，请明确说明：'✅ 已完成片段 [ID]: [简要说明]'"
+		message += "\n  3. 然后继续处理下一个片段"
+		message += "\n  4. 即使遇到异常也必须先完成所有代码片段的处理"
+		message += "\n💡 提示：每个片段都有唯一ID，便于跟踪处理进度！"
+	}
+
 	// 构建响应
 	toolResponse := types.ToolResponse{
 		Success: response.Success,
@@ -127,7 +153,7 @@ func (t *CodeGeneratorTool) Handle(ctx context.Context, request mcp.CallToolRequ
 			"table_name":      tableName,
 			"fields_count":    len(fields),
 		},
-		Message: response.Message + " (注意: 如果 code_snippets 不为空, 你需要先完成代码片段的填充在继续处理其他内容(即使出现异常, 也只能在完成所有代码片段的填充后处理), 这是最高优先级!)",
+		Message: message,
 	}
 
 	// 如果有错误，添加错误信息

@@ -171,10 +171,13 @@ func Register{{.ModelName}}ProtectedRoutes(protectedGroup *gin.RouterGroup, hand
 	}
 
 	return CodeSnippet{
+		ID:           fmt.Sprintf("route_register_%s", strings.ToLower(data.ModelName)),
 		Content:      buf.String(),
 		TargetFile:   data.PackagePath + "/routes/routes.go",
 		InsertPoint:  "在 RegisterRoutes 函数的末尾，注释之前",
 		InsertBefore: "// 注意：生成的路由代码应该直接添加到上面的相应位置",
 		Description:  fmt.Sprintf("添加 %s 路由注册函数", data.ModelName),
+		Priority:     1,
+		Category:     "route_register",
 	}, nil
 }

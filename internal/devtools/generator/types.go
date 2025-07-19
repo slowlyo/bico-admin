@@ -51,12 +51,15 @@ type GenerateOptions struct {
 
 // CodeSnippet 代码片段信息
 type CodeSnippet struct {
+	ID           string `json:"id"`            // 片段唯一标识符
 	Content      string `json:"content"`       // 代码片段内容
 	TargetFile   string `json:"target_file"`   // 目标文件路径
 	InsertPoint  string `json:"insert_point"`  // 插入位置说明
 	InsertAfter  string `json:"insert_after"`  // 在指定内容之后插入
 	InsertBefore string `json:"insert_before"` // 在指定内容之前插入
 	Description  string `json:"description"`   // 插入说明
+	Priority     int    `json:"priority"`      // 优先级（数字越小优先级越高）
+	Category     string `json:"category"`      // 片段类别（如：provider、route、permission等）
 }
 
 // GenerateResponse 生成响应

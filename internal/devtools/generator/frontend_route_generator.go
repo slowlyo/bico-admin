@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -144,10 +145,13 @@ func (g *FrontendRouteGenerator) generateRouteConfigSnippet(data *FrontendRouteT
 	)
 
 	return CodeSnippet{
+		ID:          fmt.Sprintf("frontend_route_config_%s", strings.ToLower(data.ModelName)),
 		Content:     content,
 		TargetFile:  "web/src/router/routes/asyncRoutes.ts",
 		InsertPoint: fmt.Sprintf("在 asyncRoutes 数组末尾添加 %s 顶级路由配置", data.ModelNameChinese),
 		Description: "将此代码片段添加到 web/src/router/routes/asyncRoutes.ts 文件中的 asyncRoutes 数组末尾",
+		Priority:    1,
+		Category:    "frontend_route_config",
 	}
 }
 
@@ -162,9 +166,12 @@ func (g *FrontendRouteGenerator) generateRouteAliasSnippet(data *FrontendRouteTe
 	)
 
 	return CodeSnippet{
+		ID:          fmt.Sprintf("frontend_route_alias_%s", strings.ToLower(data.ModelName)),
 		Content:     content,
 		TargetFile:  "web/src/router/routesAlias.ts",
 		InsertPoint: fmt.Sprintf("在 RoutesAlias 对象中添加 %s 路由别名", data.ModelNameChinese),
 		Description: "将此代码片段添加到 web/src/router/routesAlias.ts 文件中的 RoutesAlias 对象中",
+		Priority:    2,
+		Category:    "frontend_route_alias",
 	}
 }

@@ -315,8 +315,8 @@ func (g *FrontendFormGenerator) generateValidationRules(fields []FieldDefinition
 
 // generateFormFile 生成表单文件
 func (g *FrontendFormGenerator) generateFormFile(data *FrontendFormTemplateData) (string, string, error) {
-	// 生成文件路径
-	dirPath := filepath.Join("web/src/views/system", ToKebabCase(data.ModelNameLower), "modules")
+	// 生成文件路径 - 直接放在views目录下，不放在system子目录
+	dirPath := filepath.Join("web/src/views", ToKebabCase(data.ModelNameLower), "modules")
 	fileName := fmt.Sprintf("%s-dialog.vue", ToKebabCase(data.ModelNameLower))
 	filePath := filepath.Join(dirPath, fileName)
 
