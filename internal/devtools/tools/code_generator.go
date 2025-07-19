@@ -26,7 +26,7 @@ func NewCodeGeneratorTool() *CodeGeneratorTool {
 // GetTool 获取MCP工具定义
 func (t *CodeGeneratorTool) GetTool() mcp.Tool {
 	return mcp.NewTool("generate_code",
-		mcp.WithDescription("生成CRUD功能模块代码，支持模型、仓储、服务、处理器等组件"),
+		mcp.WithDescription("生成CRUD功能模块代码，支持模型、仓储、服务、处理器等组件 (当用户让生成xx功能时, 应该优先整理字段并调用此工具!)"),
 		mcp.WithString("component_type",
 			mcp.Required(),
 			mcp.Description("组件类型"),
