@@ -122,8 +122,8 @@ func (g *FrontendAPIGenerator) prepareTemplateData(req *GenerateRequest) *Fronte
 	// 生成服务类名
 	serviceName := modelName + "Service"
 
-	// 生成API基础路径
-	apiBasePath := "/admin-api/" + strings.ReplaceAll(modelNameSnake, "_", "-")
+	// 生成API基础路径（使用复数形式）
+	apiBasePath := "/admin-api/" + ToPlural(strings.ReplaceAll(modelNameSnake, "_", "-"))
 
 	// 生成类型命名空间（现在使用本地命名空间）
 	typeNamespace := modelName + "Types"

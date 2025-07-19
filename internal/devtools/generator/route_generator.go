@@ -57,8 +57,8 @@ func (g *RouteGenerator) prepareTemplateData(req *GenerateRequest) *RouteTemplat
 	modelNameSnake := toSnakeCase(modelName)
 	packageName := getPackageNameFromPath(req.PackagePath)
 
-	// 生成路由路径
-	routePath := "/" + strings.ReplaceAll(modelNameSnake, "_", "-")
+	// 生成路由路径（使用复数形式）
+	routePath := "/" + ToPlural(strings.ReplaceAll(modelNameSnake, "_", "-"))
 
 	// 生成处理器方法
 	handlerMethods := []HandlerMethod{
