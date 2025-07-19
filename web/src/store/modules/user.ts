@@ -126,7 +126,10 @@ export const useUserStore = defineStore(
       } catch (error) {
         console.error('退出登录接口调用失败:', error)
         // 即使接口调用失败，也要清空本地状态
-      } finally {
+      }
+
+      // 清空本地状态（确保这些操作不会因为异常而中断）
+      try {
         // 清空用户信息
         info.value = {}
         // 清空用户权限
@@ -149,8 +152,17 @@ export const useUserStore = defineStore(
         useMenuStore().setHomePath('')
         // 重置路由状态
         resetRouterState()
-        // 跳转到登录页
+      } catch (error) {
+        console.error('清空本地状态失败:', error)
+      }
+
+      // 确保跳转到登录页（即使前面的操作失败）
+      try {
         router.push(RoutesAlias.Login)
+      } catch (error) {
+        console.error('跳转到登录页失败:', error)
+        // 如果路由跳转失败，尝试直接修改location
+        window.location.href = '/login'
       }
     }
 

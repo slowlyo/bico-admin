@@ -6,9 +6,11 @@ import { $t } from '@/locales'
 
 // 常量定义
 const REQUEST_TIMEOUT = 15000 // 请求超时时间(毫秒)
-const LOGOUT_DELAY = 1000 // 退出登录延迟时间(毫秒)
 const MAX_RETRIES = 2 // 最大重试次数
 const RETRY_DELAY = 1000 // 重试延迟时间(毫秒)
+
+// 防止重复登出的标志
+let isLoggingOut = false
 
 // 扩展 AxiosRequestConfig 类型
 interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
@@ -79,7 +81,8 @@ axiosInstance.interceptors.response.use(
         // 检查是否是登录请求，如果是登录请求则不执行登出操作
         const isLoginRequest = response.config.url?.includes('/auth/login')
         if (!isLoginRequest) {
-          logOut()
+          // 异步执行登出操作，不阻塞当前响应处理
+          logOut().catch(error => console.error('登出操作失败:', error))
         }
         throw new HttpError(errorMessage || $t('httpMsg.unauthorized'), ApiStatus.unauthorized)
       default:
@@ -98,11 +101,14 @@ axiosInstance.interceptors.response.use(
           // 如果刷新成功，重新发送原请求
           error.config.headers.Authorization = `Bearer ${newToken}`
           return axiosInstance.request(error.config)
+        } else {
+          // 如果没有获取到新token，说明刷新失败，执行登出
+          logOut().catch(error => console.error('登出操作失败:', error))
         }
       } catch (refreshError) {
         console.error('Token刷新失败:', refreshError)
         // 刷新失败，执行登出
-        logOut()
+        logOut().catch(error => console.error('登出操作失败:', error))
       }
     }
 
@@ -203,10 +209,28 @@ const api = {
 }
 
 // 退出登录函数
-const logOut = (): void => {
-  setTimeout(async () => {
+const logOut = async (): Promise<void> => {
+  // 防止重复登出
+  if (isLoggingOut) {
+    return
+  }
+
+  isLoggingOut = true
+
+  try {
     await useUserStore().logOut()
-  }, LOGOUT_DELAY)
+  } catch (error) {
+    console.error('登出操作失败:', error)
+    // 即使登出操作失败，也要确保跳转到登录页
+    const { router } = await import('@/router')
+    const { RoutesAlias } = await import('@/router/routesAlias')
+    router.push(RoutesAlias.Login)
+  } finally {
+    // 重置标志，但延迟一点时间避免立即重复调用
+    setTimeout(() => {
+      isLoggingOut = false
+    }, 1000)
+  }
 }
 
 export default api

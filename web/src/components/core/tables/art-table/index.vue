@@ -345,7 +345,7 @@
     sizes: DEFAULT_PAGINATION_SIZES,
     align: 'center',
     layout: '',
-    hideOnSinglePage: true,
+    hideOnSinglePage: false,
     componentSize: 'default'
   }
 
@@ -445,7 +445,8 @@
     if (layout) return layout
 
     // 根据设备类型返回不同的布局
-    return isMobile.value ? 'prev, pager, next, jumper' : 'total, sizes, prev, pager, next, jumper'
+    // 将 sizes 移动到页码调整按钮前面
+    return isMobile.value ? 'prev, pager, next, jumper' : 'total, prev, pager, next, sizes, jumper'
   })
 
   // ========== 列处理 ==========

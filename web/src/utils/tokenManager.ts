@@ -102,16 +102,9 @@ export async function refreshToken(): Promise<string | null> {
       }
     } catch (error) {
       console.error('Token刷新失败:', error)
-      
-      // 刷新失败，执行登出操作
-      const userStore = useUserStore()
-      
-      // 只有在不是登录页时才跳转和显示消息
-      if (router.currentRoute.value.path !== RoutesAlias.Login) {
-        ElMessage.error('登录已过期，请重新登录')
-        await userStore.logOut()
-      }
-      
+
+      // 刷新失败，不在这里执行登出操作，让HTTP拦截器来处理
+      // 避免循环调用的问题
       return null
     } finally {
       isRefreshing = false
@@ -134,12 +127,9 @@ export async function autoRefreshToken(): Promise<void> {
     return
   }
 
-  // 如果token已过期，直接登出
+  // 如果token已过期，清空token让HTTP拦截器处理
   if (isTokenExpired(token)) {
-    if (router.currentRoute.value.path !== RoutesAlias.Login) {
-      ElMessage.error('登录已过期，请重新登录')
-      await userStore.logOut()
-    }
+    userStore.setToken('')
     return
   }
 
