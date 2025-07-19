@@ -73,7 +73,6 @@ func RegisterRoutes(r *gin.Engine, handlers *Handlers, cache cache.Cache, permis
 	}
 
 	// 注意：生成的路由代码应该直接添加到上面的相应位置
-	// 不再使用动态注册模式
 }
 
 // Handlers 处理器集合
@@ -85,4 +84,3 @@ type Handlers struct {
 }
 
 // 注意：生成的路由代码应该直接添加到 RegisterRoutes 函数中
-// 不再使用动态注册模式，代码生成器会提供具体的插入位置指导

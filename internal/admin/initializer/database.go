@@ -9,9 +9,6 @@ import (
 	pkgLogger "bico-admin/pkg/logger"
 )
 
-// 注意：生成的 Migration 代码应该直接添加到 AutoMigrateAdminModels 函数中
-// 不再使用动态注册模式，代码生成器会提供具体的插入位置指导
-
 // DatabaseInitializer 数据库初始化器
 type DatabaseInitializer struct {
 	db *gorm.DB

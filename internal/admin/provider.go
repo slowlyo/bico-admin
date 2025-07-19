@@ -14,7 +14,6 @@ import (
 )
 
 // 注意：生成的 Provider 代码应该直接添加到 ProviderSet 中
-// 不再使用动态注册模式，代码生成器会提供具体的插入位置指导
 
 // ProviderSet Admin端Provider集合
 // 注意：生成的 Provider 需要手动添加到这里，或者使用 wire.Build 时包含生成的 ProviderSet

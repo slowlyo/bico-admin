@@ -5,7 +5,6 @@ import (
 )
 
 // 注意：生成的权限代码应该直接添加到 getAllPermissionDefs 函数中
-// 不再使用动态注册模式，代码生成器会提供具体的插入位置指导
 
 // Permission 权限定义（静态配置，程序中定义）
 type Permission struct {

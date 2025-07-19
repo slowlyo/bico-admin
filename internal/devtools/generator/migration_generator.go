@@ -105,7 +105,7 @@ func (g *MigrationGenerator) generateMigrationRegistrarSnippet(data *MigrationTe
 		Content:      buf.String(),
 		TargetFile:   data.PackagePath + "/initializer/database.go",
 		InsertPoint:  "在 modelList 数组中，注释之前",
-		InsertBefore: "// 注意：生成的模型应该直接添加到上面的 modelList 数组中",
+		InsertBefore: "// 注意：生成的模型应该直接添加到上面的 modelList 数组中, model 就应该在 shared 模块下, 这是正确的",
 		Description:  fmt.Sprintf("在 modelList 中添加 %s 模型", data.ModelName),
 	}, nil
 }
