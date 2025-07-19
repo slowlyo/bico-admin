@@ -50,7 +50,7 @@ func (s *{{.ModelNameLower}}Service) Create(ctx context.Context, req *types.{{.C
 	// 转换请求为实体
 	entity := &models.{{.ModelName}}{
 {{- range .Fields }}
-		{{printf "%-12s" (printf "%s:" .Name)}}req.{{.Name}},
+		{{printf "%-12s" (printf "%s:" (ToPascalCase .Name))}}req.{{ToPascalCase .Name}},
 {{- end }}
 	}
 
@@ -77,7 +77,7 @@ func (s *{{.ModelNameLower}}Service) Update(ctx context.Context, id uint, req *t
 
 	// 更新字段
 {{- range .Fields }}
-	{{printf "entity.%-12s" .Name}}= req.{{.Name}}
+	{{printf "entity.%-12s" (ToPascalCase .Name)}}= req.{{ToPascalCase .Name}}
 {{- end }}
 
 	// 业务验证
@@ -117,7 +117,7 @@ func (s *{{.ModelNameLower}}Service) UpdateStatus(ctx context.Context, id uint, 
 		return err
 	}
 
-	entity.Status = &status
+	entity.Status = status
 	return s.{{.ModelNameLower}}Repo.Update(ctx, entity)
 }
 
