@@ -123,14 +123,14 @@
 <script setup lang="ts">
   import type { FormInstance, FormRules } from 'element-plus'
   import { ElMessage } from 'element-plus'
-  import { AdminUserService } from '@/api/adminUserApi'
+  import { AdminUserService, type AdminUserTypes, type RoleTypes } from '@/api/adminUserApi'
   import AvatarUpload from '@/components/custom/avatar-upload/index.vue'
 
   interface Props {
     visible: boolean
     type: string
-    userData?: Api.AdminUser.AdminUserInfo
-    roleOptions: Api.Role.RoleOption[]
+    userData?: AdminUserTypes.AdminUserInfo
+    roleOptions: RoleTypes.RoleOption[]
   }
 
   interface Emits {
@@ -157,7 +157,7 @@
   const formRef = ref<FormInstance>()
 
   // 表单数据
-  const formData = reactive<Api.AdminUser.AdminUserCreateRequest & { confirmPassword: string }>({
+  const formData = reactive<AdminUserTypes.AdminUserCreateRequest & { confirmPassword: string }>({
     username: '',
     password: '',
     confirmPassword: '',
@@ -300,7 +300,7 @@
           if (dialogType.value === 'add') {
             await AdminUserService.createAdminUser(submitData)
           } else {
-            const updateData = { ...submitData } as Api.AdminUser.AdminUserUpdateRequest
+            const updateData = { ...submitData } as AdminUserTypes.AdminUserUpdateRequest
             // 如果密码为空，则不更新密码
             if (!updateData.password) {
               delete updateData.password

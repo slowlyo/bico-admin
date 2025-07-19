@@ -56,7 +56,7 @@
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import { useTable } from '@/composables/useTable'
   import { useAuth } from '@/composables/useAuth'
-  import { AdminUserService, RoleService } from '@/api/adminUserApi'
+  import { AdminUserService, RoleService, type AdminUserTypes, type RoleTypes } from '@/api/adminUserApi'
   import AdminUserDialog from './modules/admin-user-dialog.vue'
   import { ElMessage, ElMessageBox, ElSwitch, ElTag } from 'element-plus'
   import type { ColumnOption, SearchFormItem } from '@/types/component'
@@ -66,7 +66,7 @@
   // 权限检查
   const { hasAuth, hasAnyAuth } = useAuth('system.admin_user')
 
-  type AdminUserInfo = Api.AdminUser.AdminUserInfo
+  type AdminUserInfo = AdminUserTypes.AdminUserInfo
   const { getAdminUserList } = AdminUserService
 
   // 弹窗相关
@@ -78,7 +78,7 @@
   const selectedRows = ref<AdminUserInfo[]>([])
 
   // 角色列表
-  const roleList = ref<Api.Role.RoleOption[]>([])
+  const roleList = ref<RoleTypes.RoleOption[]>([])
 
   // 计算角色选项 - 用于搜索下拉框
   const roleSelectOptions = computed(() =>
@@ -270,7 +270,7 @@
                 class: 'flex flex-wrap gap-1',
                 style: { padding: '4px 0' }
               },
-                row.roles?.map((role: Api.AdminUser.AdminUserRole) =>
+                row.roles?.map((role: AdminUserTypes.AdminUserRole) =>
                   h(ElTag, {
                     key: role.id,
                     type: 'primary',

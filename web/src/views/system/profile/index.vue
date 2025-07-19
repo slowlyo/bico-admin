@@ -131,7 +131,7 @@
   import { ref, reactive, computed, onMounted, watch } from 'vue'
   import { useUserStore } from '@/store/modules/user'
   import { useSettingStore } from '@/store/modules/setting'
-  import { UserService } from '@/api/usersApi'
+  import { UserService, type UserTypes } from '@/api/usersApi'
   import { ElForm, ElMessage, FormInstance, FormRules } from 'element-plus'
   import AvatarUpload from '@/components/custom/avatar-upload/index.vue'
 
@@ -152,7 +152,7 @@
   const pwdFormRef = ref<FormInstance>()
 
   // 个人信息表单
-  const form = reactive<Api.User.ProfileUpdateRequest>({
+  const form = reactive<UserTypes.ProfileUpdateRequest>({
     name: '',
     avatar: '',
     email: '',
@@ -160,7 +160,7 @@
   })
 
   // 密码表单
-  const pwdForm = reactive<Api.User.ChangePasswordRequest & { confirm_password: string }>({
+  const pwdForm = reactive<UserTypes.ChangePasswordRequest & { confirm_password: string }>({
     old_password: '',
     new_password: '',
     confirm_password: ''

@@ -9,6 +9,7 @@ import { setPageTitle } from '@/router/utils/utils'
 import { resetRouterState } from '@/router/guards/beforeEach'
 import { RoutesAlias } from '@/router/routesAlias'
 import { useMenuStore } from './menu'
+import type { UserTypes } from '@/api/usersApi'
 
 /**
  * 用户状态管理
@@ -26,7 +27,7 @@ export const useUserStore = defineStore(
     // 锁屏密码
     const lockPassword = ref('')
     // 用户信息
-    const info = ref<Partial<Api.User.UserInfo>>({})
+    const info = ref<Partial<UserTypes.UserInfo>>({})
     // 用户权限
     const permissions = ref<string[]>([])
     // 搜索历史记录
@@ -47,7 +48,7 @@ export const useUserStore = defineStore(
      * 设置用户信息
      * @param newInfo 新的用户信息
      */
-    const setUserInfo = (newInfo: Api.User.UserInfo) => {
+    const setUserInfo = (newInfo: UserTypes.UserInfo) => {
       info.value = newInfo
     }
 

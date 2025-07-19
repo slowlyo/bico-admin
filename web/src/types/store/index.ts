@@ -4,6 +4,7 @@
 
 import { MenuThemeEnum, SystemThemeEnum } from '@/enums/appEnum'
 import { LocationQueryRaw } from 'vue-router'
+import type { UserTypes } from '@/api/usersApi'
 
 // 系统主题样式（light | dark）
 export interface SystemThemeType {
@@ -61,7 +62,7 @@ export interface WorkTab {
 
 // 用户Store状态
 export interface UserState {
-  userInfo: Api.User.UserInfo | null
+  userInfo: UserTypes.UserInfo | null
   token: string | null
   roles: string[]
   permissions: string[]

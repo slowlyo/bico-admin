@@ -19,7 +19,7 @@
       <ElDialog v-model="visible" :width="370" :show-close="false" @open="handleDialogOpen">
         <div class="lock-content">
           <img class="cover" src="@imgs/user/avatar.webp" alt="用户头像" />
-          <div class="username">{{ userInfo.userName }}</div>
+          <div class="username">{{ userInfo.username || userInfo.name }}</div>
           <ElForm ref="formRef" :model="formData" :rules="rules" @submit.prevent="handleLock">
             <ElFormItem prop="password">
               <ElInput
@@ -49,7 +49,7 @@
     <div v-else class="unlock-content">
       <div class="box">
         <img class="cover" src="@imgs/user/avatar.webp" alt="用户头像" />
-        <div class="username">{{ userInfo.userName }}</div>
+        <div class="username">{{ userInfo.username || userInfo.name }}</div>
         <ElForm
           ref="unlockFormRef"
           :model="unlockForm"

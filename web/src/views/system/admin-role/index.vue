@@ -64,7 +64,7 @@
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import { useTable } from '@/composables/useTable'
   import { useAuth } from '@/composables/useAuth'
-  import { AdminRoleService } from '@/api/adminRoleApi'
+  import { AdminRoleService, type RoleTypes } from '@/api/adminRoleApi'
   import AdminRoleDialog from './modules/admin-role-dialog.vue'
   import AdminRolePermissionDrawer from './modules/admin-role-permission-drawer.vue'
   import { ElMessage, ElMessageBox, ElSwitch } from 'element-plus'
@@ -75,7 +75,7 @@
   // 权限检查
   const { hasAuth, hasAnyAuth } = useAuth('system.role')
 
-  type RoleInfo = Api.Role.RoleInfo
+  type RoleInfo = RoleTypes.RoleInfo
   const { getRoleList } = AdminRoleService
 
   // 弹窗相关

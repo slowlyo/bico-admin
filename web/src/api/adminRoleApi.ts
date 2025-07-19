@@ -1,5 +1,86 @@
 import request from '@/utils/http'
 
+// 角色相关类型定义
+export namespace RoleTypes {
+  /** 角色信息 */
+  export interface RoleInfo {
+    id: number
+    name: string
+    code: string
+    description?: string
+    status: number
+    status_text: string
+    user_count: number
+    can_edit: boolean
+    can_delete: boolean
+    permissions?: RolePermission[]
+    created_at: string
+    updated_at: string
+  }
+
+  /** 角色权限 */
+  export interface RolePermission {
+    permission_code: string
+    permission_name: string
+    module: string
+    level: number
+  }
+
+  /** 角色选项 */
+  export interface RoleOption {
+    id: number
+    name: string
+    code: string
+    description?: string
+  }
+
+  /** 角色列表请求参数 */
+  export interface RoleListParams {
+    page: number
+    page_size: number
+    name?: string
+    code?: string
+    status?: number
+    sort_by?: string
+    sort_desc?: boolean
+    [key: string]: unknown
+  }
+
+  /** 角色列表数据 */
+  export interface RoleListData {
+    list: RoleInfo[]
+    total: number
+    page: number
+    page_size: number
+  }
+
+  /** 角色创建请求 */
+  export interface RoleCreateRequest {
+    name: string
+    code: string
+    description?: string
+    status: number
+    permissions: string[]
+  }
+
+  /** 角色更新请求 */
+  export interface RoleUpdateRequest {
+    name: string
+    description?: string
+    status: number
+    permissions: string[]
+  }
+
+  /** 权限树节点 */
+  export interface PermissionTreeNode {
+    key: string
+    title: string
+    type: string
+    selected: boolean
+    children?: PermissionTreeNode[]
+  }
+}
+
 /**
  * 管理员角色API服务
  */
@@ -8,7 +89,7 @@ export class AdminRoleService {
    * 获取角色列表
    */
   static getRoleList(params: any) {
-    return request.get<Api.Http.BaseResponse<Api.Role.RoleListData>>({
+    return request.get<Api.Http.BaseResponse<RoleTypes.RoleListData>>({
       url: '/admin-api/roles',
       params
     })
@@ -18,7 +99,7 @@ export class AdminRoleService {
    * 根据ID获取角色
    */
   static getRoleById(id: number) {
-    return request.get<Api.Http.BaseResponse<Api.Role.RoleInfo>>({
+    return request.get<Api.Http.BaseResponse<RoleTypes.RoleInfo>>({
       url: `/admin-api/roles/${id}`
     })
   }
@@ -26,8 +107,8 @@ export class AdminRoleService {
   /**
    * 创建角色
    */
-  static createRole(data: Api.Role.RoleCreateRequest) {
-    return request.post<Api.Http.BaseResponse<Api.Role.RoleInfo>>({
+  static createRole(data: RoleTypes.RoleCreateRequest) {
+    return request.post<Api.Http.BaseResponse<RoleTypes.RoleInfo>>({
       url: '/admin-api/roles',
       data: data
     })
@@ -36,8 +117,8 @@ export class AdminRoleService {
   /**
    * 更新角色
    */
-  static updateRole(id: number, data: Api.Role.RoleUpdateRequest) {
-    return request.put<Api.Http.BaseResponse<Api.Role.RoleInfo>>({
+  static updateRole(id: number, data: RoleTypes.RoleUpdateRequest) {
+    return request.put<Api.Http.BaseResponse<RoleTypes.RoleInfo>>({
       url: `/admin-api/roles/${id}`,
       data: data
     })
@@ -69,7 +150,7 @@ export class AdminRoleService {
    * 获取权限树
    */
   static getPermissionTree(roleId?: number) {
-    return request.get<Api.Role.PermissionTreeNode[]>({
+    return request.get<RoleTypes.PermissionTreeNode[]>({
       url: '/admin-api/roles/permissions',
       params: roleId ? { role_id: roleId } : undefined
     })
@@ -89,7 +170,7 @@ export class AdminRoleService {
    * 获取活跃角色选项
    */
   static getActiveRoles() {
-    return request.get<Api.Role.RoleOption[]>({
+    return request.get<RoleTypes.RoleOption[]>({
       url: '/admin-api/roles/options'
     })
   }

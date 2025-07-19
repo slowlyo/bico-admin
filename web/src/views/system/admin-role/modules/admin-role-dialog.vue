@@ -55,12 +55,12 @@
 <script setup lang="ts">
   import type { FormInstance, FormRules } from 'element-plus'
   import { ElMessage } from 'element-plus'
-  import { AdminRoleService } from '@/api/adminRoleApi'
+  import { AdminRoleService, type RoleTypes } from '@/api/adminRoleApi'
 
   interface Props {
     visible: boolean
     type: string
-    roleData?: Api.Role.RoleInfo
+    roleData?: RoleTypes.RoleInfo
   }
 
   interface Emits {
@@ -85,7 +85,7 @@
   const formRef = ref<FormInstance>()
 
   // 表单数据
-  const formData = reactive<Api.Role.RoleCreateRequest>({
+  const formData = reactive<RoleTypes.RoleCreateRequest>({
     name: '',
     code: '',
     description: '',
@@ -167,7 +167,7 @@
           if (dialogType.value === 'add') {
             await AdminRoleService.createRole(formData)
           } else {
-            const updateData = { ...formData } as Api.Role.RoleUpdateRequest
+            const updateData = { ...formData } as RoleTypes.RoleUpdateRequest
             await AdminRoleService.updateRole(props.roleData!.id, updateData)
           }
 

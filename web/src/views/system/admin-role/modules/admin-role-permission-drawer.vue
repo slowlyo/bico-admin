@@ -49,11 +49,11 @@
 
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
-  import { AdminRoleService } from '@/api/adminRoleApi'
+  import { AdminRoleService, type RoleTypes } from '@/api/adminRoleApi'
 
   interface Props {
     visible: boolean
-    roleData?: Api.Role.RoleInfo
+    roleData?: RoleTypes.RoleInfo
   }
 
   interface Emits {
@@ -71,7 +71,7 @@
   const isSelectAll = ref(false)
 
   // 权限树数据
-  const permissionTree = ref<Api.Role.PermissionTreeNode[]>([])
+  const permissionTree = ref<RoleTypes.PermissionTreeNode[]>([])
   const selectedPermissions = ref<string[]>([])
 
   // 抽屉显示控制
@@ -118,10 +118,10 @@
   }
 
   // 提取已选中的权限
-  const extractSelectedPermissions = (nodes: Api.Role.PermissionTreeNode[]): string[] => {
+  const extractSelectedPermissions = (nodes: RoleTypes.PermissionTreeNode[]): string[] => {
     const selected: string[] = []
-    
-    const traverse = (nodeList: Api.Role.PermissionTreeNode[]) => {
+
+    const traverse = (nodeList: RoleTypes.PermissionTreeNode[]) => {
       nodeList.forEach(node => {
         if (node.selected) {
           selected.push(node.key)
@@ -137,10 +137,10 @@
   }
 
   // 获取所有节点的key
-  const getAllNodeKeys = (nodes: Api.Role.PermissionTreeNode[]): string[] => {
+  const getAllNodeKeys = (nodes: RoleTypes.PermissionTreeNode[]): string[] => {
     const keys: string[] = []
-    
-    const traverse = (nodeList: Api.Role.PermissionTreeNode[]) => {
+
+    const traverse = (nodeList: RoleTypes.PermissionTreeNode[]) => {
       nodeList.forEach(node => {
         keys.push(node.key)
         if (node.children && node.children.length > 0) {
