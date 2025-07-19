@@ -181,8 +181,8 @@ func (g *FrontendPageGenerator) generateTableColumns(fields []FieldDefinition) [
 		{
 			Label: "ID",
 			Prop:  "id",
-			Width: "80",
-			Type:  "number",
+			// 不设置宽度，让表格自动调整
+			Type: "number",
 		},
 	}
 
@@ -194,25 +194,23 @@ func (g *FrontendPageGenerator) generateTableColumns(fields []FieldDefinition) [
 			Sortable: true,
 		}
 
-		// 根据字段类型设置列属性
+		// 根据字段类型设置列属性，但不设置固定宽度
 		switch field.Type {
 		case "string":
 			if strings.Contains(strings.ToLower(field.Name), "status") {
 				column.Formatter = "statusFormatter"
+				// 状态列可以设置较小的宽度
 				column.Width = "100"
-			} else {
-				column.Width = "150"
 			}
+			// 其他字符串字段不设置宽度
 		case "int", "decimal", "float32", "float64":
-			column.Width = "120"
+			// 数字字段不设置宽度
 		case "bool":
-			column.Width = "80"
 			column.Formatter = "boolFormatter"
+			column.Width = "80" // 布尔值可以设置较小宽度
 		case "time.Time":
-			column.Width = "180"
 			column.Formatter = "timeFormatter"
-		default:
-			column.Width = "150"
+			// 时间字段不设置宽度，使用minWidth
 		}
 
 		columns = append(columns, column)
@@ -223,14 +221,14 @@ func (g *FrontendPageGenerator) generateTableColumns(fields []FieldDefinition) [
 		TableColumn{
 			Label:     "创建时间",
 			Prop:      "created_at",
-			Width:     "180",
 			Formatter: "timeFormatter",
+			// 不设置宽度
 		},
 		TableColumn{
 			Label:     "更新时间",
 			Prop:      "updated_at",
-			Width:     "180",
 			Formatter: "timeFormatter",
+			// 不设置宽度
 		},
 	)
 

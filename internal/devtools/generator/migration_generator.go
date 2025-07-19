@@ -84,12 +84,20 @@ func (g *MigrationGenerator) generateMigrationSnippets(data *MigrationTemplateDa
 	}
 	snippets = append(snippets, modelSnippet)
 
+	// 2. 生成导入片段
+	importSnippet, err := g.generateMigrationImportSnippet(data, fields)
+	if err != nil {
+		return nil, fmt.Errorf("生成Migration导入片段失败: %w", err)
+	}
+	snippets = append(snippets, importSnippet)
+
 	return snippets, nil
 }
 
 // generateMigrationRegistrarSnippet 生成Migration模型片段
 func (g *MigrationGenerator) generateMigrationRegistrarSnippet(data *MigrationTemplateData, fields []FieldDefinition) (CodeSnippet, error) {
-	tmplContent := `		&models.{{.ModelName}}{},`
+	// 使用带别名的模型引用，避免IDE自动移除导入
+	tmplContent := `		&sharedModels.{{.ModelName}}{},`
 
 	tmpl, err := template.New("migration_model").Parse(tmplContent)
 	if err != nil {
@@ -107,36 +115,25 @@ func (g *MigrationGenerator) generateMigrationRegistrarSnippet(data *MigrationTe
 		TargetFile:   data.PackagePath + "/initializer/database.go",
 		InsertPoint:  "在 modelList 数组中，注释之前",
 		InsertBefore: "// 注意：生成的模型应该直接添加到上面的 modelList 数组中, model 就应该在 shared 模块下, 这是正确的",
-		Description:  fmt.Sprintf("在 modelList 中添加 %s 模型", data.ModelName),
+		Description:  fmt.Sprintf("在 modelList 中添加 %s 模型 (⚠️ 重要：请先插入此代码片段，然后再添加导入 sharedModels \"bico-admin/internal/shared/models\")", data.ModelName),
 		Priority:     1,
 		Category:     "migration_model",
 	}, nil
 }
 
-// mapFieldTypeToSQL 将Go字段类型映射为SQL类型
-func (g *MigrationGenerator) mapFieldTypeToSQL(goType string) string {
-	switch goType {
-	case "string":
-		return "string"
-	case "int", "int32":
-		return "int"
-	case "int64":
-		return "int64"
-	case "uint", "uint32":
-		return "uint"
-	case "uint64":
-		return "uint64"
-	case "float32":
-		return "float32"
-	case "float64":
-		return "float64"
-	case "bool":
-		return "bool"
-	case "time.Time", "*time.Time":
-		return "time.Time"
-	case "[]byte":
-		return "[]byte"
-	default:
-		return "string" // 默认为string类型
-	}
+// generateMigrationImportSnippet 生成Migration导入片段
+func (g *MigrationGenerator) generateMigrationImportSnippet(data *MigrationTemplateData, fields []FieldDefinition) (CodeSnippet, error) {
+	// 导入内容
+	importContent := `	sharedModels "bico-admin/internal/shared/models"`
+
+	return CodeSnippet{
+		ID:          fmt.Sprintf("migration_import_%s", strings.ToLower(data.ModelName)),
+		Content:     importContent,
+		TargetFile:  data.PackagePath + "/initializer/database.go",
+		InsertPoint: "在导入部分添加 shared models 导入",
+		InsertAfter: `"bico-admin/internal/admin/models"`,
+		Description: fmt.Sprintf("为 %s 模型添加 shared models 导入", data.ModelName),
+		Priority:    2, // 优先级较低，在模型片段之后处理
+		Category:    "migration_import",
+	}, nil
 }

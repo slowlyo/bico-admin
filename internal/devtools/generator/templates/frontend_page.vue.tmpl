@@ -63,7 +63,7 @@
   defineOptions({ name: '{{.ModelName}}' })
 
   // 权限检查
-  const { hasAuth, hasAnyAuth } = useAuth('system.{{.ModelNameSnake}}')
+  const { hasAuth, hasAnyAuth } = useAuth('{{.ModelNameSnake}}')
 
   type {{.ModelName}}Info = {{.TypeNamespace}}.{{.ModelName}}Info
   const { get{{.ModelName}}List } = {{.ServiceName}}
@@ -141,11 +141,6 @@
       },
       columnsFactory: () => {
         const columns: ColumnOption<{{.ModelName}}Info>[] = [
-          {
-            prop: 'id',
-            label: 'ID',
-            width: 80
-          },
 {{range .TableColumns}}          {
             prop: '{{.Prop}}',
             label: '{{.Label}}'{{if .Width}},
