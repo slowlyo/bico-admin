@@ -92,7 +92,7 @@ func (g *HandlerGenerator) prepareTemplateData(req *GenerateRequest) (*HandlerTe
 		ModelNameLower: ToLowerCamelCase(req.ModelName),
 		ModelNameSnake: ToSnakeCase(req.ModelName),
 		Fields:         fields,
-		Imports:        imports,
+		Imports:        imports, // 现在为空，但保留以兼容模板
 		HasTimeField:   NeedsTimeImport(req.Fields),
 		HasValidation:  NeedsValidationImport(fields),
 		Timestamp:      time.Now(),
@@ -117,27 +117,11 @@ func (g *HandlerGenerator) prepareTemplateData(req *GenerateRequest) (*HandlerTe
 	return templateData, nil
 }
 
-// determineImports 确定需要导入的包
+// determineImports 确定需要导入的包（现在使用固定导入）
 func (g *HandlerGenerator) determineImports(fields []FieldDefinition) []string {
-	var imports []string
-
-	// 检查是否需要时间包
-	if NeedsTimeImport(fields) {
-		imports = append(imports, "time")
-	}
-
-	// 基础导入
-	imports = append(imports, "github.com/gin-gonic/gin")
-
-	// 模型和类型导入
-	imports = append(imports, "bico-admin/internal/shared/models")
-	imports = append(imports, "bico-admin/internal/admin/service")
-	imports = append(imports, "bico-admin/internal/admin/types")
-	imports = append(imports, `sharedTypes "bico-admin/internal/shared/types"`)
-	imports = append(imports, "bico-admin/pkg/utils")
-
-	// 去重
-	return removeDuplicateStrings(imports)
+	// 新的 Handler 模板使用固定的导入，不需要动态计算
+	// 所有导入都在模板中硬编码
+	return []string{}
 }
 
 // generateFiles 生成文件

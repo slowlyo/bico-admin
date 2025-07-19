@@ -1,41 +1,187 @@
 package handler
 
 import (
-{{- range .Imports }}
-	{{- if contains . `"`}}
-	{{.}}
-	{{- else }}
-	"{{.}}"
-	{{- end }}
-{{- end }}
+	"github.com/gin-gonic/gin"
+
+	"bico-admin/internal/shared/models"
+	"bico-admin/internal/admin/service"
+	"bico-admin/internal/admin/types"
+	sharedTypes "bico-admin/internal/shared/types"
+	"bico-admin/pkg/response"
+	"bico-admin/pkg/utils"
 )
 
 // {{.HandlerName}} {{.ModelName}}处理器
 type {{.HandlerName}} struct {
-	*BaseHandler[models.{{.ModelName}}, types.{{.CreateRequestName}}, types.{{.UpdateRequestName}}, types.{{.ListRequestName}}, types.{{.ResponseName}}]
 	{{.ModelNameLower}}Service service.{{.ServiceInterface}}
 }
 
 // New{{.HandlerName}} 创建{{.ModelName}}处理器
 func New{{.HandlerName}}({{.ModelNameLower}}Service service.{{.ServiceInterface}}) *{{.HandlerName}} {
-	// 创建默认选项
-	options := DefaultHandlerOptions()
-
-	// 根据需要调整选项
-	options.EnableSoftDelete = true
-	options.EnableStatusManagement = {{hasStatusField .Fields}}
-	options.EnableBatchOperations = true
-
-	baseHandler := NewBaseHandler[models.{{.ModelName}}, types.{{.CreateRequestName}}, types.{{.UpdateRequestName}}, types.{{.ListRequestName}}, types.{{.ResponseName}}]({{.ModelNameLower}}Service, options)
-
 	return &{{.HandlerName}}{
-		BaseHandler: baseHandler,
 		{{.ModelNameLower}}Service: {{.ModelNameLower}}Service,
 	}
 }
 
-// ConvertToResponse 转换实体为响应格式
-func (h *{{.HandlerName}}) ConvertToResponse(c *gin.Context, entity *models.{{.ModelName}}) types.{{.ResponseName}} {
+// Create 创建{{.ModelName}}
+func (h *{{.HandlerName}}) Create(c *gin.Context) {
+	var req types.{{.CreateRequestName}}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	// 自定义验证
+	if err := req.Validate(); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	// 调用服务层
+	result, err := h.{{.ModelNameLower}}Service.Create(c.Request.Context(), &req)
+	if err != nil {
+		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
+		return
+	}
+
+	// 转换响应
+	responseData := h.convertToResponse(result)
+	response.Success(c, responseData)
+}
+
+// GetByID 根据ID获取{{.ModelName}}
+func (h *{{.HandlerName}}) GetByID(c *gin.Context) {
+	var req sharedTypes.IDRequest
+	if err := c.ShouldBindUri(&req); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	// 调用服务层
+	entity, err := h.{{.ModelNameLower}}Service.GetByID(c.Request.Context(), req.ID)
+	if err != nil {
+		response.ErrorWithMessage(c, response.CodeNotFound, err.Error())
+		return
+	}
+
+	// 转换响应
+	responseData := h.convertToResponse(entity)
+	response.Success(c, responseData)
+}
+
+// Update 更新{{.ModelName}}
+func (h *{{.HandlerName}}) Update(c *gin.Context) {
+	var uriReq sharedTypes.IDRequest
+	if err := c.ShouldBindUri(&uriReq); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	var req types.{{.UpdateRequestName}}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	// 自定义验证
+	if err := req.Validate(); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	// 调用服务层
+	result, err := h.{{.ModelNameLower}}Service.Update(c.Request.Context(), uriReq.ID, &req)
+	if err != nil {
+		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
+		return
+	}
+
+	// 转换响应
+	responseData := h.convertToResponse(result)
+	response.Success(c, responseData)
+}
+
+// Delete 删除{{.ModelName}}
+func (h *{{.HandlerName}}) Delete(c *gin.Context) {
+	var req sharedTypes.IDRequest
+	if err := c.ShouldBindUri(&req); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	// 调用服务层
+	if err := h.{{.ModelNameLower}}Service.Delete(c.Request.Context(), req.ID); err != nil {
+		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+
+// List 获取{{.ModelName}}列表
+func (h *{{.HandlerName}}) List(c *gin.Context) {
+	var req types.{{.ListRequestName}}
+	if err := c.ShouldBindQuery(&req); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	// 自定义验证
+	if err := req.Validate(); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	// 调用服务层
+	entities, total, err := h.{{.ModelNameLower}}Service.ListWithFilter(c.Request.Context(), &req)
+	if err != nil {
+		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
+		return
+	}
+
+	// 转换响应
+	var responses []types.{{.ResponseName}}
+	for _, entity := range entities {
+		responses = append(responses, h.convertToResponse(entity))
+	}
+
+	response.Page(c, responses, total, req.Page, req.PageSize)
+}
+
+{{- if hasStatusField .Fields }}
+// UpdateStatus 更新{{.ModelName}}状态
+func (h *{{.HandlerName}}) UpdateStatus(c *gin.Context) {
+	var uriReq sharedTypes.IDRequest
+	if err := c.ShouldBindUri(&uriReq); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	var req types.StatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ValidationError(c, err.Error())
+		return
+	}
+
+	enabled := req.Status == sharedTypes.StatusActive
+	if err := h.{{.ModelNameLower}}Service.UpdateStatus(c.Request.Context(), uriReq.ID, enabled); err != nil {
+		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, nil)
+}
+{{- end }}
+
+// convertToResponse 转换为响应格式
+func (h *{{.HandlerName}}) convertToResponse(entity *models.{{.ModelName}}) types.{{.ResponseName}} {
+{{- if hasPointerStatusField .Fields }}
+	status := 0
+	if entity.Status != nil {
+		status = *entity.Status
+	}
+{{- end }}
+
 	return types.{{.ResponseName}}{
 		ID: entity.ID,
 {{- range .Fields }}
@@ -44,8 +190,8 @@ func (h *{{.HandlerName}}) ConvertToResponse(c *gin.Context, entity *models.{{.M
 		{{.Name}}: entity.{{.Name}},
 		StatusText: h.getStatusText(entity.{{.Name}}),
 	{{- else }}
-		{{.Name}}: h.getStatusValue(entity.{{.Name}}),
-		StatusText: h.getStatusText(h.getStatusValue(entity.{{.Name}})),
+		{{.Name}}: status,
+		StatusText: h.getStatusText(status),
 	{{- end }}
 {{- else if contains .Type "*time.Time" }}
 		{{.Name}}: h.formatTime(entity.{{.Name}}),
@@ -57,80 +203,6 @@ func (h *{{.HandlerName}}) ConvertToResponse(c *gin.Context, entity *models.{{.M
 		UpdatedAt: utils.NewFormattedTime(entity.UpdatedAt),
 	}
 }
-
-// ConvertCreateRequest 转换创建请求为实体
-func (h *{{.HandlerName}}) ConvertCreateRequest(c *gin.Context, req *types.{{.CreateRequestName}}) *models.{{.ModelName}} {
-	entity := &models.{{.ModelName}}{
-{{- range .Fields }}
-{{- if eq .Name "Status" }}
-		{{.Name}}: req.{{.Name}},
-{{- else }}
-		{{.Name}}: req.{{.Name}},
-{{- end }}
-{{- end }}
-	}
-
-	return entity
-}
-
-// ConvertUpdateRequest 转换更新请求为实体
-func (h *{{.HandlerName}}) ConvertUpdateRequest(c *gin.Context, id uint, req *types.{{.UpdateRequestName}}) *models.{{.ModelName}} {
-	entity := &models.{{.ModelName}}{
-		BaseModel: sharedTypes.BaseModel{ID: id},
-{{- range .Fields }}
-{{- if eq .Name "Status" }}
-		{{.Name}}: req.{{.Name}},
-{{- else }}
-		{{.Name}}: req.{{.Name}},
-{{- end }}
-{{- end }}
-	}
-
-	return entity
-}
-
-// ConvertListRequest 转换列表请求为基础分页查询
-func (h *{{.HandlerName}}) ConvertListRequest(c *gin.Context, req *types.{{.ListRequestName}}) *sharedTypes.BasePageQuery {
-	// 设置默认值
-	if req.Page <= 0 {
-		req.Page = 1
-	}
-	if req.PageSize <= 0 {
-		req.PageSize = 10
-	}
-	if req.PageSize > 100 {
-		req.PageSize = 100
-	}
-
-	// 这里可以处理特殊的筛选条件
-	// 将业务筛选条件转换为通用的关键词搜索或其他查询参数
-
-	return &req.BasePageQuery
-}
-
-// ConvertListToResponse 转换列表为响应格式
-func (h *{{.HandlerName}}) ConvertListToResponse(c *gin.Context, list any) []types.{{.ResponseName}} {
-	entities, ok := list.([]*models.{{.ModelName}})
-	if !ok {
-		return []types.{{.ResponseName}}{}
-	}
-
-	var responses []types.{{.ResponseName}}
-	for _, entity := range entities {
-		responses = append(responses, h.ConvertToResponse(c, entity))
-	}
-	return responses
-}
-
-{{- if hasPointerStatusField .Fields }}
-// getStatusValue 获取状态值
-func (h *{{.HandlerName}}) getStatusValue(status *int) int {
-	if status == nil {
-		return sharedTypes.StatusInactive
-	}
-	return *status
-}
-{{- end }}
 
 // getStatusText 获取状态文本
 func (h *{{.HandlerName}}) getStatusText(status int) string {
@@ -151,7 +223,6 @@ func (h *{{.HandlerName}}) getStatusText(status int) string {
 }
 
 {{- if .HasTimeField }}
-
 // formatTime 格式化时间
 func (h *{{.HandlerName}}) formatTime(t *time.Time) *utils.FormattedTime {
 	if t == nil {
