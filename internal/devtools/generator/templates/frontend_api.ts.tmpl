@@ -1,0 +1,30 @@
+{{range .Imports}}{{.}}
+{{end}}
+// {{.ModelName}}相关类型定义
+export namespace {{.TypeNamespace}} {
+{{range .TypeDefinitions}}  /** {{.Comment}} */
+  export interface {{.Name}} {
+{{range .Fields}}    {{if ne .Name "// TODO"}}{{.Name}}{{if .Optional}}?{{end}}: {{.Type}}{{if .Comment}} // {{.Comment}}{{end}}{{else}}{{.Comment}}: {{.Type}}{{end}}
+{{end}}  }
+
+{{end}}}
+
+/**
+ * {{.ModelName}}API服务
+ *
+ * @generated 此文件由代码生成器自动生成，请勿手动修改
+ * @generated-time {{.Timestamp.Format "2006-01-02 15:04:05"}}
+ */
+export class {{.ServiceName}} {
+{{range .Methods}}  /**
+   * {{.Comment}}
+   */
+  static {{.Name}}({{if .HasPathParam}}{{if .RequestData}}id: number, data: {{.ParamsType}}{{else}}id: number{{end}}{{else if .RequestData}}data: {{.ParamsType}}{{else if .HasParams}}params: {{.ParamsType}}{{end}}) {
+    return request.{{if eq .HTTPMethod "GET"}}get{{else if eq .HTTPMethod "POST"}}post{{else if eq .HTTPMethod "PUT"}}put{{else if eq .HTTPMethod "DELETE"}}del{{end}}<{{.ResponseType}}>({
+      url: {{if .HasPathParam}}`{{.URL}}`{{else}}'{{.URL}}'{{end}}{{if .RequestData}},
+      data{{end}}{{if .HasParams}},
+      params{{end}}
+    })
+  }
+
+{{end}}}

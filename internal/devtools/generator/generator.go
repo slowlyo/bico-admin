@@ -6,31 +6,33 @@ import (
 
 // CodeGenerator 代码生成器
 type CodeGenerator struct {
-	modelGenerator      *ModelGenerator
-	repositoryGenerator *RepositoryGenerator
-	serviceGenerator    *ServiceGenerator
-	handlerGenerator    *HandlerGenerator
-	routeGenerator      *RouteGenerator
-	wireGenerator       *WireGenerator
-	migrationGenerator  *MigrationGenerator
-	permissionGenerator *PermissionGenerator
-	historyManager      *HistoryManager
-	validator           *Validator
+	modelGenerator       *ModelGenerator
+	repositoryGenerator  *RepositoryGenerator
+	serviceGenerator     *ServiceGenerator
+	handlerGenerator     *HandlerGenerator
+	routeGenerator       *RouteGenerator
+	wireGenerator        *WireGenerator
+	migrationGenerator   *MigrationGenerator
+	permissionGenerator  *PermissionGenerator
+	frontendAPIGenerator *FrontendAPIGenerator
+	historyManager       *HistoryManager
+	validator            *Validator
 }
 
 // NewCodeGenerator 创建代码生成器
 func NewCodeGenerator() *CodeGenerator {
 	return &CodeGenerator{
-		modelGenerator:      NewModelGenerator(),
-		repositoryGenerator: NewRepositoryGenerator(),
-		serviceGenerator:    NewServiceGenerator(),
-		handlerGenerator:    NewHandlerGenerator(),
-		routeGenerator:      NewRouteGenerator(),
-		wireGenerator:       NewWireGenerator(),
-		migrationGenerator:  NewMigrationGenerator(),
-		permissionGenerator: NewPermissionGenerator(),
-		historyManager:      NewHistoryManager(),
-		validator:           NewValidator(),
+		modelGenerator:       NewModelGenerator(),
+		repositoryGenerator:  NewRepositoryGenerator(),
+		serviceGenerator:     NewServiceGenerator(),
+		handlerGenerator:     NewHandlerGenerator(),
+		routeGenerator:       NewRouteGenerator(),
+		wireGenerator:        NewWireGenerator(),
+		migrationGenerator:   NewMigrationGenerator(),
+		permissionGenerator:  NewPermissionGenerator(),
+		frontendAPIGenerator: NewFrontendAPIGenerator(),
+		historyManager:       NewHistoryManager(),
+		validator:            NewValidator(),
 	}
 }
 
@@ -63,6 +65,8 @@ func (g *CodeGenerator) Generate(req *GenerateRequest) (*GenerateResponse, error
 		return g.generateMigration(req)
 	case ComponentPermission:
 		return g.generatePermission(req)
+	case ComponentFrontendAPI:
+		return g.generateFrontendAPI(req)
 	case ComponentAll:
 		return g.generateAll(req)
 	default:
@@ -202,6 +206,26 @@ func (g *CodeGenerator) generatePermission(req *GenerateRequest) (*GenerateRespo
 	return response, nil
 }
 
+// generateFrontendAPI 生成前端API
+func (g *CodeGenerator) generateFrontendAPI(req *GenerateRequest) (*GenerateResponse, error) {
+	// 使用前端API生成器生成
+	response, err := g.frontendAPIGenerator.Generate(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果生成成功，更新历史记录
+	if response.Success && len(response.GeneratedFiles) > 0 {
+		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
+			// 历史记录更新失败不影响生成结果，只记录警告
+			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
+			response.HistoryUpdated = false
+		}
+	}
+
+	return response, nil
+}
+
 // generateAll 生成所有组件
 func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, error) {
 	var allGeneratedFiles []string
@@ -328,11 +352,19 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 		allErrors = append(allErrors, permissionResponse.Errors...)
 	}
 
-	// TODO: 9. 生成前端API
-	// frontendAPIReq := *req
-	// frontendAPIReq.ComponentType = ComponentFrontendAPI
-	// frontendAPIResponse, err := g.generateFrontendAPI(&frontendAPIReq)
-	// ...
+	// 9. 生成前端API
+	frontendAPIReq := *req
+	frontendAPIReq.ComponentType = ComponentFrontendAPI
+	frontendAPIResponse, err := g.generateFrontendAPI(&frontendAPIReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if frontendAPIResponse.Success {
+		allGeneratedFiles = append(allGeneratedFiles, frontendAPIResponse.GeneratedFiles...)
+	} else {
+		allErrors = append(allErrors, frontendAPIResponse.Errors...)
+	}
 
 	// TODO: 10. 生成前端页面
 	// frontendPageReq := *req
