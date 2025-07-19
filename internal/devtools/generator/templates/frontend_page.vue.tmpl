@@ -44,7 +44,7 @@
       <{{.ModelName}}Dialog
         v-model:visible="dialogVisible"
         :type="dialogType"
-        :{{.ModelNameKebab}}-data="current{{.ModelName}}Data"
+        :{{.ModelNameLower}}-data="current{{.ModelName}}Data"
         @submit="handleDialogSubmit"
       />
     </ElCard>

@@ -124,8 +124,11 @@ func (g *FrontendPageGenerator) prepareTemplateData(req *GenerateRequest) *Front
 	modelNameLower := ToLowerCamelCase(modelName)
 	modelNameSnake := ToSnakeCase(modelName)
 
-	// 生成中文名（简单处理，实际可能需要更复杂的逻辑）
-	modelNameChinese := g.generateChineseName(modelName)
+	// 使用传入的中文名，如果没有则使用英文名
+	modelNameChinese := req.ModelNameCN
+	if modelNameChinese == "" {
+		modelNameChinese = modelName
+	}
 
 	// 生成服务类名和类型命名空间
 	serviceName := modelName + "Service"
@@ -170,27 +173,6 @@ func (g *FrontendPageGenerator) prepareTemplateData(req *GenerateRequest) *Front
 		Imports:          imports,
 		Timestamp:        time.Now(),
 	}
-}
-
-// generateChineseName 生成中文名称（简单映射）
-func (g *FrontendPageGenerator) generateChineseName(modelName string) string {
-	// 简单的英文到中文映射，实际项目中可能需要更复杂的逻辑
-	nameMap := map[string]string{
-		"User":     "用户",
-		"Product":  "产品",
-		"Order":    "订单",
-		"Category": "分类",
-		"Article":  "文章",
-		"Role":     "角色",
-		"Admin":    "管理员",
-	}
-
-	if chinese, exists := nameMap[modelName]; exists {
-		return chinese
-	}
-
-	// 默认返回英文名
-	return modelName
 }
 
 // generateTableColumns 生成表格列定义

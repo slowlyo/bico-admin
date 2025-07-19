@@ -35,6 +35,7 @@ type FieldDefinition struct {
 type GenerateRequest struct {
 	ComponentType ComponentType     `json:"component_type"` // 组件类型
 	ModelName     string            `json:"model_name"`     // 模型名称
+	ModelNameCN   string            `json:"model_name_cn"`  // 模型中文名称
 	Fields        []FieldDefinition `json:"fields"`         // 字段定义
 	TableName     string            `json:"table_name"`     // 表名（可选）
 	PackagePath   string            `json:"package_path"`   // 包路径

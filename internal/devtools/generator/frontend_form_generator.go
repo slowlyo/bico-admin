@@ -109,8 +109,11 @@ func (g *FrontendFormGenerator) prepareTemplateData(req *GenerateRequest) *Front
 	modelName := req.ModelName
 	modelNameLower := ToLowerCamelCase(modelName)
 
-	// 生成中文名（简单处理）
-	modelNameChinese := g.generateChineseName(modelName)
+	// 使用传入的中文名，如果没有则使用英文名
+	modelNameChinese := req.ModelNameCN
+	if modelNameChinese == "" {
+		modelNameChinese = modelName
+	}
 
 	// 生成服务类名和类型命名空间
 	serviceName := modelName + "Service"
@@ -148,24 +151,22 @@ func (g *FrontendFormGenerator) prepareTemplateData(req *GenerateRequest) *Front
 	}
 }
 
-// generateChineseName 生成中文名称
-func (g *FrontendFormGenerator) generateChineseName(modelName string) string {
-	// 简单的英文到中文映射
-	nameMap := map[string]string{
-		"User":     "用户",
-		"Product":  "产品",
-		"Order":    "订单",
-		"Category": "分类",
-		"Article":  "文章",
-		"Role":     "角色",
-		"Admin":    "管理员",
+// generateFieldLabel 生成字段标签
+func (g *FrontendFormGenerator) generateFieldLabel(field FieldDefinition) string {
+	// 如果注释包含逗号，取第一部分作为标签
+	if strings.Contains(field.Comment, "，") {
+		return strings.Split(field.Comment, "，")[0]
+	}
+	if strings.Contains(field.Comment, ",") {
+		return strings.Split(field.Comment, ",")[0]
 	}
 
-	if chinese, exists := nameMap[modelName]; exists {
-		return chinese
-	}
+	// 移除常见的后缀
+	comment := field.Comment
+	comment = strings.TrimSuffix(comment, "字段")
+	comment = strings.TrimSuffix(comment, "信息")
 
-	return modelName
+	return comment
 }
 
 // generateFormFields 生成表单字段定义
@@ -174,14 +175,15 @@ func (g *FrontendFormGenerator) generateFormFields(fields []FieldDefinition) []F
 
 	for _, field := range fields {
 		formField := FormField{
-			Label:    field.Comment,
+			Label:    g.generateFieldLabel(field),
 			Prop:     ToLowerCamelCase(field.Name),
 			Required: strings.Contains(field.Validate, "required"),
 			ColSpan:  12, // 默认占一半宽度
 		}
 
 		// 根据字段类型设置表单组件
-		switch field.Type {
+		fieldType := strings.TrimPrefix(field.Type, "*") // 移除指针标记
+		switch fieldType {
 		case "string":
 			if strings.Contains(strings.ToLower(field.Name), "password") {
 				formField.Type = "password"
@@ -218,6 +220,11 @@ func (g *FrontendFormGenerator) generateFormFields(fields []FieldDefinition) []F
 				formField.Component = "el-input-number"
 				formField.Placeholder = fmt.Sprintf("请输入%s", field.Comment)
 			}
+
+		case "uint":
+			formField.Type = "number"
+			formField.Component = "el-input-number"
+			formField.Placeholder = fmt.Sprintf("请输入%s", field.Comment)
 
 		case "decimal", "float32", "float64":
 			formField.Type = "number"

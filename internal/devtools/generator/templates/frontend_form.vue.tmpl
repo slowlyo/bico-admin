@@ -92,7 +92,7 @@
   interface Props {
     visible: boolean
     type: Form.DialogType
-    {{.ModelNameKebab}}Data?: {{.TypeNamespace}}.{{.ModelName}}Info
+    {{.ModelNameLower}}Data?: {{.TypeNamespace}}.{{.ModelName}}Info
   }
 
   interface Emits {
@@ -136,8 +136,8 @@
 
   // 初始化表单数据
   const initFormData = () => {
-    const isEdit = props.type === 'edit' && props.{{.ModelNameKebab}}Data
-    const row = props.{{.ModelNameKebab}}Data
+    const isEdit = props.type === 'edit' && props.{{.ModelNameLower}}Data
+    const row = props.{{.ModelNameLower}}Data
 
     if (isEdit && row) {
       Object.assign(formData, {
@@ -184,12 +184,12 @@
         ElMessage.success('新增成功')
       } else {
         // 编辑
-        if (!props.{{.ModelNameKebab}}Data?.id) {
+        if (!props.{{.ModelNameLower}}Data?.id) {
           ElMessage.error('缺少必要参数')
           return
         }
         const updateData = { ...formData } as {{.TypeNamespace}}.{{.ModelName}}UpdateRequest
-        await {{.ServiceName}}.update{{.ModelName}}(props.{{.ModelNameKebab}}Data.id, updateData)
+        await {{.ServiceName}}.update{{.ModelName}}(props.{{.ModelNameLower}}Data.id, updateData)
         ElMessage.success('更新成功')
       }
 

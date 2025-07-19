@@ -69,14 +69,17 @@ func (g *FrontendRouteGenerator) prepareTemplateData(req *GenerateRequest) *Fron
 	modelNameSnake := ToSnakeCase(modelName)
 	modelNameKebab := ToKebabCase(modelName)
 
-	// 生成中文名（简单处理）
-	modelNameChinese := g.generateChineseName(modelName)
+	// 使用传入的中文名，如果没有则使用英文名
+	modelNameChinese := req.ModelNameCN
+	if modelNameChinese == "" {
+		modelNameChinese = modelName
+	}
 
 	// 生成路由路径
 	routePath := fmt.Sprintf("/system/%s", modelNameKebab)
 
-	// 生成组件路径
-	componentPath := fmt.Sprintf("() => import('@/views/system/%s/index.vue')", modelNameKebab)
+	// 生成组件路径（使用 RoutesAlias）
+	componentPath := fmt.Sprintf("RoutesAlias.%s", modelName)
 
 	// 生成权限前缀
 	permissionPrefix := fmt.Sprintf("system.%s", modelNameSnake)
@@ -96,12 +99,6 @@ func (g *FrontendRouteGenerator) prepareTemplateData(req *GenerateRequest) *Fron
 		Icon:             icon,
 		Timestamp:        time.Now(),
 	}
-}
-
-// generateChineseName 生成中文名称占位符
-func (g *FrontendRouteGenerator) generateChineseName(modelName string) string {
-	// 返回占位符，引导用户自行修改
-	return modelName
 }
 
 // generateIcon 生成图标占位符
@@ -158,11 +155,12 @@ func (g *FrontendRouteGenerator) generateRouteConfigSnippet(data *FrontendRouteT
 
 // generateRouteAliasSnippet 生成路由别名片段
 func (g *FrontendRouteGenerator) generateRouteAliasSnippet(data *FrontendRouteTemplateData) CodeSnippet {
-	content := fmt.Sprintf(`  // %s管理页面 - 请添加到 RoutesAlias 对象中
-  %s: () => import('@/views/system/%s/index.vue')`,
+	content := fmt.Sprintf(`  // %s管理页面
+  %s = '/system/%s', // %s管理`,
 		data.ModelNameChinese,
 		data.ModelName,
 		data.ModelNameKebab,
+		data.ModelNameChinese,
 	)
 
 	return CodeSnippet{

@@ -36,6 +36,9 @@ func (t *CodeGeneratorTool) GetTool() mcp.Tool {
 			mcp.Required(),
 			mcp.Description("模型名称（如User、Product）"),
 		),
+		mcp.WithString("model_name_cn",
+			mcp.Description("模型中文名称（如用户、产品），用于前端显示"),
+		),
 		mcp.WithString("fields",
 			mcp.Required(),
 			mcp.Description("字段定义JSON数组，格式：[{\"name\":\"username\",\"type\":\"string\",\"gorm_tag\":\"uniqueIndex;size:50\",\"json_tag\":\"username\",\"validate\":\"required,min=3,max=50\",\"comment\":\"用户名\"}]"),
@@ -63,6 +66,7 @@ func (t *CodeGeneratorTool) Handle(ctx context.Context, request mcp.CallToolRequ
 	// 解析参数
 	componentType := request.GetString("component_type", "")
 	modelName := request.GetString("model_name", "")
+	modelNameCN := request.GetString("model_name_cn", "")
 	fieldsJSON := request.GetString("fields", "")
 	tableName := request.GetString("table_name", "")
 	packagePath := request.GetString("package_path", "internal/admin")
@@ -93,6 +97,7 @@ func (t *CodeGeneratorTool) Handle(ctx context.Context, request mcp.CallToolRequ
 	req := &generator.GenerateRequest{
 		ComponentType: generator.ComponentType(componentType),
 		ModelName:     modelName,
+		ModelNameCN:   modelNameCN,
 		Fields:        fields,
 		TableName:     tableName,
 		PackagePath:   packagePath,
