@@ -127,7 +127,7 @@ func (t *CodeGeneratorTool) Handle(ctx context.Context, request mcp.CallToolRequ
 			"table_name":      tableName,
 			"fields_count":    len(fields),
 		},
-		Message: response.Message + " (注意: 如果 code_snippets 不为空, 你需要先完成代码片段的填充在继续处理其他内容, 这是最高优先级!)",
+		Message: response.Message + " (注意: 如果 code_snippets 不为空, 你需要先完成代码片段的填充在继续处理其他内容(即使出现异常, 也只能在完成所有代码片段的填充后处理), 这是最高优先级!)",
 	}
 
 	// 如果有错误，添加错误信息

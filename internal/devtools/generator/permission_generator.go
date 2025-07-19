@@ -55,57 +55,63 @@ func (g *PermissionGenerator) prepareTemplateData(req *GenerateRequest) *Permiss
 	modelNameSnake := toSnakeCase(modelName)
 	packageName := getPackageNameFromPath(req.PackagePath)
 
-	// 生成权限定义
+	// 使用传入的中文名，如果没有则使用英文名作为后备
+	modelNameChinese := req.ModelNameCN
+	if modelNameChinese == "" {
+		modelNameChinese = modelName
+	}
+
+	// 生成权限定义 - 作为顶级功能，不放在 system 下
 	permissions := []PermissionDef{
 		{
-			Code:        fmt.Sprintf("system.%s", modelNameSnake),
-			Name:        modelName,
-			Parent:      "system",
+			Code:        modelNameSnake,
+			Name:        fmt.Sprintf("%s管理", modelNameChinese),
+			Parent:      "",
 			Type:        "module",
 			Level:       1,
 			Buttons:     "",
 			APIs:        "",
-			Description: fmt.Sprintf("%s管理", modelName),
+			Description: fmt.Sprintf("%s管理", modelNameChinese),
 		},
 		{
-			Code:        fmt.Sprintf("system.%s:list", modelNameSnake),
-			Name:        fmt.Sprintf("查看%s列表", modelName),
-			Parent:      fmt.Sprintf("system.%s", modelNameSnake),
+			Code:        fmt.Sprintf("%s:list", modelNameSnake),
+			Name:        fmt.Sprintf("查看%s列表", modelNameChinese),
+			Parent:      modelNameSnake,
 			Type:        "action",
 			Level:       1,
 			Buttons:     "search,filter",
 			APIs:        fmt.Sprintf("/admin-api/%ss,/admin-api/%ss/:id", modelNameSnake, modelNameSnake),
-			Description: fmt.Sprintf("查看%s列表权限", modelName),
+			Description: fmt.Sprintf("查看%s列表权限", modelNameChinese),
 		},
 		{
-			Code:        fmt.Sprintf("system.%s:create", modelNameSnake),
-			Name:        fmt.Sprintf("创建%s", modelName),
-			Parent:      fmt.Sprintf("system.%s", modelNameSnake),
+			Code:        fmt.Sprintf("%s:create", modelNameSnake),
+			Name:        fmt.Sprintf("创建%s", modelNameChinese),
+			Parent:      modelNameSnake,
 			Type:        "action",
 			Level:       3,
 			Buttons:     "create",
 			APIs:        fmt.Sprintf("/admin-api/%ss", modelNameSnake),
-			Description: fmt.Sprintf("创建%s权限", modelName),
+			Description: fmt.Sprintf("创建%s权限", modelNameChinese),
 		},
 		{
-			Code:        fmt.Sprintf("system.%s:update", modelNameSnake),
-			Name:        fmt.Sprintf("编辑%s", modelName),
-			Parent:      fmt.Sprintf("system.%s", modelNameSnake),
+			Code:        fmt.Sprintf("%s:update", modelNameSnake),
+			Name:        fmt.Sprintf("编辑%s", modelNameChinese),
+			Parent:      modelNameSnake,
 			Type:        "action",
 			Level:       3,
 			Buttons:     "edit,save",
 			APIs:        fmt.Sprintf("/admin-api/%ss/:id,/admin-api/%ss/:id/status", modelNameSnake, modelNameSnake),
-			Description: fmt.Sprintf("编辑%s权限", modelName),
+			Description: fmt.Sprintf("编辑%s权限", modelNameChinese),
 		},
 		{
-			Code:        fmt.Sprintf("system.%s:delete", modelNameSnake),
-			Name:        fmt.Sprintf("删除%s", modelName),
-			Parent:      fmt.Sprintf("system.%s", modelNameSnake),
+			Code:        fmt.Sprintf("%s:delete", modelNameSnake),
+			Name:        fmt.Sprintf("删除%s", modelNameChinese),
+			Parent:      modelNameSnake,
 			Type:        "action",
 			Level:       4,
 			Buttons:     "delete",
 			APIs:        fmt.Sprintf("/admin-api/%ss/:id", modelNameSnake),
-			Description: fmt.Sprintf("删除%s权限", modelName),
+			Description: fmt.Sprintf("删除%s权限", modelNameChinese),
 		},
 	}
 

@@ -75,14 +75,14 @@ func (g *FrontendRouteGenerator) prepareTemplateData(req *GenerateRequest) *Fron
 		modelNameChinese = modelName
 	}
 
-	// 生成路由路径
-	routePath := fmt.Sprintf("/system/%s", modelNameKebab)
+	// 生成路由路径 - 作为顶级功能
+	routePath := fmt.Sprintf("/%s", modelNameKebab)
 
 	// 生成组件路径（使用 RoutesAlias）
 	componentPath := fmt.Sprintf("RoutesAlias.%s", modelName)
 
-	// 生成权限前缀
-	permissionPrefix := fmt.Sprintf("system.%s", modelNameSnake)
+	// 生成权限前缀 - 不放在 system 下
+	permissionPrefix := modelNameSnake
 
 	// 生成图标（简单映射）
 	icon := g.generateIcon(modelName)
@@ -124,49 +124,61 @@ func (g *FrontendRouteGenerator) generateRouteSnippets(data *FrontendRouteTempla
 
 // generateRouteConfigSnippet 生成路由配置片段
 func (g *FrontendRouteGenerator) generateRouteConfigSnippet(data *FrontendRouteTemplateData) CodeSnippet {
-	content := fmt.Sprintf(`  // %s管理路由 - 请添加到 System 路由的 children 数组中
-  // 注意：请根据实际需求修改 title（菜单名称）和 icon（图标）
-  {
+	content := fmt.Sprintf(`  {
     path: '%s',
-    name: '%s',
-    component: %s,
+    name: '%sManagement',
+    component: RoutesAlias.Layout,
     meta: {
-      title: '【请修改】%s管理',  // 请修改为实际的菜单名称
-      icon: '【请修改】%s',      // 请修改为实际的图标代码
+      title: '%s管理',
+      icon: '%s',
       permissions: ['%s:list']
-    }
+    },
+    children: [
+      {
+        path: 'list',
+        name: '%sList',
+        component: %s,
+        meta: {
+          title: '%s列表',
+          keepAlive: true,
+          permissions: ['%s:list']
+        }
+      }
+    ]
   }`,
+		data.RoutePath,
+		data.ModelName,
 		data.ModelNameChinese,
-		data.ModelNameKebab,
+		data.Icon,
+		data.PermissionPrefix,
 		data.ModelName,
 		data.ComponentPath,
 		data.ModelNameChinese,
-		data.Icon,
 		data.PermissionPrefix,
 	)
 
 	return CodeSnippet{
 		Content:     content,
 		TargetFile:  "web/src/router/routes/asyncRoutes.ts",
-		InsertPoint: fmt.Sprintf("在 System 路由的 children 数组中添加 %s 路由配置", data.ModelNameChinese),
-		Description: "将此代码片段添加到 web/src/router/routes/asyncRoutes.ts 文件中 System 路由的 children 数组中",
+		InsertPoint: fmt.Sprintf("在 asyncRoutes 数组末尾添加 %s 顶级路由配置", data.ModelNameChinese),
+		Description: "将此代码片段添加到 web/src/router/routes/asyncRoutes.ts 文件中的 asyncRoutes 数组末尾",
 	}
 }
 
 // generateRouteAliasSnippet 生成路由别名片段
 func (g *FrontendRouteGenerator) generateRouteAliasSnippet(data *FrontendRouteTemplateData) CodeSnippet {
-	content := fmt.Sprintf(`  // %s管理页面
-  %s = '/system/%s', // %s管理`,
+	content := fmt.Sprintf(`  // %s管理
+  %s = '%s/list', // %s列表`,
 		data.ModelNameChinese,
 		data.ModelName,
-		data.ModelNameKebab,
+		data.RoutePath,
 		data.ModelNameChinese,
 	)
 
 	return CodeSnippet{
 		Content:     content,
 		TargetFile:  "web/src/router/routesAlias.ts",
-		InsertPoint: fmt.Sprintf("在 RoutesAlias 对象中添加 %s 路由别名（可选）", data.ModelNameChinese),
-		Description: "将此代码片段添加到 web/src/router/routesAlias.ts 文件中的 RoutesAlias 对象中（可选）",
+		InsertPoint: fmt.Sprintf("在 RoutesAlias 对象中添加 %s 路由别名", data.ModelNameChinese),
+		Description: "将此代码片段添加到 web/src/router/routesAlias.ts 文件中的 RoutesAlias 对象中",
 	}
 }
