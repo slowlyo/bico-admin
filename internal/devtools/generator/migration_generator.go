@@ -46,7 +46,7 @@ func (g *MigrationGenerator) GenerateSnippet(req *GenerateRequest) (*GenerateRes
 	return &GenerateResponse{
 		Success:      true,
 		CodeSnippets: snippets,
-		Message:      fmt.Sprintf("Migration代码片段生成完成，共生成 %d 个片段", len(snippets)),
+		Message:      fmt.Sprintf("Migration代码片段生成完成，共生成 %d 个片段 (注意: shared 模块下的路由需要通过别名 import)", len(snippets)),
 	}, nil
 }
 
