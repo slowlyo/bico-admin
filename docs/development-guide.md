@@ -113,7 +113,7 @@ go run cmd/migrate/main.go -action=fresh
 
 ```bash
 make wire     # 生成依赖注入代码
-make swagger  # 生成 API 文档
+
 make dev      # 启动开发服务
 ```
 

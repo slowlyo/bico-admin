@@ -10,32 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	_ "bico-admin/docs" // 导入swagger文档
 	"bico-admin/pkg/config"
 	"bico-admin/pkg/logger"
 
 	"go.uber.org/zap"
 )
-
-// @title Bico Admin API
-// @version 1.0
-// @description Bico Admin 管理系统API文档
-// @termsOfService http://swagger.io/terms/
-
-// @contact.name API Support
-// @contact.url http://www.swagger.io/support
-// @contact.email support@swagger.io
-
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-
-// @host localhost:8080
-// @BasePath /
-
-// @securityDefinitions.apikey ApiKeyAuth
-// @in header
-// @name Authorization
-// @description Bearer token
 
 func main() {
 	// 解析命令行参数
@@ -104,9 +83,6 @@ func main() {
 		fmt.Printf("   • Admin端: %s/admin\n", baseURL)
 		fmt.Printf("   • Master端: %s/master\n", baseURL)
 		fmt.Printf("   • API端: %s/api\n", baseURL)
-		fmt.Printf("📚 API文档:\n")
-		fmt.Printf("   • Swagger UI: %s/swagger/index.html\n", baseURL)
-		fmt.Printf("   • API JSON: %s/swagger/doc.json\n", baseURL)
 		fmt.Printf("🔧 环境: %s\n", cfg.App.Environment)
 		fmt.Printf("📝 日志级别: %s\n\n", cfg.Log.Level)
 

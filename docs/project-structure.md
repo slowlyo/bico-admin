@@ -88,8 +88,7 @@ bico-admin/
 │   ├── file-upload.md     # 文件上传文档
 │   ├── project-structure.md # 项目结构文档
 │   ├── docs.go            # Swagger配置
-│   ├── swagger.json       # Swagger JSON文档
-│   └── swagger.yaml       # Swagger YAML文档
+
 ├── logs/                  # 日志文件
 ├── tests/                 # 测试文件
 │   ├── config/            # 配置测试

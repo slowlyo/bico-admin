@@ -56,7 +56,7 @@ func (s *adminRoleService) GetRoleList(ctx context.Context, req *types.RoleListR
 		roleResponses = append(roleResponses, roleResponse)
 	}
 
-	return sharedTypes.NewPageResult(roleResponses, total, req.Page, req.PageSize), nil
+	return sharedTypes.NewPageResult(roleResponses, total, req.GetPage(), req.GetPageSize()), nil
 }
 
 // CreateRole 创建角色

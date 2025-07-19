@@ -1,9 +1,7 @@
 package handler
 
 import (
-{{- if .HasTimeField }}
 	"time"
-{{- end }}
 
 	"github.com/gin-gonic/gin"
 
@@ -15,21 +13,21 @@ import (
 	"bico-admin/pkg/utils"
 )
 
-// {{.HandlerName}} {{.ModelName}}处理器
-type {{.HandlerName}} struct {
-	{{.ModelNameLower}}Service service.{{.ServiceInterface}}
+// ProductHandler Product处理器
+type ProductHandler struct {
+	productService service.ProductService
 }
 
-// New{{.HandlerName}} 创建{{.ModelName}}处理器
-func New{{.HandlerName}}({{.ModelNameLower}}Service service.{{.ServiceInterface}}) *{{.HandlerName}} {
-	return &{{.HandlerName}}{
-		{{.ModelNameLower}}Service: {{.ModelNameLower}}Service,
+// NewProductHandler 创建Product处理器
+func NewProductHandler(productService service.ProductService) *ProductHandler {
+	return &ProductHandler{
+		productService: productService,
 	}
 }
 
-// Create 创建{{.ModelName}}
-func (h *{{.HandlerName}}) Create(c *gin.Context) {
-	var req types.{{.CreateRequestName}}
+// Create 创建Product
+func (h *ProductHandler) Create(c *gin.Context) {
+	var req types.ProductCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error())
 		return
@@ -42,7 +40,7 @@ func (h *{{.HandlerName}}) Create(c *gin.Context) {
 	}
 
 	// 调用服务层
-	result, err := h.{{.ModelNameLower}}Service.Create(c.Request.Context(), &req)
+	result, err := h.productService.Create(c.Request.Context(), &req)
 	if err != nil {
 		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
 		return
@@ -53,8 +51,8 @@ func (h *{{.HandlerName}}) Create(c *gin.Context) {
 	response.Success(c, responseData)
 }
 
-// GetByID 根据ID获取{{.ModelName}}
-func (h *{{.HandlerName}}) GetByID(c *gin.Context) {
+// GetByID 根据ID获取Product
+func (h *ProductHandler) GetByID(c *gin.Context) {
 	var req sharedTypes.IDRequest
 	if err := c.ShouldBindUri(&req); err != nil {
 		response.ValidationError(c, err.Error())
@@ -62,7 +60,7 @@ func (h *{{.HandlerName}}) GetByID(c *gin.Context) {
 	}
 
 	// 调用服务层
-	entity, err := h.{{.ModelNameLower}}Service.GetByID(c.Request.Context(), req.ID)
+	entity, err := h.productService.GetByID(c.Request.Context(), req.ID)
 	if err != nil {
 		response.ErrorWithMessage(c, response.CodeNotFound, err.Error())
 		return
@@ -73,15 +71,15 @@ func (h *{{.HandlerName}}) GetByID(c *gin.Context) {
 	response.Success(c, responseData)
 }
 
-// Update 更新{{.ModelName}}
-func (h *{{.HandlerName}}) Update(c *gin.Context) {
+// Update 更新Product
+func (h *ProductHandler) Update(c *gin.Context) {
 	var uriReq sharedTypes.IDRequest
 	if err := c.ShouldBindUri(&uriReq); err != nil {
 		response.ValidationError(c, err.Error())
 		return
 	}
 
-	var req types.{{.UpdateRequestName}}
+	var req types.ProductUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ValidationError(c, err.Error())
 		return
@@ -94,7 +92,7 @@ func (h *{{.HandlerName}}) Update(c *gin.Context) {
 	}
 
 	// 调用服务层
-	result, err := h.{{.ModelNameLower}}Service.Update(c.Request.Context(), uriReq.ID, &req)
+	result, err := h.productService.Update(c.Request.Context(), uriReq.ID, &req)
 	if err != nil {
 		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
 		return
@@ -105,8 +103,8 @@ func (h *{{.HandlerName}}) Update(c *gin.Context) {
 	response.Success(c, responseData)
 }
 
-// Delete 删除{{.ModelName}}
-func (h *{{.HandlerName}}) Delete(c *gin.Context) {
+// Delete 删除Product
+func (h *ProductHandler) Delete(c *gin.Context) {
 	var req sharedTypes.IDRequest
 	if err := c.ShouldBindUri(&req); err != nil {
 		response.ValidationError(c, err.Error())
@@ -114,7 +112,7 @@ func (h *{{.HandlerName}}) Delete(c *gin.Context) {
 	}
 
 	// 调用服务层
-	if err := h.{{.ModelNameLower}}Service.Delete(c.Request.Context(), req.ID); err != nil {
+	if err := h.productService.Delete(c.Request.Context(), req.ID); err != nil {
 		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
 		return
 	}
@@ -122,9 +120,9 @@ func (h *{{.HandlerName}}) Delete(c *gin.Context) {
 	response.Success(c, nil)
 }
 
-// GetList 获取{{.ModelName}}列表
-func (h *{{.HandlerName}}) GetList(c *gin.Context) {
-	var req types.{{.ListRequestName}}
+// GetList 获取Product列表
+func (h *ProductHandler) GetList(c *gin.Context) {
+	var req types.ProductListRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
 		response.ValidationError(c, err.Error())
 		return
@@ -137,24 +135,23 @@ func (h *{{.HandlerName}}) GetList(c *gin.Context) {
 	}
 
 	// 调用服务层
-	entities, total, err := h.{{.ModelNameLower}}Service.ListWithFilter(c.Request.Context(), &req)
+	entities, total, err := h.productService.ListWithFilter(c.Request.Context(), &req)
 	if err != nil {
 		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
 		return
 	}
 
 	// 转换响应
-	var responses []types.{{.ResponseName}}
+	var responses []types.ProductResponse
 	for _, entity := range entities {
 		responses = append(responses, h.convertToResponse(entity))
 	}
 
-	response.Page(c, responses, total, req.Page, req.PageSize)
+	response.Page(c, responses, total, req.GetPage(), req.GetPageSize())
 }
 
-{{- if hasStatusField .Fields }}
-// UpdateStatus 更新{{.ModelName}}状态
-func (h *{{.HandlerName}}) UpdateStatus(c *gin.Context) {
+// UpdateStatus 更新Product状态
+func (h *ProductHandler) UpdateStatus(c *gin.Context) {
 	var uriReq sharedTypes.IDRequest
 	if err := c.ShouldBindUri(&uriReq); err != nil {
 		response.ValidationError(c, err.Error())
@@ -167,49 +164,40 @@ func (h *{{.HandlerName}}) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	if err := h.{{.ModelNameLower}}Service.UpdateStatus(c.Request.Context(), uriReq.ID, req.Status); err != nil {
+	if err := h.productService.UpdateStatus(c.Request.Context(), uriReq.ID, req.Status); err != nil {
 		response.ErrorWithMessage(c, response.CodeInternalServerError, err.Error())
 		return
 	}
 
 	response.Success(c, nil)
 }
-{{- end }}
 
 // convertToResponse 转换为响应格式
-func (h *{{.HandlerName}}) convertToResponse(entity *models.{{.ModelName}}) types.{{.ResponseName}} {
-{{- if hasPointerStatusField .Fields }}
-	status := 0
-	if entity.Status != nil {
-		status = *entity.Status
-	}
-{{- end }}
+func (h *ProductHandler) convertToResponse(entity *models.Product) types.ProductResponse {
 
-	return types.{{.ResponseName}}{
-		ID: entity.ID,
-{{- range .Fields }}
-{{- if eq .Name "Status" }}
-	{{- if eq .Type "int" }}
-		{{.Name}}: entity.{{.Name}},
-		StatusText: h.getStatusText(entity.{{.Name}}),
-	{{- else }}
-		{{.Name}}: status,
-		StatusText: h.getStatusText(status),
-	{{- end }}
-{{- else if contains .Type "*time.Time" }}
-		{{.Name}}: h.formatTime(entity.{{.Name}}),
-{{- else }}
-		{{.Name}}: entity.{{.Name}},
-{{- end }}
-{{- end }}
-		CreatedAt: utils.NewFormattedTime(entity.CreatedAt),
-		UpdatedAt: utils.NewFormattedTime(entity.UpdatedAt),
+	return types.ProductResponse{
+		ID:          entity.ID,
+		Name:        entity.Name,
+		SKU:         entity.SKU,
+		Description: entity.Description,
+		Price:       entity.Price,
+		Stock:       entity.Stock,
+		CategoryID:  entity.CategoryID,
+		BrandID:     entity.BrandID,
+		Images:      entity.Images,
+		Attributes:  entity.Attributes,
+		Status:      entity.Status,
+		StatusText:  h.getStatusText(entity.Status),
+		Weight:      entity.Weight,
+		PublishedAt: h.formatTime(entity.PublishedAt),
+		ExpiredAt:   h.formatTime(entity.ExpiredAt),
+		CreatedAt:   utils.NewFormattedTime(entity.CreatedAt),
+		UpdatedAt:   utils.NewFormattedTime(entity.UpdatedAt),
 	}
 }
 
 // getStatusText 获取状态文本
-func (h *{{.HandlerName}}) getStatusText(status int) string {
-{{- if hasStatusField .Fields }}
+func (h *ProductHandler) getStatusText(status int) string {
 	switch status {
 	case sharedTypes.StatusActive:
 		return "启用"
@@ -220,18 +208,13 @@ func (h *{{.HandlerName}}) getStatusText(status int) string {
 	default:
 		return "未知"
 	}
-{{- else }}
-	return "正常"
-{{- end }}
 }
 
-{{- if .HasTimeField }}
 // formatTime 格式化时间
-func (h *{{.HandlerName}}) formatTime(t *time.Time) *utils.FormattedTime {
+func (h *ProductHandler) formatTime(t *time.Time) *utils.FormattedTime {
 	if t == nil {
 		return nil
 	}
 	ft := utils.NewFormattedTime(*t)
 	return &ft
 }
-{{- end }}

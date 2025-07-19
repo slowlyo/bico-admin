@@ -27,12 +27,12 @@ func (e *ServiceError) Unwrap() error {
 
 // 常见错误代码
 const (
-	ErrCodeValidation   = "VALIDATION_ERROR"
-	ErrCodeNotFound     = "NOT_FOUND"
-	ErrCodeDuplicate    = "DUPLICATE"
-	ErrCodePermission   = "PERMISSION_DENIED"
-	ErrCodeBusiness     = "BUSINESS_ERROR"
-	ErrCodeInternal     = "INTERNAL_ERROR"
+	ErrCodeValidation = "VALIDATION_ERROR"
+	ErrCodeNotFound   = "NOT_FOUND"
+	ErrCodeDuplicate  = "DUPLICATE"
+	ErrCodePermission = "PERMISSION_DENIED"
+	ErrCodeBusiness   = "BUSINESS_ERROR"
+	ErrCodeInternal   = "INTERNAL_ERROR"
 )
 
 // NewValidationError 创建验证错误
@@ -91,11 +91,15 @@ func ValidatePageQuery(req *types.BasePageQuery) error {
 		return NewValidationError("分页参数不能为空", nil)
 	}
 
-	if req.Page < 1 {
+	// 使用处理后的值进行验证
+	page := req.GetPage()
+	pageSize := req.GetPageSize()
+
+	if page < 1 {
 		return NewValidationError("页码必须大于0", nil)
 	}
 
-	if req.PageSize < 1 || req.PageSize > 100 {
+	if pageSize < 1 || pageSize > 100 {
 		return NewValidationError("每页数量必须在1-100之间", nil)
 	}
 
@@ -196,14 +200,14 @@ func RemoveID(ids []uint, targetID uint) []uint {
 func UniqueIDs(ids []uint) []uint {
 	seen := make(map[uint]bool)
 	var result []uint
-	
+
 	for _, id := range ids {
 		if !seen[id] {
 			seen[id] = true
 			result = append(result, id)
 		}
 	}
-	
+
 	return result
 }
 

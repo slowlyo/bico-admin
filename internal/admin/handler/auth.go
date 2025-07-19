@@ -21,15 +21,6 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 }
 
 // Login 管理员登录
-// @Summary 管理员登录
-// @Description 管理员登录接口
-// @Tags 认证
-// @Accept json
-// @Produce json
-// @Param request body types.AdminLoginRequest true "登录请求"
-// @Success 200 {object} response.ApiResponse{data=types.AdminLoginResponse}
-// @Failure 400 {object} response.ApiResponse
-// @Router /admin/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req types.AdminLoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -47,14 +38,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 // Logout 登出
-// @Summary 登出
-// @Description 管理员登出接口
-// @Tags 认证
-// @Produce json
-// @Security ApiKeyAuth
-// @Success 200 {object} response.ApiResponse
-// @Failure 401 {object} response.ApiResponse
-// @Router /admin/auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	// 从上下文获取令牌
 	token, exists := c.Get("token")
@@ -72,15 +55,6 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 // RefreshToken 刷新令牌
-// @Summary 刷新令牌
-// @Description 刷新访问令牌
-// @Tags 认证
-// @Accept json
-// @Produce json
-// @Param request body types.RefreshTokenRequest true "刷新令牌请求"
-// @Success 200 {object} response.ApiResponse{data=types.AdminLoginResponse}
-// @Failure 400 {object} response.ApiResponse
-// @Router /admin/auth/refresh [post]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req types.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -98,14 +72,6 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 }
 
 // GetProfile 获取当前用户信息和权限
-// @Summary 获取当前用户信息和权限
-// @Description 获取当前登录用户的详细信息和权限列表
-// @Tags 认证
-// @Produce json
-// @Security ApiKeyAuth
-// @Success 200 {object} response.ApiResponse{data=types.AdminProfileResponse}
-// @Failure 401 {object} response.ApiResponse
-// @Router /admin/auth/profile [get]
 func (h *AuthHandler) GetProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -123,16 +89,6 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 }
 
 // UpdateProfile 更新当前用户信息
-// @Summary 更新当前用户信息
-// @Description 更新当前登录用户的信息
-// @Tags 认证
-// @Accept json
-// @Produce json
-// @Security ApiKeyAuth
-// @Param request body types.ProfileUpdateRequest true "更新个人信息请求"
-// @Success 200 {object} response.ApiResponse{data=types.AdminUserResponse}
-// @Failure 400 {object} response.ApiResponse
-// @Router /admin/profile [put]
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -156,16 +112,6 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 }
 
 // ChangePassword 修改密码
-// @Summary 修改密码
-// @Description 修改当前登录用户的密码
-// @Tags 认证
-// @Accept json
-// @Produce json
-// @Security ApiKeyAuth
-// @Param request body types.ChangePasswordRequest true "修改密码请求"
-// @Success 200 {object} response.ApiResponse
-// @Failure 400 {object} response.ApiResponse
-// @Router /admin/profile/password [put]
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {

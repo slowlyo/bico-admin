@@ -88,17 +88,7 @@ func (req *{{.UpdateRequestName}}) Validate() error {
 
 // Validate{{.ListRequestName}} 验证列表请求
 func (req *{{.ListRequestName}}) Validate() error {
-	// 验证分页参数
-	if req.Page <= 0 {
-		req.Page = 1
-	}
-	if req.PageSize <= 0 {
-		req.PageSize = 10
-	}
-	if req.PageSize > 100 {
-		req.PageSize = 100
-	}
-
+	// 分页参数默认值处理已经在 BasePageQuery 的方法中处理
 	// TODO: 添加自定义验证逻辑
 	return nil
 }

@@ -2,114 +2,129 @@ package service
 
 import (
 	"context"
+	"errors"
 
-	"bico-admin/internal/shared/models"
-	"bico-admin/internal/shared/service"
-	"bico-admin/internal/shared/types"
 	"bico-admin/internal/admin/repository"
+	"bico-admin/internal/admin/types"
+	"bico-admin/internal/shared/models"
 )
 
 // {{.ModelName}}Service {{.ModelName}}服务接口
 type {{.ModelName}}Service interface {
-	// 继承基础服务接口
-	service.BaseServiceInterface[models.{{.ModelName}}, repository.{{.ModelName}}Repository]
-
-	// 自定义业务方法
-	ListWithFilter(ctx context.Context, req *types.BasePageQuery) (*types.PageResult, error)
+	GetByID(ctx context.Context, id uint) (*models.{{.ModelName}}, error)
+	Create(ctx context.Context, req *types.{{.CreateRequestName}}) (*models.{{.ModelName}}, error)
+	Update(ctx context.Context, id uint, req *types.{{.UpdateRequestName}}) (*models.{{.ModelName}}, error)
+	Delete(ctx context.Context, id uint) error
+	UpdateStatus(ctx context.Context, id uint, status int) error
+	ListWithFilter(ctx context.Context, req *types.{{.ListRequestName}}) ([]*models.{{.ModelName}}, int64, error)
 }
 
 // {{.ModelNameLower}}Service {{.ModelName}}服务实现
 type {{.ModelNameLower}}Service struct {
-	service.BaseServiceInterface[models.{{.ModelName}}, repository.{{.ModelName}}Repository]
 	{{.ModelNameLower}}Repo repository.{{.ModelName}}Repository
 }
 
 // New{{.ModelName}}Service 创建{{.ModelName}}服务
 func New{{.ModelName}}Service({{.ModelNameLower}}Repo repository.{{.ModelName}}Repository) {{.ModelName}}Service {
 	return &{{.ModelNameLower}}Service{
-		BaseServiceInterface: service.NewBaseService[models.{{.ModelName}}, repository.{{.ModelName}}Repository]({{.ModelNameLower}}Repo),
 		{{.ModelNameLower}}Repo: {{.ModelNameLower}}Repo,
 	}
 }
 
+// GetByID 根据ID获取{{.ModelName}}
+func (s *{{.ModelNameLower}}Service) GetByID(ctx context.Context, id uint) (*models.{{.ModelName}}, error) {
+	return s.{{.ModelNameLower}}Repo.GetByID(ctx, id)
+}
+
 // ListWithFilter 根据过滤条件分页查询{{.ModelName}}
-func (s *{{.ModelNameLower}}Service) ListWithFilter(ctx context.Context, req *types.BasePageQuery) (*types.PageResult, error) {
-	// 验证分页参数
-	if err := service.ValidatePageQuery(req); err != nil {
+func (s *{{.ModelNameLower}}Service) ListWithFilter(ctx context.Context, req *types.{{.ListRequestName}}) ([]*models.{{.ModelName}}, int64, error) {
+	// 转换为基础分页查询
+	baseQuery := &req.BasePageQuery
+
+	// 调用Repository获取数据
+	return s.{{.ModelNameLower}}Repo.ListWithFilter(ctx, baseQuery)
+}
+
+// Create 创建{{.ModelName}}
+func (s *{{.ModelNameLower}}Service) Create(ctx context.Context, req *types.{{.CreateRequestName}}) (*models.{{.ModelName}}, error) {
+	// 转换请求为实体
+	entity := &models.{{.ModelName}}{
+{{- range .Fields }}
+		{{.Name}}: req.{{.Name}},
+{{- end }}
+	}
+
+	// 业务验证
+	if err := s.validate{{.ModelName}}(ctx, entity); err != nil {
 		return nil, err
 	}
 
-	// 调用Repository获取数据
-	entities, total, err := s.{{.ModelNameLower}}Repo.ListWithFilter(ctx, req)
+	// 调用Repository创建
+	if err := s.{{.ModelNameLower}}Repo.Create(ctx, entity); err != nil {
+		return nil, err
+	}
+
+	return entity, nil
+}
+
+// Update 更新{{.ModelName}}
+func (s *{{.ModelNameLower}}Service) Update(ctx context.Context, id uint, req *types.{{.UpdateRequestName}}) (*models.{{.ModelName}}, error) {
+	// 先获取现有实体
+	entity, err := s.{{.ModelNameLower}}Repo.GetByID(ctx, id)
 	if err != nil {
-		return nil, service.NewInternalError("查询{{.ModelName}}列表失败", err)
+		return nil, err
 	}
 
-	// 构建分页结果
-	return service.BuildPageResult(entities, total, req.Page, req.GetPageSize()), nil
-}
+	// 更新字段
+{{- range .Fields }}
+	entity.{{.Name}} = req.{{.Name}}
+{{- end }}
 
-// Create 创建{{.ModelName}}（重写以添加业务验证）
-func (s *{{.ModelNameLower}}Service) Create(ctx context.Context, entity *models.{{.ModelName}}) error {
 	// 业务验证
 	if err := s.validate{{.ModelName}}(ctx, entity); err != nil {
-		return err
+		return nil, err
 	}
 
-	// 调用基础服务的创建方法
-	return s.BaseServiceInterface.Create(ctx, entity)
-}
-
-// Update 更新{{.ModelName}}（重写以添加业务验证）
-func (s *{{.ModelNameLower}}Service) Update(ctx context.Context, entity *models.{{.ModelName}}) error {
-	// 业务验证
-	if err := s.validate{{.ModelName}}(ctx, entity); err != nil {
-		return err
+	// 调用Repository更新
+	if err := s.{{.ModelNameLower}}Repo.Update(ctx, entity); err != nil {
+		return nil, err
 	}
 
-	// 调用基础服务的更新方法
-	return s.BaseServiceInterface.Update(ctx, entity)
+	return entity, nil
 }
 
-// Delete 删除{{.ModelName}}（重写以添加业务验证）
+// Delete 删除{{.ModelName}}
 func (s *{{.ModelNameLower}}Service) Delete(ctx context.Context, id uint) error {
-	// 验证ID
-	if err := service.ValidateID(id, "{{.ModelName}}ID"); err != nil {
-		return err
-	}
-
 	// 检查是否可以删除
 	if err := s.validateDelete{{.ModelName}}(ctx, id); err != nil {
 		return err
 	}
 
-	// 调用基础服务的删除方法
-	return s.BaseServiceInterface.Delete(ctx, id)
+	// 调用Repository删除
+	return s.{{.ModelNameLower}}Repo.Delete(ctx, id)
 }
 
-// UpdateStatus 更新{{.ModelName}}状态（重写以添加业务验证）
+// UpdateStatus 更新{{.ModelName}}状态
 func (s *{{.ModelNameLower}}Service) UpdateStatus(ctx context.Context, id uint, status int) error {
-	// 验证参数
-	if err := service.ValidateID(id, "{{.ModelName}}ID"); err != nil {
-		return err
-	}
-	if err := service.ValidateStatus(status); err != nil {
-		return err
-	}
-
 	// 检查是否可以更新状态
 	if err := s.validateStatusUpdate{{.ModelName}}(ctx, id, status); err != nil {
 		return err
 	}
 
-	// 调用基础服务的状态更新方法
-	return s.BaseServiceInterface.UpdateStatus(ctx, id, status)
+	// 获取实体并更新状态
+	entity, err := s.{{.ModelNameLower}}Repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	entity.Status = status
+	return s.{{.ModelNameLower}}Repo.Update(ctx, entity)
 }
 
 // validate{{.ModelName}} 验证{{.ModelName}}实体
-func (s *{{.ModelNameLower}}Service) validate{{.ModelName}}(ctx context.Context, entity *models.{{.ModelName}}) error {
+func (s *{{.ModelNameLower}}Service) validate{{.ModelName}}(_ context.Context, entity *models.{{.ModelName}}) error {
 	if entity == nil {
-		return service.NewValidationError("{{.ModelName}}实体不能为空", nil)
+		return errors.New("{{.ModelName}}实体不能为空")
 	}
 
 	// TODO: 添加具体的业务验证逻辑
@@ -123,7 +138,7 @@ func (s *{{.ModelNameLower}}Service) validate{{.ModelName}}(ctx context.Context,
 }
 
 // validateDelete{{.ModelName}} 验证{{.ModelName}}删除条件
-func (s *{{.ModelNameLower}}Service) validateDelete{{.ModelName}}(ctx context.Context, id uint) error {
+func (s *{{.ModelNameLower}}Service) validateDelete{{.ModelName}}(_ context.Context, _ uint) error {
 	// TODO: 添加删除前的业务验证逻辑
 	// 例如：
 	// - 检查是否有关联数据
@@ -134,7 +149,7 @@ func (s *{{.ModelNameLower}}Service) validateDelete{{.ModelName}}(ctx context.Co
 }
 
 // validateStatusUpdate{{.ModelName}} 验证{{.ModelName}}状态更新条件
-func (s *{{.ModelNameLower}}Service) validateStatusUpdate{{.ModelName}}(ctx context.Context, id uint, status int) error {
+func (s *{{.ModelNameLower}}Service) validateStatusUpdate{{.ModelName}}(_ context.Context, _ uint, _ int) error {
 	// TODO: 添加状态更新前的业务验证逻辑
 	// 例如：
 	// - 检查状态转换是否合法

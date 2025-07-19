@@ -87,6 +87,12 @@ func (g *ServiceGenerator) prepareTemplateData(req *GenerateRequest) (*TemplateD
 		HasTimeField:   false,      // Service不关心字段类型
 		HasValidation:  false,      // Service不需要验证
 		Timestamp:      time.Now(),
+
+		// 添加请求和响应类型名称
+		CreateRequestName: fmt.Sprintf("%sCreateRequest", req.ModelName),
+		UpdateRequestName: fmt.Sprintf("%sUpdateRequest", req.ModelName),
+		ListRequestName:   fmt.Sprintf("%sListRequest", req.ModelName),
+		ResponseName:      fmt.Sprintf("%sResponse", req.ModelName),
 	}
 
 	return templateData, nil

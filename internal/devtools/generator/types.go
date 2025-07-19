@@ -80,6 +80,22 @@ type TemplateData struct {
 	HasTimeField   bool              // 是否包含时间字段
 	HasValidation  bool              // 是否包含验证
 	Timestamp      time.Time         // 生成时间戳
+
+	// Handler和Service相关字段
+	CreateRequestName string // 创建请求类型名
+	UpdateRequestName string // 更新请求类型名
+	ListRequestName   string // 列表请求类型名
+	ResponseName      string // 响应类型名
+	HandlerName       string // Handler名称
+	ServiceName       string // Service名称
+	ServiceInterface  string // Service接口名
+
+	// 路由相关
+	BasePath    string // 基础路径
+	RoutePrefix string // 路由前缀
+
+	// 权限相关
+	PermissionPrefix string // 权限前缀
 }
 
 // GenerateHistory 生成历史记录

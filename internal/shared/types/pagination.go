@@ -9,12 +9,18 @@ type BasePageQuery struct {
 	SortDesc bool   `form:"sort_desc" json:"sort_desc"`                         // 是否降序
 }
 
+// GetPage 获取页码（处理默认值）
+func (p *BasePageQuery) GetPage() int {
+	if p.Page <= 0 {
+		return 1
+	}
+	return p.Page
+}
+
 // GetOffset 获取偏移量
 func (p *BasePageQuery) GetOffset() int {
-	if p.Page <= 0 {
-		p.Page = 1
-	}
-	return (p.Page - 1) * p.GetPageSize()
+	page := p.GetPage()
+	return (page - 1) * p.GetPageSize()
 }
 
 // GetPageSize 获取每页数量

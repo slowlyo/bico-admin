@@ -17,8 +17,7 @@ make deps
 # 启动开发服务
 make dev
 
-# 生成 Swagger 文档
-make swagger
+
 
 # 运行测试
 make test
@@ -26,7 +25,6 @@ make test
 
 启动后访问：
 - 管理后台：http://localhost:8899/admin
-- API 文档：http://localhost:8899/swagger/index.html
 
 ## 技术栈
 
@@ -47,7 +45,7 @@ make test
 - 🎯 **多端分离**: master(主控) / admin(管理) / api(接口)
 - 🏗️ **分层架构**: Handler → Service → Repository → Database
 - 🔐 **权限控制**: 基于角色的访问控制 (RBAC)
-- 📝 **API 文档**: 自动生成 Swagger 文档
+
 - 🗄️ **多数据库**: 支持 MySQL/PostgreSQL/SQLite
 - 🤖 **代码生成**: 基于 MCP 的智能代码生成器，快速生成 CRUD 模块
 
@@ -58,7 +56,7 @@ make test
 - [数据库配置](docs/database.md) - 多数据库支持和配置说明
 - [文件上传](docs/file-upload.md) - 文件上传功能说明
 - [MCP 开发工具](docs/mcp-devtools.md) - 开发工具服务使用指南
-- [API 文档](docs/swagger.json) - Swagger API 文档
+
 
 ## 开发命令
 
@@ -68,7 +66,7 @@ make run      # 启动服务
 make build    # 构建二进制文件
 make clean    # 清理文件
 make wire     # 生成依赖注入代码
-make swagger  # 生成 API 文档
+
 
 # MCP 开发工具
 make devtools         # 启动 MCP 服务 (HTTP模式)
