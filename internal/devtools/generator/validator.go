@@ -63,7 +63,7 @@ func (v *Validator) validateComponentType(componentType ComponentType) error {
 	validTypes := []ComponentType{
 		ComponentModel, ComponentRepository, ComponentService, ComponentHandler,
 		ComponentRoutes, ComponentWire, ComponentMigration, ComponentPermission,
-		ComponentFrontendAPI, ComponentFrontendPage, ComponentFrontendForm, ComponentAll,
+		ComponentFrontendAPI, ComponentFrontendPage, ComponentFrontendForm, ComponentFrontendRoute, ComponentAll,
 	}
 
 	for _, validType := range validTypes {

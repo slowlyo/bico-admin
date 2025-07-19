@@ -1,0 +1,221 @@
+<template>
+  <div class="app-container">
+    <!-- 搜索栏 -->
+    <art-search-bar
+      :search-form-items="searchFormItems"
+      @search="handleSearch"
+      @reset="handleReset"
+    />
+
+    <!-- 表格 -->
+    <art-button-table
+      ref="tableRef"
+      :columns="columns"
+      :data="tableData"
+      :loading="loading"
+      :pagination="pagination"
+      @refresh="getList"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    >
+      <!-- 表格头部按钮 -->
+      <template #header-buttons>
+        <el-button
+          v-if="hasAuth('create')"
+          type="primary"
+          @click="handleAdd"
+        >
+          新增{{.ModelNameChinese}}
+        </el-button>
+      </template>
+
+      <!-- 操作列 -->
+      <template #action="{ row }">
+        <el-button
+          v-if="hasAuth('update')"
+          type="primary"
+          size="small"
+          @click="handleEdit(row)"
+        >
+          编辑
+        </el-button>
+        <el-button
+          v-if="hasAuth('delete') && row.can_delete"
+          type="danger"
+          size="small"
+          @click="handleDelete(row)"
+        >
+          删除
+        </el-button>
+      </template>
+    </art-button-table>
+
+    <!-- 对话框 -->
+    <{{.ModelNameLower}}-dialog
+      v-model:visible="dialogVisible"
+      :type="dialogType"
+      :data="currentRow"
+      @submit="handleDialogSubmit"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+{{range .Imports}}  {{.}}
+{{end}}
+
+defineOptions({ name: '{{.ModelName}}' })
+
+// 权限检查
+const { hasAuth } = useAuth('system.{{.ModelNameSnake}}')
+
+type {{.ModelName}}Info = {{.TypeNamespace}}.{{.ModelName}}Info
+const { get{{.ModelName}}List } = {{.ServiceName}}
+
+// 表格相关
+const tableRef = ref()
+const loading = ref(false)
+const tableData = ref<{{.TypeNamespace}}.{{.ModelName}}Info[]>([])
+const pagination = reactive({
+  page: 1,
+  page_size: 20,
+  total: 0
+})
+
+// 搜索相关
+const searchParams = reactive({})
+
+// 对话框相关
+const dialogVisible = ref(false)
+const dialogType = ref<'add' | 'edit'>('add')
+const currentRow = ref<{{.TypeNamespace}}.{{.ModelName}}Info | null>(null)
+
+// 搜索表单配置
+const searchFormItems: SearchFormItem[] = [
+{{range .SearchFormItems}}  {
+    label: '{{.Label}}',
+    prop: '{{.Prop}}',
+    type: '{{.Type}}',
+    placeholder: '{{.Placeholder}}'{{if .Options}},
+    options: [{{range .Options}}
+      { label: '{{.Label}}', value: {{.Value}} },{{end}}
+    ]{{end}}
+  },
+{{end}}]
+
+// 表格列配置
+const columns: ColumnOption[] = [
+{{range .TableColumns}}  {
+    label: '{{.Label}}',
+    prop: '{{.Prop}}'{{if .Width}},
+    width: '{{.Width}}'{{end}}{{if .Sortable}},
+    sortable: true{{end}}{{if .Formatter}},
+    formatter: {{.Formatter}}{{end}}
+  },
+{{end}}  {
+    label: '操作',
+    prop: 'action',
+    width: 200,
+    fixed: 'right'
+  }
+]
+
+// 获取列表数据
+const getList = async () => {
+  loading.value = true
+  try {
+    const params = {
+      ...searchParams,
+      page: pagination.page,
+      page_size: pagination.page_size
+    }
+    const { data } = await get{{.ModelName}}List(params)
+    tableData.value = data.list
+    pagination.total = data.total
+  } catch (error) {
+    console.error('获取{{.ModelNameChinese}}列表失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 搜索
+const handleSearch = (params: any) => {
+  Object.assign(searchParams, params)
+  pagination.page = 1
+  getList()
+}
+
+// 重置搜索
+const handleReset = () => {
+  Object.keys(searchParams).forEach(key => {
+    delete searchParams[key]
+  })
+  pagination.page = 1
+  getList()
+}
+
+// 分页相关
+const handleSizeChange = (size: number) => {
+  pagination.page_size = size
+  pagination.page = 1
+  getList()
+}
+
+const handleCurrentChange = (page: number) => {
+  pagination.page = page
+  getList()
+}
+
+// 新增
+const handleAdd = () => {
+  dialogType.value = 'add'
+  currentRow.value = null
+  dialogVisible.value = true
+}
+
+// 编辑
+const handleEdit = (row: {{.TypeNamespace}}.{{.ModelName}}Info) => {
+  dialogType.value = 'edit'
+  currentRow.value = { ...row }
+  dialogVisible.value = true
+}
+
+// 删除
+const handleDelete = async (row: {{.TypeNamespace}}.{{.ModelName}}Info) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这条记录吗？',
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    // TODO: 调用删除API
+    ElMessage.success('删除成功')
+    getList()
+  } catch (error) {
+    // 用户取消删除
+  }
+}
+
+// 对话框提交
+const handleDialogSubmit = () => {
+  dialogVisible.value = false
+  getList()
+}
+
+// 初始化
+onMounted(() => {
+  getList()
+})
+</script>
+
+<style scoped>
+.app-container {
+  padding: 20px;
+}
+</style>

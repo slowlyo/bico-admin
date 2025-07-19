@@ -67,6 +67,12 @@ func (g *CodeGenerator) Generate(req *GenerateRequest) (*GenerateResponse, error
 		return g.generatePermission(req)
 	case ComponentFrontendAPI:
 		return g.generateFrontendAPI(req)
+	case ComponentFrontendPage:
+		return g.generateFrontendPage(req)
+	case ComponentFrontendForm:
+		return g.generateFrontendForm(req)
+	case ComponentFrontendRoute:
+		return g.generateFrontendRoute(req)
 	case ComponentAll:
 		return g.generateAll(req)
 	default:
@@ -226,6 +232,61 @@ func (g *CodeGenerator) generateFrontendAPI(req *GenerateRequest) (*GenerateResp
 	return response, nil
 }
 
+// generateFrontendPage 生成前端页面
+func (g *CodeGenerator) generateFrontendPage(req *GenerateRequest) (*GenerateResponse, error) {
+	// 使用前端页面生成器生成
+	generator := NewFrontendPageGenerator()
+	response, err := generator.Generate(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果生成成功，更新历史记录
+	if response.Success && len(response.GeneratedFiles) > 0 {
+		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
+			// 历史记录更新失败不影响生成结果，只记录警告
+			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
+			response.HistoryUpdated = false
+		}
+	}
+
+	return response, nil
+}
+
+// generateFrontendForm 生成前端表单
+func (g *CodeGenerator) generateFrontendForm(req *GenerateRequest) (*GenerateResponse, error) {
+	// 使用前端表单生成器生成
+	generator := NewFrontendFormGenerator()
+	response, err := generator.Generate(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果生成成功，更新历史记录
+	if response.Success && len(response.GeneratedFiles) > 0 {
+		if err := g.historyManager.AddHistory(req, response.GeneratedFiles); err != nil {
+			// 历史记录更新失败不影响生成结果，只记录警告
+			fmt.Printf("警告: 更新历史记录失败: %v\n", err)
+			response.HistoryUpdated = false
+		}
+	}
+
+	return response, nil
+}
+
+// generateFrontendRoute 生成前端路由
+func (g *CodeGenerator) generateFrontendRoute(req *GenerateRequest) (*GenerateResponse, error) {
+	// 使用前端路由生成器生成代码片段
+	generator := NewFrontendRouteGenerator()
+	response, err := generator.GenerateSnippet(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// 前端路由组件生成代码片段，不需要更新历史记录
+	return response, nil
+}
+
 // generateAll 生成所有组件
 func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, error) {
 	var allGeneratedFiles []string
@@ -366,17 +427,47 @@ func (g *CodeGenerator) generateAll(req *GenerateRequest) (*GenerateResponse, er
 		allErrors = append(allErrors, frontendAPIResponse.Errors...)
 	}
 
-	// TODO: 10. 生成前端页面
-	// frontendPageReq := *req
-	// frontendPageReq.ComponentType = ComponentFrontendPage
-	// frontendPageResponse, err := g.generateFrontendPage(&frontendPageReq)
-	// ...
+	// 10. 生成前端页面
+	frontendPageReq := *req
+	frontendPageReq.ComponentType = ComponentFrontendPage
+	frontendPageResponse, err := g.generateFrontendPage(&frontendPageReq)
+	if err != nil {
+		return nil, err
+	}
 
-	// TODO: 11. 生成前端表单
-	// frontendFormReq := *req
-	// frontendFormReq.ComponentType = ComponentFrontendForm
-	// frontendFormResponse, err := g.generateFrontendForm(&frontendFormReq)
-	// ...
+	if frontendPageResponse.Success {
+		allGeneratedFiles = append(allGeneratedFiles, frontendPageResponse.GeneratedFiles...)
+	} else {
+		allErrors = append(allErrors, frontendPageResponse.Errors...)
+	}
+
+	// 11. 生成前端表单
+	frontendFormReq := *req
+	frontendFormReq.ComponentType = ComponentFrontendForm
+	frontendFormResponse, err := g.generateFrontendForm(&frontendFormReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if frontendFormResponse.Success {
+		allGeneratedFiles = append(allGeneratedFiles, frontendFormResponse.GeneratedFiles...)
+	} else {
+		allErrors = append(allErrors, frontendFormResponse.Errors...)
+	}
+
+	// 12. 生成前端路由（代码片段模式）
+	frontendRouteReq := *req
+	frontendRouteReq.ComponentType = ComponentFrontendRoute
+	frontendRouteResponse, err := g.generateFrontendRoute(&frontendRouteReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if frontendRouteResponse.Success {
+		allCodeSnippets = append(allCodeSnippets, frontendRouteResponse.CodeSnippets...)
+	} else {
+		allErrors = append(allErrors, frontendRouteResponse.Errors...)
+	}
 
 	// 构建最终响应
 	success := len(allErrors) == 0
@@ -424,23 +515,3 @@ func (g *CodeGenerator) DeleteHistory(moduleName string) error {
 func (g *CodeGenerator) ClearHistory() error {
 	return g.historyManager.ClearHistory()
 }
-
-// TODO: 后续实现的生成器方法
-
-// generateFrontendAPI 生成前端API
-// func (g *CodeGenerator) generateFrontendAPI(req *GenerateRequest) (*GenerateResponse, error) {
-//     // TODO: 实现前端API生成逻辑
-//     return nil, fmt.Errorf("前端API生成器尚未实现")
-// }
-
-// generateFrontendPage 生成前端页面
-// func (g *CodeGenerator) generateFrontendPage(req *GenerateRequest) (*GenerateResponse, error) {
-//     // TODO: 实现前端页面生成逻辑
-//     return nil, fmt.Errorf("前端页面生成器尚未实现")
-// }
-
-// generateFrontendForm 生成前端表单
-// func (g *CodeGenerator) generateFrontendForm(req *GenerateRequest) (*GenerateResponse, error) {
-//     // TODO: 实现前端表单生成逻辑
-//     return nil, fmt.Errorf("前端表单生成器尚未实现")
-// }

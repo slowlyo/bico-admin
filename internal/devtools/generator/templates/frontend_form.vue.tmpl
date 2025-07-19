@@ -1,0 +1,199 @@
+<template>
+  <el-dialog
+    v-model="visible"
+    :title="dialogTitle"
+    width="600px"
+    :close-on-click-modal="false"
+    @close="handleClose"
+  >
+    <el-form
+      ref="formRef"
+      :model="formData"
+      :rules="formRules"
+      label-width="100px"
+      label-position="right"
+    >
+      <el-row :gutter="20">
+{{range .FormFields}}        <el-col :span="{{.ColSpan}}">
+          <el-form-item label="{{.Label}}" prop="{{.Prop}}">
+{{if eq .Type "textarea"}}            <el-input
+              v-model="formData.{{.Prop}}"
+              type="textarea"
+              :rows="4"
+              placeholder="{{.Placeholder}}"
+            />
+{{else if eq .Type "password"}}            <el-input
+              v-model="formData.{{.Prop}}"
+              type="password"
+              placeholder="{{.Placeholder}}"
+              show-password
+            />
+{{else if eq .Type "email"}}            <el-input
+              v-model="formData.{{.Prop}}"
+              type="email"
+              placeholder="{{.Placeholder}}"
+            />
+{{else if eq .Type "number"}}            <el-input-number
+              v-model="formData.{{.Prop}}"
+              :min="0"
+              :precision="2"
+              placeholder="{{.Placeholder}}"
+              style="width: 100%"
+            />
+{{else if eq .Type "select"}}            <el-select
+              v-model="formData.{{.Prop}}"
+              placeholder="{{.Placeholder}}"
+              style="width: 100%"
+            >
+{{range .Options}}              <el-option
+                label="{{.Label}}"
+                :value="{{.Value}}"
+              />
+{{end}}            </el-select>
+{{else if eq .Type "switch"}}            <el-switch
+              v-model="formData.{{.Prop}}"
+              active-text="启用"
+              inactive-text="禁用"
+            />
+{{else if eq .Type "date"}}            <el-date-picker
+              v-model="formData.{{.Prop}}"
+              type="date"
+              placeholder="{{.Placeholder}}"
+              style="width: 100%"
+            />
+{{else if eq .Type "datetime"}}            <el-date-picker
+              v-model="formData.{{.Prop}}"
+              type="datetime"
+              placeholder="{{.Placeholder}}"
+              style="width: 100%"
+            />
+{{else}}            <el-input
+              v-model="formData.{{.Prop}}"
+              placeholder="{{.Placeholder}}"
+            />
+{{end}}          </el-form-item>
+        </el-col>
+{{end}}      </el-row>
+    </el-form>
+
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="handleClose">取消</el-button>
+        <el-button
+          type="primary"
+          :loading="submitLoading"
+          @click="handleSubmit"
+        >
+          确定
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
+</template>
+
+<script setup lang="ts">
+{{range .Imports}}  {{.}}
+{{end}}
+
+interface Props {
+  visible: boolean
+  type: string
+  data?: {{.TypeNamespace}}.{{.ModelName}}Info
+}
+
+interface Emits {
+  (e: 'update:visible', value: boolean): void
+  (e: 'submit'): void
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
+
+const formRef = ref<FormInstance>()
+const submitLoading = ref(false)
+
+// 表单数据
+const formData = reactive<{{.TypeNamespace}}.{{.ModelName}}CreateRequest & { confirmPassword?: string }>({
+{{range .FormFields}}{{if ne .Type "switch"}}  {{.Prop}}: {{if eq .Type "number"}}0{{else if eq .Type "select"}}{{if .Options}}{{(index .Options 0).Value}}{{else}}''{{end}}{{else}}''{{end}},
+{{else}}  {{.Prop}}: true,
+{{end}}{{end}})
+
+// 表单验证规则
+const formRules: FormRules = {
+{{range .ValidationRules}}  {{.Field}}: [
+    {{.Rules}}
+  ],
+{{end}}}
+
+// 对话框标题
+const dialogTitle = computed(() => {
+  return props.type === 'add' ? '新增{{.ModelNameChinese}}' : '编辑{{.ModelNameChinese}}'
+})
+
+// 监听数据变化
+watch(
+  () => props.data,
+  (newData) => {
+    if (newData && props.type === 'edit') {
+      // 编辑模式，填充表单数据
+{{range .FormFields}}      formData.{{.Prop}} = newData.{{.Prop}} || {{if eq .Type "number"}}0{{else if eq .Type "switch"}}false{{else}}''{{end}}
+{{end}}    } else {
+      // 新增模式，重置表单数据
+      resetForm()
+    }
+  },
+  { immediate: true }
+)
+
+// 重置表单
+const resetForm = () => {
+{{range .FormFields}}{{if ne .Type "switch"}}  formData.{{.Prop}} = {{if eq .Type "number"}}0{{else if eq .Type "select"}}{{if .Options}}{{(index .Options 0).Value}}{{else}}''{{end}}{{else}}''{{end}}
+{{else}}  formData.{{.Prop}} = true
+{{end}}{{end}}  formRef.value?.clearValidate()
+}
+
+// 关闭对话框
+const handleClose = () => {
+  emit('update:visible', false)
+  resetForm()
+}
+
+// 提交表单
+const handleSubmit = async () => {
+  if (!formRef.value) return
+
+  try {
+    await formRef.value.validate()
+    submitLoading.value = true
+
+    if (props.type === 'add') {
+      // 新增
+      const createData = { ...formData } as {{.TypeNamespace}}.{{.ModelName}}CreateRequest
+      await {{.ServiceName}}.create{{.ModelName}}(createData)
+      ElMessage.success('新增成功')
+    } else {
+      // 编辑
+      if (!props.data?.id) {
+        ElMessage.error('缺少必要参数')
+        return
+      }
+      const updateData = { ...formData } as {{.TypeNamespace}}.{{.ModelName}}UpdateRequest
+      await {{.ServiceName}}.update{{.ModelName}}(props.data.id, updateData)
+      ElMessage.success('更新成功')
+    }
+
+    emit('submit')
+    handleClose()
+  } catch (error) {
+    console.error('提交失败:', error)
+  } finally {
+    submitLoading.value = false
+  }
+}
+</script>
+
+<style scoped>
+.dialog-footer {
+  text-align: right;
+}
+</style>

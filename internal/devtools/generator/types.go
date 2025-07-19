@@ -6,18 +6,19 @@ import "time"
 type ComponentType string
 
 const (
-	ComponentModel        ComponentType = "model"
-	ComponentRepository   ComponentType = "repository"
-	ComponentService      ComponentType = "service"
-	ComponentHandler      ComponentType = "handler"
-	ComponentRoutes       ComponentType = "routes"
-	ComponentWire         ComponentType = "wire"
-	ComponentMigration    ComponentType = "migration"
-	ComponentPermission   ComponentType = "permission"
-	ComponentFrontendAPI  ComponentType = "frontend_api"
-	ComponentFrontendPage ComponentType = "frontend_page"
-	ComponentFrontendForm ComponentType = "frontend_form"
-	ComponentAll          ComponentType = "all"
+	ComponentModel         ComponentType = "model"
+	ComponentRepository    ComponentType = "repository"
+	ComponentService       ComponentType = "service"
+	ComponentHandler       ComponentType = "handler"
+	ComponentRoutes        ComponentType = "routes"
+	ComponentWire          ComponentType = "wire"
+	ComponentMigration     ComponentType = "migration"
+	ComponentPermission    ComponentType = "permission"
+	ComponentFrontendAPI   ComponentType = "frontend_api"
+	ComponentFrontendPage  ComponentType = "frontend_page"
+	ComponentFrontendForm  ComponentType = "frontend_form"
+	ComponentFrontendRoute ComponentType = "frontend_route"
+	ComponentAll           ComponentType = "all"
 )
 
 // FieldDefinition 字段定义
