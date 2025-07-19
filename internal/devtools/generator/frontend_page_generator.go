@@ -74,12 +74,14 @@ type FrontendPageTemplateData struct {
 	ModelName        string            // 模型名 (如Product)
 	ModelNameLower   string            // 模型名小写 (如product)
 	ModelNameSnake   string            // 模型名蛇形命名 (如product)
+	ModelNameKebab   string            // 模型名短横线命名 (如product-category)
 	ModelNameChinese string            // 模型中文名 (如产品)
 	ServiceName      string            // 服务类名 (如ProductService)
 	TypeNamespace    string            // 类型命名空间 (如ProductTypes)
 	APIImportPath    string            // API导入路径
 	TableColumns     []TableColumn     // 表格列定义
 	SearchFormItems  []SearchFormItem  // 搜索表单项
+	SearchFormFields []SearchFormField // 搜索表单字段
 	Fields           []FieldDefinition // 字段定义
 	Imports          []string          // 导入语句
 	Timestamp        time.Time         // 生成时间戳
@@ -108,6 +110,12 @@ type SearchFormItem struct {
 type Option struct {
 	Label string      // 显示文本
 	Value interface{} // 值
+}
+
+// SearchFormField 搜索表单字段
+type SearchFormField struct {
+	Prop         string // 属性名
+	DefaultValue string // 默认值
 }
 
 // prepareTemplateData 准备模板数据
@@ -143,16 +151,21 @@ func (g *FrontendPageGenerator) prepareTemplateData(req *GenerateRequest) *Front
 		"import type { ColumnOption, SearchFormItem } from '@/types/component'",
 	}
 
+	// 生成搜索表单字段
+	searchFormFields := g.generateSearchFormFields(req.Fields)
+
 	return &FrontendPageTemplateData{
 		ModelName:        modelName,
 		ModelNameLower:   modelNameLower,
 		ModelNameSnake:   modelNameSnake,
+		ModelNameKebab:   ToKebabCase(modelName),
 		ModelNameChinese: modelNameChinese,
 		ServiceName:      serviceName,
 		TypeNamespace:    typeNamespace,
 		APIImportPath:    apiImportPath,
 		TableColumns:     tableColumns,
 		SearchFormItems:  searchFormItems,
+		SearchFormFields: searchFormFields,
 		Fields:           req.Fields,
 		Imports:          imports,
 		Timestamp:        time.Now(),
@@ -272,6 +285,42 @@ func (g *FrontendPageGenerator) generateSearchFormItems(fields []FieldDefinition
 	}
 
 	return items
+}
+
+// generateSearchFormFields 生成搜索表单字段
+func (g *FrontendPageGenerator) generateSearchFormFields(fields []FieldDefinition) []SearchFormField {
+	var formFields []SearchFormField
+
+	// 添加常见的搜索字段
+	for _, field := range fields {
+		if field.Name == "created_at" || field.Name == "updated_at" {
+			continue // 跳过时间字段
+		}
+
+		formField := SearchFormField{
+			Prop: ToLowerCamelCase(field.Name),
+		}
+
+		// 根据字段类型设置默认值
+		switch field.Type {
+		case "string":
+			formField.DefaultValue = "''"
+		case "int", "int32", "int64":
+			if strings.Contains(strings.ToLower(field.Name), "status") {
+				formField.DefaultValue = "undefined"
+			} else {
+				formField.DefaultValue = "undefined"
+			}
+		case "bool":
+			formField.DefaultValue = "undefined"
+		default:
+			formField.DefaultValue = "undefined"
+		}
+
+		formFields = append(formFields, formField)
+	}
+
+	return formFields
 }
 
 // generatePageFile 生成页面文件

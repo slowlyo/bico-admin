@@ -73,6 +73,7 @@ func (g *FrontendFormGenerator) Generate(req *GenerateRequest) (*GenerateRespons
 type FrontendFormTemplateData struct {
 	ModelName        string            // 模型名 (如Product)
 	ModelNameLower   string            // 模型名小写 (如product)
+	ModelNameKebab   string            // 模型名短横线命名 (如product-category)
 	ModelNameChinese string            // 模型中文名 (如产品)
 	ServiceName      string            // 服务类名 (如ProductService)
 	TypeNamespace    string            // 类型命名空间 (如ProductTypes)
@@ -134,6 +135,7 @@ func (g *FrontendFormGenerator) prepareTemplateData(req *GenerateRequest) *Front
 	return &FrontendFormTemplateData{
 		ModelName:        modelName,
 		ModelNameLower:   modelNameLower,
+		ModelNameKebab:   ToKebabCase(modelName),
 		ModelNameChinese: modelNameChinese,
 		ServiceName:      serviceName,
 		TypeNamespace:    typeNamespace,
