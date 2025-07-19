@@ -126,34 +126,20 @@ func (g *FrontendRouteGenerator) generateRouteSnippets(data *FrontendRouteTempla
 func (g *FrontendRouteGenerator) generateRouteConfigSnippet(data *FrontendRouteTemplateData) CodeSnippet {
 	content := fmt.Sprintf(`  {
     path: '%s',
-    name: '%sManagement',
-    component: RoutesAlias.Layout,
+    name: '%s',
+    component: %s,
     meta: {
       title: '%s管理',
       icon: '%s',
-      permissions: ['%s:list']
-    },
-    children: [
-      {
-        path: 'list',
-        name: '%sList',
-        component: %s,
-        meta: {
-          title: '%s列表',
-          keepAlive: true,
-          permissions: ['%s:list']
-        }
-      }
-    ]
+      permissions: ['%s:list'],
+      keepAlive: true
+    }
   }`,
 		data.RoutePath,
 		data.ModelName,
-		data.ModelNameChinese,
-		data.Icon,
-		data.PermissionPrefix,
-		data.ModelName,
 		data.ComponentPath,
 		data.ModelNameChinese,
+		data.Icon,
 		data.PermissionPrefix,
 	)
 
@@ -168,7 +154,7 @@ func (g *FrontendRouteGenerator) generateRouteConfigSnippet(data *FrontendRouteT
 // generateRouteAliasSnippet 生成路由别名片段
 func (g *FrontendRouteGenerator) generateRouteAliasSnippet(data *FrontendRouteTemplateData) CodeSnippet {
 	content := fmt.Sprintf(`  // %s管理
-  %s = '%s/list', // %s列表`,
+  %s = '%s', // %s列表`,
 		data.ModelNameChinese,
 		data.ModelName,
 		data.RoutePath,
