@@ -17,6 +17,7 @@ type Config struct {
 	JWT      JWTConfig      `mapstructure:"jwt" yaml:"jwt"`
 	Cache    CacheConfig    `mapstructure:"cache" yaml:"cache"`
 	Upload   UploadConfig   `mapstructure:"upload" yaml:"upload"`
+	Frontend FrontendConfig `mapstructure:"frontend" yaml:"frontend"`
 }
 
 // AppConfig 应用基础配置
@@ -119,6 +120,14 @@ type UploadConfig struct {
 	BaseURL      string   `mapstructure:"base_url" yaml:"base_url"` // 文件访问的基础URL
 }
 
+// FrontendConfig 前端配置
+type FrontendConfig struct {
+	Mode      string `mapstructure:"mode" yaml:"mode"`             // 前端处理模式: embed(嵌入), external(外部文件)
+	StaticDir string `mapstructure:"static_dir" yaml:"static_dir"` // 外部文件模式下的静态文件目录
+	IndexFile string `mapstructure:"index_file" yaml:"index_file"` // 主页文件路径
+	AssetsDir string `mapstructure:"assets_dir" yaml:"assets_dir"` // 资源文件目录
+}
+
 // GetMaxFileSizeBytes 获取最大文件大小（字节）
 func (u *UploadConfig) GetMaxFileSizeBytes() int64 {
 	if u.MaxFileSize == "" {
@@ -205,4 +214,38 @@ func (a *AppConfig) IsProduction() bool {
 // IsDevelopment 判断是否为开发环境
 func (a *AppConfig) IsDevelopment() bool {
 	return strings.ToLower(a.Environment) == "development"
+}
+
+// IsEmbedMode 判断是否为嵌入模式
+func (f *FrontendConfig) IsEmbedMode() bool {
+	return strings.ToLower(f.Mode) == "embed"
+}
+
+// IsExternalMode 判断是否为外部文件模式
+func (f *FrontendConfig) IsExternalMode() bool {
+	return strings.ToLower(f.Mode) == "external"
+}
+
+// GetStaticDir 获取静态文件目录，如果未配置则返回默认值
+func (f *FrontendConfig) GetStaticDir() string {
+	if f.StaticDir == "" {
+		return "web/dist"
+	}
+	return f.StaticDir
+}
+
+// GetIndexFile 获取主页文件路径，如果未配置则返回默认值
+func (f *FrontendConfig) GetIndexFile() string {
+	if f.IndexFile == "" {
+		return "web/dist/index.html"
+	}
+	return f.IndexFile
+}
+
+// GetAssetsDir 获取资源文件目录，如果未配置则返回默认值
+func (f *FrontendConfig) GetAssetsDir() string {
+	if f.AssetsDir == "" {
+		return "web/dist/assets"
+	}
+	return f.AssetsDir
 }

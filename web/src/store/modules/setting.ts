@@ -51,7 +51,7 @@ export const useSettingStore = defineStore(
     /** 是否显示进度条 */
     const showNprogress = ref(true)
     /** 是否显示设置引导 */
-    const showSettingGuide = ref(true)
+    const showSettingGuide = ref(false)
     /** 是否显示节日文本 */
     const showFestivalText = ref(false)
     /** 是否显示水印 */

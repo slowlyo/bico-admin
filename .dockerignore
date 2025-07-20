@@ -1,0 +1,94 @@
+# =============================================================================
+# Docker 构建忽略文件
+# =============================================================================
+
+# Git 相关
+.git
+.gitignore
+.gitattributes
+
+# IDE 和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 日志文件
+*.log
+logs/
+*.log.*
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+*.temp
+
+# 构建产物
+bin/
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go 相关
+vendor/
+*.test
+*.prof
+coverage.txt
+coverage.html
+
+# Node.js 相关
+web/node_modules/
+web/dist/
+web/.nuxt/
+web/.next/
+web/.cache/
+web/coverage/
+web/*.log
+web/.env.local
+web/.env.*.local
+
+# 数据库文件
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# 配置文件 (保留模板)
+config/app.dev.yml
+config/app.prod.yml
+config/app.staging.yml
+
+# 文档
+README.md
+docs/
+*.md
+
+# 测试文件
+tests/
+*_test.go
+
+# 部署相关
+deployments/
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# 其他
+.env
+.env.*
+*.bak
+*.backup

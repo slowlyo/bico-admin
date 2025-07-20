@@ -1,0 +1,49 @@
+# =============================================================================
+# Bico Admin 开发环境 Docker Compose 配置
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # 主应用服务
+  bico-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bico-admin-dev
+    restart: unless-stopped
+    ports:
+      - "8899:8899"
+    environment:
+      # 应用配置
+      BICO_APP_ENVIRONMENT: development
+      BICO_APP_DEBUG: true
+      
+      # 数据库配置 (使用 SQLite)
+      DB_DRIVER: sqlite
+      
+      # Redis 配置
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis123
+      
+      # JWT 配置
+      JWT_SECRET: dev-jwt-secret-key
+      JWT_EXPIRE: 24h
+      
+      # 日志配置
+      LOG_LEVEL: debug
+      
+      # 缓存配置
+      CACHE_DRIVER: memory
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config/app.yml:/app/config/app.yml:ro
+    networks:
+      - bico-dev-network
+
+# 网络配置
+networks:
+  bico-dev-network:
+    driver: bridge

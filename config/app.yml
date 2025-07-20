@@ -126,6 +126,12 @@ upload:
   upload_dir: "data/uploads"   # 上传文件存储目录
   base_url: ""                 # 文件访问的基础URL，留空则自动使用请求的域名
 
+frontend:
+  mode: "external"             # 前端处理模式: embed(嵌入到二进制) 或 external(外部文件)
+  static_dir: "web/dist"       # 静态文件目录(external模式)
+  index_file: "web/dist/index.html"  # 主页文件路径
+  assets_dir: "web/dist/assets"      # 资源文件目录
+
 # 配置使用说明:
 # 1. 环境变量优先级高于配置文件，格式: BICO_<配置路径>
 #    例如: BICO_LOG_LEVEL=debug, BICO_DATABASE_DRIVER=mysql
@@ -138,3 +144,6 @@ upload:
 #    - 文件输出: output: "file" + filename: "logs/app.log"
 #    - JSON格式: format: "json" (生产环境推荐)
 #    - 控制台格式: format: "console" (开发环境推荐)
+# 4. 前端处理模式:
+#    - external: 使用外部文件(开发环境推荐，支持热更新)
+#    - embed: 嵌入到二进制文件(生产环境推荐，单文件部署)
