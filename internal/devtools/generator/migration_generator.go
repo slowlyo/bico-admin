@@ -8,6 +8,8 @@ import (
 )
 
 // MigrationGenerator Migration 生成器
+// 注意：此生成器只负责生成代码片段，不会自动执行数据库迁移
+// 用户需要手动运行 make migrate 或 go run cmd/migrate/main.go 来执行迁移
 type MigrationGenerator struct {
 	templateDir string
 }
@@ -20,6 +22,8 @@ func NewMigrationGenerator() *MigrationGenerator {
 }
 
 // GenerateSnippet 生成Migration代码片段
+// 重要：此方法只生成代码片段，不执行数据库迁移
+// 用户需要在代码添加完成后手动执行迁移命令
 func (g *MigrationGenerator) GenerateSnippet(req *GenerateRequest) (*GenerateResponse, error) {
 	// 验证请求参数
 	if req.ModelName == "" {
@@ -46,7 +50,7 @@ func (g *MigrationGenerator) GenerateSnippet(req *GenerateRequest) (*GenerateRes
 	return &GenerateResponse{
 		Success:      true,
 		CodeSnippets: snippets,
-		Message:      fmt.Sprintf("Migration代码片段生成完成，共生成 %d 个片段 (注意严格遵守: 需要先插入代码内容, 最后处理导入)", len(snippets)),
+		Message:      fmt.Sprintf("Migration代码片段生成完成，共生成 %d 个片段\n\n⚠️ 重要提示:\n1. 需要先插入代码内容，最后处理导入\n2. 添加完代码后，请不要尝试运行数据库迁移\n3. 迁移需要用户手动执行", len(snippets)),
 	}, nil
 }
 
@@ -115,7 +119,7 @@ func (g *MigrationGenerator) generateMigrationRegistrarSnippet(data *MigrationTe
 		TargetFile:   data.PackagePath + "/initializer/database.go",
 		InsertPoint:  "在 modelList 数组中，注释之前",
 		InsertBefore: "// 注意：生成的模型应该直接添加到上面的 modelList 数组中, model 就应该在 shared 模块下, 这是正确的",
-		Description:  fmt.Sprintf("在 modelList 中添加 %s 模型 (⚠️ 重要：请先插入此代码片段，然后再添加导入 sharedModels \"bico-admin/internal/shared/models\")", data.ModelName),
+		Description:  fmt.Sprintf("在 modelList 中添加 %s 模型\n\n⚠️ 重要提示：\n1. 请先插入此代码片段，然后再添加导入\n2. 添加完成后不要运行迁移命令\n3. 用户会手动执行迁移", data.ModelName),
 		Priority:     1,
 		Category:     "migration_model",
 	}, nil
@@ -132,7 +136,7 @@ func (g *MigrationGenerator) generateMigrationImportSnippet(data *MigrationTempl
 		TargetFile:  data.PackagePath + "/initializer/database.go",
 		InsertPoint: "在导入部分添加 shared models 导入",
 		InsertAfter: `"bico-admin/internal/admin/models"`,
-		Description: fmt.Sprintf("为 %s 模型添加 shared models 导入", data.ModelName),
+		Description: fmt.Sprintf("为 %s 模型添加 shared models 导入\n\n📝 注意：此步骤在模型片段添加完成后执行", data.ModelName),
 		Priority:    2, // 优先级较低，在模型片段之后处理
 		Category:    "migration_import",
 	}, nil
