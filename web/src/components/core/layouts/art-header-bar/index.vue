@@ -101,7 +101,7 @@
         </div>
         <!-- 设置 -->
         <div class="btn-box" v-if="shouldShowSettings" @click="openSetting">
-          <ElPopover :visible="showSettingGuide" placement="bottom-start" :width="190" :offset="0">
+          <ElPopover :visible="showSettingGuide && false" placement="bottom-start" :width="190" :offset="0">
             <template #reference>
               <div class="btn setting-btn">
                 <i class="iconfont-sys">&#xe6d0;</i>
