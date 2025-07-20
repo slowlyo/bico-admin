@@ -15,7 +15,9 @@ type {{.ModelName}}Service interface {
 	Create(ctx context.Context, req *types.{{.CreateRequestName}}) (*models.{{.ModelName}}, error)
 	Update(ctx context.Context, id uint, req *types.{{.UpdateRequestName}}) (*models.{{.ModelName}}, error)
 	Delete(ctx context.Context, id uint) error
+{{- if .HasStatusField }}
 	UpdateStatus(ctx context.Context, id uint, status int) error
+{{- end }}
 	ListWithFilter(ctx context.Context, req *types.{{.ListRequestName}}) ([]*models.{{.ModelName}}, int64, error)
 }
 
@@ -104,6 +106,7 @@ func (s *{{.ModelNameLower}}Service) Delete(ctx context.Context, id uint) error 
 	return s.{{.ModelNameLower}}Repo.Delete(ctx, id)
 }
 
+{{- if .HasStatusField }}
 // UpdateStatus 更新{{.ModelName}}状态
 func (s *{{.ModelNameLower}}Service) UpdateStatus(ctx context.Context, id uint, status int) error {
 	// 检查是否可以更新状态
@@ -117,9 +120,10 @@ func (s *{{.ModelNameLower}}Service) UpdateStatus(ctx context.Context, id uint, 
 		return err
 	}
 
-	entity.Status = status
+	entity.Status = &status
 	return s.{{.ModelNameLower}}Repo.Update(ctx, entity)
 }
+{{- end }}
 
 // validate{{.ModelName}} 验证{{.ModelName}}实体
 func (s *{{.ModelNameLower}}Service) validate{{.ModelName}}(_ context.Context, entity *models.{{.ModelName}}) error {
@@ -148,6 +152,7 @@ func (s *{{.ModelNameLower}}Service) validateDelete{{.ModelName}}(_ context.Cont
 	return nil
 }
 
+{{- if .HasStatusField }}
 // validateStatusUpdate{{.ModelName}} 验证{{.ModelName}}状态更新条件
 func (s *{{.ModelNameLower}}Service) validateStatusUpdate{{.ModelName}}(_ context.Context, _ uint, _ int) error {
 	// TODO: 添加状态更新前的业务验证逻辑
@@ -158,3 +163,4 @@ func (s *{{.ModelNameLower}}Service) validateStatusUpdate{{.ModelName}}(_ contex
 
 	return nil
 }
+{{- end }}

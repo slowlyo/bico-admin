@@ -75,6 +75,15 @@ func (g *ServiceGenerator) prepareTemplateData(req *GenerateRequest) (*TemplateD
 	// 确定包名
 	packageName := "service"
 
+	// 检查是否有Status字段
+	hasStatusField := false
+	for _, field := range req.Fields {
+		if strings.ToLower(field.Name) == "status" {
+			hasStatusField = true
+			break
+		}
+	}
+
 	templateData := &TemplateData{
 		PackageName:    packageName,
 		PackagePath:    packagePath,
@@ -83,9 +92,10 @@ func (g *ServiceGenerator) prepareTemplateData(req *GenerateRequest) (*TemplateD
 		ModelNameSnake: ToSnakeCase(req.ModelName),
 		TableName:      tableName,
 		Fields:         req.Fields,
-		Imports:        []string{}, // Service不需要额外的导入
-		HasTimeField:   false,      // Service不关心字段类型
-		HasValidation:  false,      // Service不需要验证
+		Imports:        []string{},     // Service不需要额外的导入
+		HasTimeField:   false,          // Service不关心字段类型
+		HasValidation:  false,          // Service不需要验证
+		HasStatusField: hasStatusField, // 是否有Status字段
 		Timestamp:      time.Now(),
 
 		// 添加请求和响应类型名称

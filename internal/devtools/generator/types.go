@@ -84,6 +84,7 @@ type TemplateData struct {
 	Imports        []string          // 导入包列表
 	HasTimeField   bool              // 是否包含时间字段
 	HasValidation  bool              // 是否包含验证
+	HasStatusField bool              // 是否包含Status字段
 	Timestamp      time.Time         // 生成时间戳
 
 	// Handler和Service相关字段
