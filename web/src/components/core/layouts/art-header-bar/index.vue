@@ -164,10 +164,10 @@
                     <i class="menu-icon iconfont-sys">&#xe734;</i>
                     <span class="menu-txt">{{ $t('topBar.user.userCenter') }}</span>
                   </li>
-                  <li @click="lockScreen()">
+                  <!-- <li @click="lockScreen()">
                     <i class="menu-icon iconfont-sys">&#xe817;</i>
                     <span class="menu-txt">{{ $t('topBar.user.lockScreen') }}</span>
-                  </li>
+                  </li> -->
                   <div class="line"></div>
                   <div class="logout-btn" @click="loginOut">
                     {{ $t('topBar.user.logout') }}
