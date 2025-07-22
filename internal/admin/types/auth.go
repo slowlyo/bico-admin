@@ -16,7 +16,7 @@ type AdminUserRoleResponse struct {
 // AdminLoginRequest 管理员登录请求
 type AdminLoginRequest struct {
 	Username string `json:"username" binding:"required,min=3,max=50"`
-	Password string `json:"password" binding:"required,min=6,max=100"`
+	Password string `json:"password" binding:"required,min=3,max=100"`
 	Captcha  string `json:"captcha" binding:"required,len=4"`
 }
 
