@@ -1,7 +1,7 @@
 package frontend
 
 import (
-	"io/fs"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,6 +13,16 @@ import (
 	"bico-admin/pkg/logger"
 	"bico-admin/web"
 )
+
+// 初始化 MIME 类型
+func init() {
+	// 确保 JavaScript 模块文件有正确的 MIME 类型
+	mime.AddExtensionType(".js", "application/javascript")
+	mime.AddExtensionType(".mjs", "application/javascript")
+	mime.AddExtensionType(".css", "text/css")
+	mime.AddExtensionType(".json", "application/json")
+	mime.AddExtensionType(".wasm", "application/wasm")
+}
 
 // getEmbeddedFileSystem 获取嵌入的文件系统
 func getEmbeddedFileSystem() (http.FileSystem, error) {
@@ -59,8 +69,8 @@ func (s *Service) setupEmbeddedRoutes(r *gin.Engine) error {
 		return err
 	}
 
-	// 设置静态文件路由
-	r.StaticFS("/assets", mustSub(fileSystem, "assets"))
+	// 设置静态文件路由，使用自定义处理器确保正确的 MIME 类型
+	r.GET("/assets/*filepath", s.serveEmbeddedAssets(fileSystem))
 
 	// 设置主页和图标
 	r.GET("/", s.serveEmbeddedIndex(fileSystem))
@@ -118,6 +128,77 @@ func (s *Service) serveEmbeddedIndex(fileSystem http.FileSystem) gin.HandlerFunc
 	}
 }
 
+// serveEmbeddedAssets 服务嵌入的静态资源文件
+func (s *Service) serveEmbeddedAssets(fileSystem http.FileSystem) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 获取请求的文件路径，去掉前缀 "/assets/"
+		filepath := strings.TrimPrefix(c.Param("filepath"), "/")
+		if filepath == "" {
+			c.String(http.StatusNotFound, "File not found")
+			return
+		}
+
+		// 构建完整的文件路径
+		fullPath := "assets/" + filepath
+
+		file, err := fileSystem.Open(fullPath)
+		if err != nil {
+			c.String(http.StatusNotFound, "File not found")
+			return
+		}
+		defer file.Close()
+
+		stat, err := file.Stat()
+		if err != nil {
+			c.String(http.StatusInternalServerError, "Failed to get file info")
+			return
+		}
+
+		// 根据文件扩展名设置正确的 Content-Type
+		contentType := s.getContentType(filepath)
+
+		c.DataFromReader(http.StatusOK, stat.Size(), contentType, file, nil)
+	}
+}
+
+// getContentType 根据文件扩展名获取 Content-Type
+func (s *Service) getContentType(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+
+	switch ext {
+	case ".js", ".mjs":
+		return "application/javascript"
+	case ".css":
+		return "text/css"
+	case ".json":
+		return "application/json"
+	case ".wasm":
+		return "application/wasm"
+	case ".html", ".htm":
+		return "text/html"
+	case ".png":
+		return "image/png"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".gif":
+		return "image/gif"
+	case ".svg":
+		return "image/svg+xml"
+	case ".ico":
+		return "image/x-icon"
+	case ".woff":
+		return "font/woff"
+	case ".woff2":
+		return "font/woff2"
+	case ".ttf":
+		return "font/ttf"
+	case ".eot":
+		return "application/vnd.ms-fontobject"
+	default:
+		return "application/octet-stream"
+	}
+}
+
 // serveEmbeddedFile 服务嵌入的文件
 func (s *Service) serveEmbeddedFile(fileSystem http.FileSystem, filename string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -135,10 +216,7 @@ func (s *Service) serveEmbeddedFile(fileSystem http.FileSystem, filename string)
 		}
 
 		// 根据文件扩展名设置 Content-Type
-		contentType := "application/octet-stream"
-		if strings.HasSuffix(filename, ".ico") {
-			contentType = "image/x-icon"
-		}
+		contentType := s.getContentType(filename)
 
 		c.DataFromReader(http.StatusOK, stat.Size(), contentType, file, nil)
 	}
@@ -165,19 +243,4 @@ func (s *Service) createNoRouteHandler(fileSystem http.FileSystem, isEmbedded bo
 			c.File(s.config.GetIndexFile())
 		}
 	}
-}
-
-// mustSub 获取子文件系统，如果失败则panic
-func mustSub(fsys http.FileSystem, dir string) http.FileSystem {
-	// 对于嵌入的文件系统，我们需要特殊处理
-	if httpFS, ok := fsys.(interface{ FS() fs.FS }); ok {
-		subFS, err := fs.Sub(httpFS.FS(), dir)
-		if err != nil {
-			panic(err)
-		}
-		return http.FS(subFS)
-	}
-
-	// 对于其他类型的文件系统，直接返回
-	return fsys
 }

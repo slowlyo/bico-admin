@@ -60,3 +60,4 @@ config/app.*.yml
 .cache/
 
 node_modules
+uploads
