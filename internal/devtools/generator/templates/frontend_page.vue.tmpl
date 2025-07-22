@@ -172,7 +172,6 @@
               if (hasAuth('delete')) {
                 buttons.push(h(ArtButtonTable, {
                   type: 'delete',
-                  disabled: !row.can_delete,
                   onClick: () => delete{{.ModelName}}(row)
                 }))
               }
