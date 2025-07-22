@@ -140,7 +140,9 @@ func (g *WireGenerator) generateHandlersUpdateSnippet(data *WireTemplateData) (C
 2. 在返回的 routes.Handlers 结构体中添加：
 %s
 
-3. 确保 routes.Handlers 结构体中也定义了对应的字段`, parameterSnippet, fieldSnippet)
+3. 确保 routes.Handlers 结构体中也定义了对应的字段
+
+4. wire 命令将于程序启动时自动运行, 你无需处理!你无需处理!你无需处理!`, parameterSnippet, fieldSnippet)
 
 	return CodeSnippet{
 		ID:          fmt.Sprintf("wire_handlers_%s", strings.ToLower(data.ModelName)),

@@ -50,7 +50,7 @@ func (g *MigrationGenerator) GenerateSnippet(req *GenerateRequest) (*GenerateRes
 	return &GenerateResponse{
 		Success:      true,
 		CodeSnippets: snippets,
-		Message:      fmt.Sprintf("Migration代码片段生成完成，共生成 %d 个片段\n\n⚠️ 重要提示:\n1. 需要先插入代码内容，最后处理导入\n2. 添加完代码后，请不要尝试运行数据库迁移\n3. 迁移需要用户手动执行", len(snippets)),
+		Message:      fmt.Sprintf("Migration代码片段生成完成，共生成 %d 个片段\n\n⚠️ 重要提示:\n1. 需要先插入代码内容，最后处理导入\n2. 添加完代码后，请不要尝试运行数据库迁移\n3. 迁移会在程序启动时自动处理, 你无需处理!你无需处理!你无需处理!  ", len(snippets)),
 	}, nil
 }
 
