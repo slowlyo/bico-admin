@@ -138,11 +138,21 @@ async function handleLoginStatus(
   userStore: ReturnType<typeof useUserStore>,
   next: NavigationGuardNext
 ): Promise<boolean> {
+  // 如果用户未登录且访问需要登录的页面，跳转到登录页
   if (!userStore.isLogin && to.path !== RoutesAlias.Login && !to.meta.noLogin) {
     await userStore.logOut()
     next(RoutesAlias.Login)
     return false
   }
+
+  // 如果用户已登录且访问登录页，重定向到首页
+  if (userStore.isLogin && to.path === RoutesAlias.Login) {
+    const { homePath } = useCommon()
+    const redirectPath = homePath.value || '/'
+    next({ path: redirectPath, replace: true })
+    return false
+  }
+
   return true
 }
 
