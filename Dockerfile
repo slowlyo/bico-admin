@@ -33,15 +33,15 @@ RUN pnpm run build
 # -----------------------------------------------------------------------------
 FROM golang:1.23-alpine AS backend-builder
 
-# 安装必要的构建工具 (包括 SQLite 支持)
-RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev sqlite-dev
+# 安装必要的构建工具
+RUN apk add --no-cache git ca-certificates tzdata
 
 # 设置工作目录
 WORKDIR /app
 
-# 设置 Go 环境变量 (启用 CGO 支持 SQLite)
+# 设置 Go 环境变量 (纯 Go SQLite 驱动，无需 CGO)
 ENV GO111MODULE=on \
-    CGO_ENABLED=1 \
+    CGO_ENABLED=0 \
     GOOS=linux \
     GOARCH=amd64 \
     GOPROXY=https://goproxy.cn,direct
@@ -69,8 +69,8 @@ RUN go build -ldflags="-s -w" -o bico-admin ./cmd/server
 # -----------------------------------------------------------------------------
 FROM alpine:3.19
 
-# 安装运行时依赖 (包括 SQLite 运行时库)
-RUN apk --no-cache add ca-certificates tzdata curl sqlite && \
+# 安装运行时依赖
+RUN apk --no-cache add ca-certificates tzdata curl && \
     update-ca-certificates
 
 # 设置时区
