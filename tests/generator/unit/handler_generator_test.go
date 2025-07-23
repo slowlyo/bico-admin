@@ -175,13 +175,7 @@ func validateHandlerFileContent(t *testing.T, helper *utils.TestHelper, filePath
 	helper.AssertFileContains(filePath, "options.EnableSoftDelete = true")
 
 	// 检查是否有状态字段
-	hasStatusField := false
-	for _, field := range req.Fields {
-		if field.Name == "Status" {
-			hasStatusField = true
-			break
-		}
-	}
+	hasStatusField := generator.HasStatusField(req.Fields)
 	if hasStatusField {
 		helper.AssertFileContains(filePath, "options.EnableStatusManagement = true")
 	} else {

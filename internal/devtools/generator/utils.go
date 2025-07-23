@@ -351,3 +351,100 @@ func NeedsValidationImport(fields []FieldDefinition) bool {
 	}
 	return false
 }
+
+// HasStatusField 检查是否有状态字段
+// 支持多种状态字段名称和类型检测
+func HasStatusField(fields []FieldDefinition) bool {
+	for _, field := range fields {
+		if IsStatusField(field) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsStatusField 判断字段是否为状态字段
+// 检查字段名和类型是否符合状态字段的特征
+func IsStatusField(field FieldDefinition) bool {
+	// 检查字段名（忽略大小写）
+	fieldNameLower := strings.ToLower(field.Name)
+	statusNames := []string{"status", "state", "enabled", "active"}
+
+	isStatusName := false
+	for _, name := range statusNames {
+		if fieldNameLower == name {
+			isStatusName = true
+			break
+		}
+	}
+
+	if !isStatusName {
+		return false
+	}
+
+	// 检查字段类型是否为状态类型
+	return IsStatusType(field.Type)
+}
+
+// IsStatusType 判断类型是否为状态类型
+func IsStatusType(fieldType string) bool {
+	// 获取Go类型
+	goType := GetGoType(fieldType)
+
+	// 状态字段通常是整数类型或布尔类型
+	statusTypes := []string{
+		"int", "int8", "int16", "int32", "int64",
+		"uint", "uint8", "uint16", "uint32", "uint64",
+		"bool",
+		"*int", "*int8", "*int16", "*int32", "*int64",
+		"*uint", "*uint8", "*uint16", "*uint32", "*uint64",
+		"*bool",
+	}
+
+	for _, statusType := range statusTypes {
+		if goType == statusType {
+			return true
+		}
+	}
+
+	return false
+}
+
+// GetStatusFieldType 获取状态字段的类型信息
+func GetStatusFieldType(field FieldDefinition) StatusFieldType {
+	if !IsStatusField(field) {
+		return StatusFieldTypeNone
+	}
+
+	goType := GetGoType(field.Type)
+
+	// 判断是否为指针类型
+	isPointer := strings.HasPrefix(goType, "*")
+	baseType := strings.TrimPrefix(goType, "*")
+
+	switch baseType {
+	case "bool":
+		if isPointer {
+			return StatusFieldTypeBoolPointer
+		}
+		return StatusFieldTypeBool
+	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64":
+		if isPointer {
+			return StatusFieldTypeIntPointer
+		}
+		return StatusFieldTypeInt
+	default:
+		return StatusFieldTypeNone
+	}
+}
+
+// StatusFieldType 状态字段类型枚举
+type StatusFieldType int
+
+const (
+	StatusFieldTypeNone        StatusFieldType = iota // 非状态字段 (0)
+	StatusFieldTypeBool                               // bool类型 (1)
+	StatusFieldTypeInt                                // int类型 (2)
+	StatusFieldTypeBoolPointer                        // *bool类型 (3)
+	StatusFieldTypeIntPointer                         // *int类型 (4)
+)

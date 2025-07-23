@@ -76,13 +76,7 @@ func (g *ServiceGenerator) prepareTemplateData(req *GenerateRequest) (*TemplateD
 	packageName := "service"
 
 	// 检查是否有Status字段
-	hasStatusField := false
-	for _, field := range req.Fields {
-		if strings.ToLower(field.Name) == "status" {
-			hasStatusField = true
-			break
-		}
-	}
+	hasStatusField := HasStatusField(req.Fields)
 
 	templateData := &TemplateData{
 		PackageName:    packageName,

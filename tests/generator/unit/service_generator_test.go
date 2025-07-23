@@ -160,13 +160,7 @@ func validateServiceFileContent(t *testing.T, helper *utils.TestHelper, filePath
 	helper.AssertFileContains(filePath, "func (s *"+implName+") Delete")
 
 	// 检查是否有状态字段，验证UpdateStatus方法
-	hasStatusField := false
-	for _, field := range req.Fields {
-		if field.Name == "Status" {
-			hasStatusField = true
-			break
-		}
-	}
+	hasStatusField := generator.HasStatusField(req.Fields)
 	if hasStatusField {
 		helper.AssertFileContains(filePath, "func (s *"+implName+") UpdateStatus")
 	}

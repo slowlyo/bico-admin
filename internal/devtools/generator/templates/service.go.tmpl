@@ -120,7 +120,27 @@ func (s *{{.ModelNameLower}}Service) UpdateStatus(ctx context.Context, id uint, 
 		return err
 	}
 
-	entity.Status = &status
+	// 根据状态字段类型设置值
+{{- range .Fields }}
+{{- if isStatusField . }}
+	{{- $statusType := getStatusFieldType . }}
+	{{- if eq $statusType 1 }}
+	// bool类型状态字段
+	entity.{{.Name}} = status == 1
+	{{- else if eq $statusType 2 }}
+	// int类型状态字段
+	entity.{{.Name}} = status
+	{{- else if eq $statusType 3 }}
+	// *bool类型状态字段
+	boolStatus := status == 1
+	entity.{{.Name}} = &boolStatus
+	{{- else if eq $statusType 4 }}
+	// *int类型状态字段
+	entity.{{.Name}} = &status
+	{{- end }}
+{{- end }}
+{{- end }}
+
 	return s.{{.ModelNameLower}}Repo.Update(ctx, entity)
 }
 {{- end }}

@@ -178,21 +178,44 @@ func (h *{{.HandlerName}}) UpdateStatus(c *gin.Context) {
 
 // convertToResponse 转换为响应格式
 func (h *{{.HandlerName}}) convertToResponse(entity *models.{{.ModelName}}) types.{{.ResponseName}} {
-{{- if hasPointerStatusField .Fields }}
+{{- range .Fields }}
+{{- if isStatusField . }}
+	{{- $statusType := getStatusFieldType . }}
+	{{- if or (eq $statusType 3) (eq $statusType 4) }}
+	// 处理指针类型的状态字段
 	status := 0
-	if entity.Status != nil {
-		status = *entity.Status
+	{{- if eq $statusType 4 }}
+	if entity.{{.Name}} != nil {
+		status = *entity.{{.Name}}
 	}
+	{{- else if eq $statusType 3 }}
+	if entity.{{.Name}} != nil && *entity.{{.Name}} {
+		status = 1
+	}
+	{{- end }}
+	{{- end }}
+{{- end }}
 {{- end }}
 
 	return types.{{.ResponseName}}{
 		ID: entity.ID,
 {{- range .Fields }}
-{{- if eq .Name "Status" }}
-	{{- if eq .Type "int" }}
+{{- if isStatusField . }}
+	{{- $statusType := getStatusFieldType . }}
+	{{- if eq $statusType 1 }}
+		// bool类型状态字段
+		{{.Name}}: func() int { if entity.{{.Name}} { return 1 }; return 0 }(),
+		StatusText: h.getStatusText(func() int { if entity.{{.Name}} { return 1 }; return 0 }()),
+	{{- else if eq $statusType 2 }}
+		// int类型状态字段
 		{{.Name}}: entity.{{.Name}},
 		StatusText: h.getStatusText(entity.{{.Name}}),
-	{{- else }}
+	{{- else if eq $statusType 3 }}
+		// *bool类型状态字段
+		{{.Name}}: status,
+		StatusText: h.getStatusText(status),
+	{{- else if eq $statusType 4 }}
+		// *int类型状态字段
 		{{.Name}}: status,
 		StatusText: h.getStatusText(status),
 	{{- end }}

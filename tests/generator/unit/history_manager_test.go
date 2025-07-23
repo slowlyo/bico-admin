@@ -19,23 +19,23 @@ func TestHistoryManager_LoadHistory(t *testing.T) {
 	// 在临时目录中创建历史管理器
 	tempDir := helper.GetTempDir()
 	historyFile := filepath.Join(tempDir, "test-history.json")
-	
+
 	// 创建自定义历史管理器用于测试
-	historyManager := &generator.HistoryManager{}
+	_ = &generator.HistoryManager{}
 	// 由于HistoryManager的filePath是私有字段，我们需要通过其他方式测试
 
 	t.Run("文件不存在时返回空历史", func(t *testing.T) {
 		// 使用默认的历史管理器
 		manager := generator.NewHistoryManager()
-		
+
 		// 临时修改历史文件路径到不存在的位置
-		nonExistentPath := filepath.Join(tempDir, "non-existent", "history.json")
-		
+		_ = filepath.Join(tempDir, "non-existent", "history.json")
+
 		// 由于无法直接修改私有字段，我们测试默认行为
 		// 这里主要测试当文件不存在时的处理逻辑
 		history, err := manager.GetHistory()
 		helper.AssertNoError(err)
-		
+
 		if history == nil {
 			t.Error("期望返回空的历史记录数组，但得到nil")
 		}
@@ -165,7 +165,7 @@ func TestHistoryManager_SaveHistory(t *testing.T) {
 
 	t.Run("保存到不存在的目录", func(t *testing.T) {
 		deepPath := filepath.Join(tempDir, "deep", "nested", "path", "history.json")
-		
+
 		testHistory := generator.HistoryFile{
 			Version: "1.0.0",
 			History: []generator.GenerateHistory{},

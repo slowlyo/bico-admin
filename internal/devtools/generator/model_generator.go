@@ -204,23 +204,18 @@ func (g *ModelGenerator) loadTemplate(templateName string) (string, error) {
 // getTemplateFuncs 获取模板函数
 func (g *ModelGenerator) getTemplateFuncs() template.FuncMap {
 	return template.FuncMap{
-		"contains":     strings.Contains,
-		"hasPrefix":    strings.HasPrefix,
-		"hasSuffix":    strings.HasSuffix,
-		"toLower":      strings.ToLower,
-		"toUpper":      strings.ToUpper,
-		"toSnakeCase":  ToSnakeCase,
-		"toCamelCase":  ToCamelCase,
-		"toPascalCase": ToPascalCase,
-		"GetGoType":    GetGoType,
-		"hasStatusField": func(fields []FieldDefinition) bool {
-			for _, field := range fields {
-				if field.Name == "Status" {
-					return true
-				}
-			}
-			return false
-		},
+		"contains":           strings.Contains,
+		"hasPrefix":          strings.HasPrefix,
+		"hasSuffix":          strings.HasSuffix,
+		"toLower":            strings.ToLower,
+		"toUpper":            strings.ToUpper,
+		"toSnakeCase":        ToSnakeCase,
+		"toCamelCase":        ToCamelCase,
+		"toPascalCase":       ToPascalCase,
+		"GetGoType":          GetGoType,
+		"hasStatusField":     HasStatusField,
+		"isStatusField":      IsStatusField,
+		"getStatusFieldType": GetStatusFieldType,
 	}
 }
 

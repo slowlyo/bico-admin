@@ -95,6 +95,7 @@ func (g *HandlerGenerator) prepareTemplateData(req *GenerateRequest) (*HandlerTe
 		Imports:        imports, // 现在为空，但保留以兼容模板
 		HasTimeField:   NeedsTimeImport(req.Fields),
 		HasValidation:  NeedsValidationImport(fields),
+		HasStatusField: HasStatusField(req.Fields), // 使用统一的status字段检测
 		Timestamp:      time.Now(),
 
 		// Handler特有的字段
@@ -260,29 +261,25 @@ func (g *HandlerGenerator) loadTemplate(templateName string) (string, error) {
 // getTemplateFuncs 获取模板函数
 func (g *HandlerGenerator) getTemplateFuncs() template.FuncMap {
 	return template.FuncMap{
-		"contains":         strings.Contains,
-		"hasPrefix":        strings.HasPrefix,
-		"hasSuffix":        strings.HasSuffix,
-		"toLower":          strings.ToLower,
-		"toUpper":          strings.ToUpper,
-		"toSnakeCase":      ToSnakeCase,
-		"toCamelCase":      ToCamelCase,
-		"toLowerCamelCase": ToLowerCamelCase,
-		"toPascalCase":     ToPascalCase,
-		"toKebabCase":      ToKebabCase,
-		"GetGoType":        GetGoType,
-		"hasStatusField": func(fields []FieldDefinition) bool {
-			for _, field := range fields {
-				if field.Name == "Status" {
-					return true
-				}
-			}
-			return false
-		},
+		"contains":           strings.Contains,
+		"hasPrefix":          strings.HasPrefix,
+		"hasSuffix":          strings.HasSuffix,
+		"toLower":            strings.ToLower,
+		"toUpper":            strings.ToUpper,
+		"toSnakeCase":        ToSnakeCase,
+		"toCamelCase":        ToCamelCase,
+		"toLowerCamelCase":   ToLowerCamelCase,
+		"toPascalCase":       ToPascalCase,
+		"toKebabCase":        ToKebabCase,
+		"GetGoType":          GetGoType,
+		"hasStatusField":     HasStatusField,
+		"isStatusField":      IsStatusField,
+		"getStatusFieldType": GetStatusFieldType,
 		"hasPointerStatusField": func(fields []FieldDefinition) bool {
 			for _, field := range fields {
-				if field.Name == "Status" && strings.HasPrefix(field.Type, "*") {
-					return true
+				if IsStatusField(field) {
+					fieldType := GetStatusFieldType(field)
+					return fieldType == StatusFieldTypeIntPointer || fieldType == StatusFieldTypeBoolPointer
 				}
 			}
 			return false
@@ -313,6 +310,7 @@ type HandlerTemplateData struct {
 	Imports        []string          // 导入包列表
 	HasTimeField   bool              // 是否包含时间字段
 	HasValidation  bool              // 是否包含验证
+	HasStatusField bool              // 是否包含状态字段
 	Timestamp      time.Time         // 生成时间戳
 
 	// Handler特有字段

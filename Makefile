@@ -5,7 +5,7 @@ DEVTOOLS_PATH=./cmd/devtools
 WEB_DIR=web
 
 # 构建目标
-.PHONY: run dev build clean test deps wire help devtools devtools-stdio devtools-sse devtools-help devtools-version docker-build docker-dev docker-stop build-web dev-web build-embed
+.PHONY: run dev build clean test deps wire help devtools devtools-stdio devtools-sse devtools-help devtools-version docker-build docker-dev docker-stop build-web dev-web build-embed build-windows-embed
 
 # 默认目标
 default: help
@@ -58,18 +58,24 @@ dev-web:
 # 构建二进制文件 (外部文件模式)
 build: wire build-web
 	@echo "构建应用 (外部文件模式)..."
-	go build -o $(BINARY_NAME) -v $(MAIN_PATH)
+	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o $(BINARY_NAME) -v $(MAIN_PATH)
 
 # 构建二进制文件 (嵌入模式)
 build-embed: wire build-web
 	@echo "构建应用 (嵌入模式)..."
-	go build -tags embed -o $(BINARY_NAME) -v $(MAIN_PATH)
+	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -tags embed -o $(BINARY_NAME) -v $(MAIN_PATH)
+
+# 构建Windows二进制文件 (嵌入模式)
+build-windows-embed: wire build-web
+	@echo "构建Windows应用 (嵌入模式)..."
+	GOOS=windows GOARCH=amd64 go build -tags embed -o $(BINARY_NAME).exe -v $(MAIN_PATH)
 
 # 清理
 clean:
 	@echo "清理文件..."
 	go clean
 	rm -f $(BINARY_NAME)
+	rm -f $(BINARY_NAME).exe
 	rm -f bin/devtools
 	rm -rf $(WEB_DIR)/dist
 
@@ -117,6 +123,7 @@ help:
 	@echo "  make dev         - 开发模式 (run的别名)"
 	@echo "  make build       - 构建完整应用 (外部文件模式)"
 	@echo "  make build-embed - 构建完整应用 (嵌入模式)"
+	@echo "  make build-windows-embed - 构建Windows应用 (嵌入模式)"
 	@echo "  make build-web   - 仅构建前端"
 	@echo "  make dev-web     - 启动前端开发服务器"
 	@echo "  make test        - 运行测试"
