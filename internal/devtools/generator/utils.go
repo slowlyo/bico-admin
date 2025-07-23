@@ -448,3 +448,98 @@ const (
 	StatusFieldTypeBoolPointer                        // *bool类型 (3)
 	StatusFieldTypeIntPointer                         // *int类型 (4)
 )
+
+// CleanComment 清理字段注释，移除括号及其内容
+// 支持多种括号格式：()、（）、[]、【】等
+func CleanComment(comment string) string {
+	if comment == "" {
+		return ""
+	}
+
+	// 定义需要移除的括号对
+	bracketPairs := []struct {
+		open  string
+		close string
+	}{
+		{"(", ")"}, // 英文圆括号
+		{"（", "）"}, // 中文圆括号
+		{"[", "]"}, // 英文方括号
+		{"【", "】"}, // 中文方括号
+		{"{", "}"}, // 英文花括号
+		{"｛", "｝"}, // 中文花括号
+	}
+
+	result := comment
+
+	// 移除所有类型的括号及其内容
+	for _, pair := range bracketPairs {
+		result = removeBracketContent(result, pair.open, pair.close)
+	}
+
+	// 清理多余的空格和标点
+	result = strings.TrimSpace(result)
+	result = strings.TrimSuffix(result, "，")
+	result = strings.TrimSuffix(result, ",")
+	result = strings.TrimSuffix(result, "；")
+	result = strings.TrimSuffix(result, ";")
+	result = strings.TrimSuffix(result, "：")
+	result = strings.TrimSuffix(result, ":")
+
+	return strings.TrimSpace(result)
+}
+
+// removeBracketContent 移除指定括号及其内容，支持嵌套括号
+func removeBracketContent(text, openBracket, closeBracket string) string {
+	for {
+		openIndex := strings.Index(text, openBracket)
+		if openIndex == -1 {
+			break
+		}
+
+		// 查找匹配的闭合括号，考虑嵌套情况
+		closeIndex := findMatchingCloseBracket(text, openIndex, openBracket, closeBracket)
+		if closeIndex == -1 {
+			// 没有找到闭合括号，移除从开括号到结尾的所有内容
+			text = text[:openIndex]
+			break
+		}
+
+		// 移除括号及其内容
+		text = text[:openIndex] + text[closeIndex+len(closeBracket):]
+	}
+
+	return text
+}
+
+// findMatchingCloseBracket 查找匹配的闭合括号，处理嵌套情况
+func findMatchingCloseBracket(text string, startIndex int, openBracket, closeBracket string) int {
+	openCount := 1
+	searchStart := startIndex + len(openBracket)
+
+	for i := searchStart; i < len(text); {
+		if strings.HasPrefix(text[i:], openBracket) {
+			openCount++
+			i += len(openBracket)
+		} else if strings.HasPrefix(text[i:], closeBracket) {
+			openCount--
+			if openCount == 0 {
+				return i
+			}
+			i += len(closeBracket)
+		} else {
+			i++
+		}
+	}
+
+	return -1 // 没有找到匹配的闭合括号
+}
+
+// GetDisplayComment 获取用于显示的注释（清理后的）
+func GetDisplayComment(comment string) string {
+	return CleanComment(comment)
+}
+
+// GetFullComment 获取完整的注释（保留原始内容）
+func GetFullComment(comment string) string {
+	return comment
+}

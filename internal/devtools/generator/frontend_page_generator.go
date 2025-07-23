@@ -189,7 +189,7 @@ func (g *FrontendPageGenerator) generateTableColumns(fields []FieldDefinition) [
 	// 添加字段列
 	for _, field := range fields {
 		column := TableColumn{
-			Label:    field.Comment,
+			Label:    GetDisplayComment(field.Comment), // 使用清理后的注释
 			Prop:     ToLowerCamelCase(field.Name),
 			Sortable: true,
 		}
@@ -242,10 +242,12 @@ func (g *FrontendPageGenerator) generateSearchFormItems(fields []FieldDefinition
 	for _, field := range fields {
 		// 只为字符串和状态字段生成搜索项
 		if field.Type == "string" || strings.Contains(strings.ToLower(field.Name), "status") {
+			displayComment := GetDisplayComment(field.Comment)
+
 			item := SearchFormItem{
-				Label:       field.Comment,
+				Label:       displayComment, // 使用清理后的注释
 				Prop:        ToLowerCamelCase(field.Name),
-				Placeholder: fmt.Sprintf("请输入%s", field.Comment),
+				Placeholder: fmt.Sprintf("请输入%s", displayComment),
 			}
 
 			// 根据字段类型设置搜索组件类型
@@ -255,7 +257,7 @@ func (g *FrontendPageGenerator) generateSearchFormItems(fields []FieldDefinition
 					{Label: "启用", Value: 1},
 					{Label: "禁用", Value: 0},
 				}
-				item.Placeholder = fmt.Sprintf("请选择%s", field.Comment)
+				item.Placeholder = fmt.Sprintf("请选择%s", displayComment)
 			} else {
 				item.Type = "input"
 			}

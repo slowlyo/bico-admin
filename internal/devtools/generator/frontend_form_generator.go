@@ -153,20 +153,22 @@ func (g *FrontendFormGenerator) prepareTemplateData(req *GenerateRequest) *Front
 
 // generateFieldLabel 生成字段标签
 func (g *FrontendFormGenerator) generateFieldLabel(field FieldDefinition) string {
-	// 如果注释包含逗号，取第一部分作为标签
-	if strings.Contains(field.Comment, "，") {
-		return strings.Split(field.Comment, "，")[0]
+	// 使用清理后的注释作为标签
+	cleanComment := CleanComment(field.Comment)
+
+	// 如果清理后的注释包含逗号，取第一部分作为标签
+	if strings.Contains(cleanComment, "，") {
+		return strings.Split(cleanComment, "，")[0]
 	}
-	if strings.Contains(field.Comment, ",") {
-		return strings.Split(field.Comment, ",")[0]
+	if strings.Contains(cleanComment, ",") {
+		return strings.Split(cleanComment, ",")[0]
 	}
 
 	// 移除常见的后缀
-	comment := field.Comment
-	comment = strings.TrimSuffix(comment, "字段")
-	comment = strings.TrimSuffix(comment, "信息")
+	cleanComment = strings.TrimSuffix(cleanComment, "字段")
+	cleanComment = strings.TrimSuffix(cleanComment, "信息")
 
-	return comment
+	return strings.TrimSpace(cleanComment)
 }
 
 // generateFormFields 生成表单字段定义
@@ -174,6 +176,9 @@ func (g *FrontendFormGenerator) generateFormFields(fields []FieldDefinition) []F
 	var formFields []FormField
 
 	for _, field := range fields {
+		// 获取清理后的注释用于显示
+		displayComment := GetDisplayComment(field.Comment)
+
 		formField := FormField{
 			Label:    g.generateFieldLabel(field),
 			Prop:     ToLowerCamelCase(field.Name),
@@ -188,29 +193,29 @@ func (g *FrontendFormGenerator) generateFormFields(fields []FieldDefinition) []F
 			if strings.Contains(strings.ToLower(field.Name), "password") {
 				formField.Type = "password"
 				formField.Component = "el-input"
-				formField.Placeholder = fmt.Sprintf("请输入%s", field.Comment)
+				formField.Placeholder = fmt.Sprintf("请输入%s", displayComment)
 			} else if strings.Contains(strings.ToLower(field.Name), "email") {
 				formField.Type = "email"
 				formField.Component = "el-input"
-				formField.Placeholder = fmt.Sprintf("请输入%s", field.Comment)
+				formField.Placeholder = fmt.Sprintf("请输入%s", displayComment)
 			} else if strings.Contains(strings.ToLower(field.Name), "description") ||
 				strings.Contains(strings.ToLower(field.Name), "remark") ||
 				strings.Contains(strings.ToLower(field.Name), "content") {
 				formField.Type = "textarea"
 				formField.Component = "el-input"
-				formField.Placeholder = fmt.Sprintf("请输入%s", field.Comment)
+				formField.Placeholder = fmt.Sprintf("请输入%s", displayComment)
 				formField.ColSpan = 24 // 文本域占满一行
 			} else {
 				formField.Type = "text"
 				formField.Component = "el-input"
-				formField.Placeholder = fmt.Sprintf("请输入%s", field.Comment)
+				formField.Placeholder = fmt.Sprintf("请输入%s", displayComment)
 			}
 
 		case "int":
 			if strings.Contains(strings.ToLower(field.Name), "status") {
 				formField.Type = "select"
 				formField.Component = "el-select"
-				formField.Placeholder = fmt.Sprintf("请选择%s", field.Comment)
+				formField.Placeholder = fmt.Sprintf("请选择%s", displayComment)
 				formField.Options = []Option{
 					{Label: "启用", Value: 1},
 					{Label: "禁用", Value: 0},
@@ -218,18 +223,18 @@ func (g *FrontendFormGenerator) generateFormFields(fields []FieldDefinition) []F
 			} else {
 				formField.Type = "number"
 				formField.Component = "el-input-number"
-				formField.Placeholder = fmt.Sprintf("请输入%s", field.Comment)
+				formField.Placeholder = fmt.Sprintf("请输入%s", displayComment)
 			}
 
 		case "uint":
 			formField.Type = "number"
 			formField.Component = "el-input-number"
-			formField.Placeholder = fmt.Sprintf("请输入%s", field.Comment)
+			formField.Placeholder = fmt.Sprintf("请输入%s", displayComment)
 
 		case "decimal", "float32", "float64":
 			formField.Type = "number"
 			formField.Component = "el-input-number"
-			formField.Placeholder = fmt.Sprintf("请输入%s", field.Comment)
+			formField.Placeholder = fmt.Sprintf("请输入%s", displayComment)
 
 		case "bool":
 			formField.Type = "switch"
@@ -244,12 +249,12 @@ func (g *FrontendFormGenerator) generateFormFields(fields []FieldDefinition) []F
 				formField.Type = "datetime"
 				formField.Component = "el-date-picker"
 			}
-			formField.Placeholder = fmt.Sprintf("请选择%s", field.Comment)
+			formField.Placeholder = fmt.Sprintf("请选择%s", displayComment)
 
 		default:
 			formField.Type = "text"
 			formField.Component = "el-input"
-			formField.Placeholder = fmt.Sprintf("请输入%s", field.Comment)
+			formField.Placeholder = fmt.Sprintf("请输入%s", displayComment)
 		}
 
 		// 生成验证规则
@@ -282,11 +287,12 @@ func (g *FrontendFormGenerator) generateValidationRules(fields []FieldDefinition
 
 	for _, field := range fields {
 		fieldName := ToLowerCamelCase(field.Name)
+		displayComment := GetDisplayComment(field.Comment)
 		var ruleLines []string
 
 		// 必填验证
 		if strings.Contains(field.Validate, "required") {
-			ruleLines = append(ruleLines, "{ required: true, message: '请输入"+field.Comment+"', trigger: 'blur' }")
+			ruleLines = append(ruleLines, "{ required: true, message: '请输入"+displayComment+"', trigger: 'blur' }")
 		}
 
 		// 邮箱验证

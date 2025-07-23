@@ -275,6 +275,9 @@ func (g *HandlerGenerator) getTemplateFuncs() template.FuncMap {
 		"hasStatusField":     HasStatusField,
 		"isStatusField":      IsStatusField,
 		"getStatusFieldType": GetStatusFieldType,
+		"cleanComment":       CleanComment,
+		"getDisplayComment":  GetDisplayComment,
+		"getFullComment":     GetFullComment,
 		"hasPointerStatusField": func(fields []FieldDefinition) bool {
 			for _, field := range fields {
 				if IsStatusField(field) {

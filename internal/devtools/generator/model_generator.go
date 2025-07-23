@@ -216,6 +216,9 @@ func (g *ModelGenerator) getTemplateFuncs() template.FuncMap {
 		"hasStatusField":     HasStatusField,
 		"isStatusField":      IsStatusField,
 		"getStatusFieldType": GetStatusFieldType,
+		"cleanComment":       CleanComment,
+		"getDisplayComment":  GetDisplayComment,
+		"getFullComment":     GetFullComment,
 	}
 }
 
