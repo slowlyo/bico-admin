@@ -5,7 +5,7 @@ DEVTOOLS_PATH=./cmd/devtools
 WEB_DIR=web
 
 # 构建目标
-.PHONY: run dev build clean test deps wire help devtools devtools-stdio devtools-sse devtools-help devtools-version docker-build docker-dev docker-stop build-web dev-web build-embed build-windows-embed
+.PHONY: run dev build clean test deps wire help build-devtools docker-build docker-dev docker-stop build-web dev-web build-embed build-windows-embed
 
 # 默认目标
 default: help
@@ -81,20 +81,24 @@ clean:
 
 # MCP开发工具相关命令
 
-# 启动MCP开发工具 (HTTP模式)
-devtools:
-	@echo "启动MCP开发工具 (HTTP模式)..."
-	go run $(DEVTOOLS_PATH) -host 0.0.0.0 -port 18901
-
-# 显示MCP开发工具帮助
-devtools-help:
-	@echo "MCP开发工具帮助..."
-	go run $(DEVTOOLS_PATH) -help
-
-# 显示MCP开发工具版本
-devtools-version:
-	@echo "MCP开发工具版本..."
-	go run $(DEVTOOLS_PATH) -version
+# 构建MCP开发工具
+build-devtools:
+	@echo "构建MCP开发工具..."
+	@mkdir -p bin
+	@go build -o bin/devtools ./cmd/devtools
+	@echo ""
+	@echo "🎉 MCP开发工具构建完成！"
+	@echo ""
+	@echo "📋 MCP客户端配置 (复制到你的MCP客户端配置文件中):"
+	@echo "{"
+	@echo "  \"mcpServers\": {"
+	@echo "    \"bico-admin-devtools\": {"
+	@echo "      \"command\": \"$(PWD)/bin/devtools\","
+	@echo "      \"cwd\": \"$(PWD)\""
+	@echo "    }"
+	@echo "  }"
+	@echo "}"
+	@echo ""
 
 # Docker 相关命令
 
@@ -132,17 +136,11 @@ help:
 	@echo "  make clean       - 清理文件"
 	@echo ""
 	@echo "MCP开发工具命令:"
-	@echo "  make devtools        - 启动MCP开发工具 (HTTP模式，默认)"
-	@echo "  make devtools-sse    - 启动MCP开发工具 (SSE模式)"
-	@echo "  make devtools-stdio  - 启动MCP开发工具 (stdio模式)"
-	@echo "  make devtools-help   - 显示MCP开发工具帮助"
-	@echo "  make devtools-version - 显示MCP开发工具版本"
+	@echo "  make build-devtools - 构建MCP开发工具并输出配置"
 	@echo ""
 	@echo "Docker命令:"
 	@echo "  make docker-build    - 构建Docker镜像"
 	@echo "  make docker-dev      - 启动开发环境Docker服务"
 	@echo "  make docker-stop     - 停止Docker服务"
-	@echo ""
-	@echo "注意: 推荐使用HTTP模式，通过URL连接更简单可靠"
 	@echo ""
 	@echo "  make help    - 显示帮助信息"

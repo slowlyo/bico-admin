@@ -117,30 +117,19 @@ func (s *MCPDevServer) Start(ctx context.Context) error {
 	log.Printf("启动 MCP 开发工具服务器...")
 	log.Printf("服务器名称: %s", s.config.Name)
 	log.Printf("服务器版本: %s", s.config.Version)
-	log.Printf("传输方式: HTTP")
+	log.Printf("传输方式: %s", s.config.Transport.Mode)
 
-	return s.startHTTP(ctx)
+	// 只支持 stdio 模式
+	return s.startStdio(ctx)
 }
 
-// startHTTP 启动HTTP传输
-func (s *MCPDevServer) startHTTP(ctx context.Context) error {
-	addr := fmt.Sprintf("%s:%d", s.config.Transport.HTTP.Host, s.config.Transport.HTTP.Port)
-	log.Printf("使用 HTTP 传输启动服务器，监听地址: %s", addr)
+// startStdio 启动Stdio传输
+func (s *MCPDevServer) startStdio(ctx context.Context) error {
+	log.Printf("使用 Stdio 传输启动服务器")
+	log.Printf("Stdio 服务器已启动，等待客户端连接...")
 
-	// 创建 StreamableHTTPServer
-	httpServer := server.NewStreamableHTTPServer(s.mcpServer,
-		server.WithEndpointPath("/mcp"),
-	)
-
-	// 启动服务器
-	go func() {
-		<-ctx.Done()
-		log.Printf("正在关闭 HTTP 服务器...")
-		httpServer.Shutdown(context.Background())
-	}()
-
-	log.Printf("HTTP 服务器已启动，访问地址: http://%s/mcp", addr)
-	return httpServer.Start(addr)
+	// 使用 ServeStdio 启动服务器
+	return server.ServeStdio(s.mcpServer)
 }
 
 // Stop 停止服务器

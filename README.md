@@ -69,8 +69,7 @@ make wire     # 生成依赖注入代码
 
 
 # MCP 开发工具
-make devtools         # 启动 MCP 服务 (HTTP模式)
-make devtools-help    # 查看 MCP 工具帮助
+make build-devtools    # 构建 MCP 工具并输出配置
 ```
 
 > **注意**: MCP 服务使用 HTTP 传输方式，通过 URL 连接简单可靠。详见 [MCP 开发工具文档](docs/mcp-devtools.md)。

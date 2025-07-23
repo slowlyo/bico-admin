@@ -90,6 +90,9 @@ func ProvideGinEngine(
 		// 如果前端路由设置失败，继续运行但记录错误
 	}
 
+	// 设置上传文件路由
+	r.Static("/uploads", cfg.Upload.UploadDir)
+
 	// 注册路由
 	adminRoutes.RegisterRoutes(r, adminHandlers, cache, adminPermissionMiddleware)
 	masterRoutes.RegisterRoutes(r, masterHandlers)

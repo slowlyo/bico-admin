@@ -1,9 +1,5 @@
 package server
 
-import (
-	"time"
-)
-
 // Config MCP服务器配置
 type Config struct {
 	// 服务器基本信息
@@ -23,17 +19,8 @@ type Config struct {
 
 // TransportConfig 传输层配置
 type TransportConfig struct {
-	// HTTP配置
-	HTTP HTTPConfig `yaml:"http" json:"http"`
-}
-
-// HTTPConfig HTTP传输配置
-type HTTPConfig struct {
-	Host         string        `yaml:"host" json:"host"`
-	Port         int           `yaml:"port" json:"port"`
-	ReadTimeout  time.Duration `yaml:"read_timeout" json:"read_timeout"`
-	WriteTimeout time.Duration `yaml:"write_timeout" json:"write_timeout"`
-	IdleTimeout  time.Duration `yaml:"idle_timeout" json:"idle_timeout"`
+	// 传输模式：http, stdio
+	Mode string `yaml:"mode" json:"mode"`
 }
 
 // LogConfig 日志配置
@@ -73,13 +60,7 @@ func DefaultConfig() *Config {
 		Version:     "1.0.0",
 		Description: "Bico Admin 开发工具 MCP 服务",
 		Transport: TransportConfig{
-			HTTP: HTTPConfig{
-				Host:         "127.0.0.1",
-				Port:         18901, // 使用不常用的端口
-				ReadTimeout:  30 * time.Second,
-				WriteTimeout: 30 * time.Second,
-				IdleTimeout:  60 * time.Second,
-			},
+			Mode: "stdio", // 默认使用 stdio 模式
 		},
 		Log: LogConfig{
 			Level:  "info",
@@ -107,21 +88,9 @@ func (c *Config) Validate() error {
 		c.Version = "1.0.0"
 	}
 
-	// 验证HTTP配置
-	if c.Transport.HTTP.Host == "" {
-		c.Transport.HTTP.Host = "127.0.0.1"
-	}
-	if c.Transport.HTTP.Port <= 0 {
-		c.Transport.HTTP.Port = 18901 // 使用不常用的端口
-	}
-	if c.Transport.HTTP.ReadTimeout <= 0 {
-		c.Transport.HTTP.ReadTimeout = 30 * time.Second
-	}
-	if c.Transport.HTTP.WriteTimeout <= 0 {
-		c.Transport.HTTP.WriteTimeout = 30 * time.Second
-	}
-	if c.Transport.HTTP.IdleTimeout <= 0 {
-		c.Transport.HTTP.IdleTimeout = 60 * time.Second
+	// 验证传输模式
+	if c.Transport.Mode == "" {
+		c.Transport.Mode = "stdio"
 	}
 
 	if c.Log.Level == "" {

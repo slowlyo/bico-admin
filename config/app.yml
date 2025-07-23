@@ -127,7 +127,7 @@ upload:
   base_url: ""                 # 文件访问的基础URL，留空则自动使用请求的域名
 
 frontend:
-  mode: "external"             # 前端处理模式: embed(嵌入到二进制) 或 external(外部文件)
+  mode: "embed"                # 前端处理模式: embed(嵌入到二进制) 或 external(外部文件)
   static_dir: "web/dist"       # 静态文件目录(external模式)
   index_file: "web/dist/index.html"  # 主页文件路径
   assets_dir: "web/dist/assets"      # 资源文件目录

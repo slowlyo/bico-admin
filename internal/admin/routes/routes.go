@@ -10,9 +10,6 @@ import (
 
 // RegisterRoutes 注册admin端路由
 func RegisterRoutes(r *gin.Engine, handlers *Handlers, cache cache.Cache, permissionMiddleware gin.HandlerFunc) {
-	// 静态文件服务 - 提供上传文件访问
-	r.Static("/uploads", "./data/uploads")
-
 	// admin端路由组
 	adminGroup := r.Group("/admin-api")
 
