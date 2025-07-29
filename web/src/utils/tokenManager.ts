@@ -1,9 +1,7 @@
 // Token管理工具
+// 优化版本：移除阻塞逻辑，采用非阻塞的后台刷新策略
 import { UserService } from '@/api/usersApi'
 import { useUserStore } from '@/store/modules/user'
-import { router } from '@/router'
-import { RoutesAlias } from '@/router/routesAlias'
-import { ElMessage } from 'element-plus'
 
 // Token刷新状态
 let isRefreshing = false
@@ -12,7 +10,7 @@ let refreshPromise: Promise<string | null> | null = null
 /**
  * 检查token是否即将过期
  * @param token JWT token
- * @returns 是否即将过期（剩余时间少于30分钟）
+ * @returns 是否即将过期（剩余时间少于10分钟）
  */
 export function isTokenExpiringSoon(token: string): boolean {
   try {
@@ -20,9 +18,10 @@ export function isTokenExpiringSoon(token: string): boolean {
     const expirationTime = payload.exp * 1000 // 转换为毫秒
     const currentTime = Date.now()
     const timeUntilExpiration = expirationTime - currentTime
-    
-    // 如果剩余时间少于30分钟，认为即将过期
-    return timeUntilExpiration < 30 * 60 * 1000
+
+    // 如果剩余时间少于10分钟，认为即将过期
+    // 减少刷新频率，避免过于频繁的后台刷新
+    return timeUntilExpiration < 10 * 60 * 1000
   } catch (error) {
     console.error('解析token失败:', error)
     return true // 解析失败时认为已过期
@@ -98,13 +97,14 @@ export async function refreshToken(): Promise<string | null> {
         console.log('Token刷新成功')
         return token
       } else {
-        throw new Error('Token刷新失败')
+        console.warn('Token刷新失败: 服务器未返回新token')
+        return null
       }
     } catch (error) {
       console.error('Token刷新失败:', error)
 
-      // 刷新失败，不在这里执行登出操作，让HTTP拦截器来处理
-      // 避免循环调用的问题
+      // 刷新失败，静默处理，不显示用户提示
+      // 让HTTP拦截器统一处理认证错误
       return null
     } finally {
       isRefreshing = false
@@ -117,12 +117,12 @@ export async function refreshToken(): Promise<string | null> {
 
 /**
  * 自动检查并刷新token
- * 如果token即将过期，自动刷新
+ * 如果token即将过期，自动刷新（非阻塞）
  */
-export async function autoRefreshToken(): Promise<void> {
+export function autoRefreshToken(): void {
   const userStore = useUserStore()
   const token = userStore.accessToken
-  
+
   if (!token) {
     return
   }
@@ -133,20 +133,22 @@ export async function autoRefreshToken(): Promise<void> {
     return
   }
 
-  // 如果token即将过期，尝试刷新
+  // 如果token即将过期，异步刷新（不阻塞）
   if (isTokenExpiringSoon(token)) {
-    await refreshToken()
+    refreshToken().catch(error => {
+      console.error('后台token刷新失败:', error)
+    })
   }
 }
 
 /**
  * 启动token自动刷新定时器
- * 每5分钟检查一次token状态
+ * 每3分钟检查一次token状态（优化频率）
  */
 export function startTokenRefreshTimer(): () => void {
   const interval = setInterval(() => {
     autoRefreshToken()
-  }, 5 * 60 * 1000) // 5分钟检查一次
+  }, 3 * 60 * 1000) // 3分钟检查一次，配合10分钟的过期判断
 
   // 立即执行一次检查
   autoRefreshToken()
@@ -158,13 +160,13 @@ export function startTokenRefreshTimer(): () => void {
 }
 
 /**
- * 在请求前检查token状态
- * 如果token即将过期，先刷新再发送请求
+ * 在请求前检查token状态（非阻塞版本）
+ * 如果token即将过期，触发后台刷新但不等待
  */
-export async function ensureValidToken(): Promise<string | null> {
+export function ensureValidToken(): string | null {
   const userStore = useUserStore()
   const token = userStore.accessToken
-  
+
   if (!token) {
     return null
   }
@@ -174,7 +176,35 @@ export async function ensureValidToken(): Promise<string | null> {
     return null
   }
 
-  // 如果token即将过期，尝试刷新
+  // 如果token即将过期，触发后台刷新（不阻塞当前请求）
+  if (isTokenExpiringSoon(token)) {
+    refreshToken().catch(error => {
+      console.error('后台token刷新失败:', error)
+    })
+  }
+
+  return token
+}
+
+/**
+ * 确保token有效（阻塞版本，仅在必要时使用）
+ * 如果token即将过期，会等待刷新完成
+ * 主要用于响应拦截器中的token刷新重试逻辑
+ */
+export async function ensureValidTokenBlocking(): Promise<string | null> {
+  const userStore = useUserStore()
+  const token = userStore.accessToken
+
+  if (!token) {
+    return null
+  }
+
+  // 如果token已过期，返回null
+  if (isTokenExpired(token)) {
+    return null
+  }
+
+  // 如果token即将过期，等待刷新完成
   if (isTokenExpiringSoon(token)) {
     const newToken = await refreshToken()
     return newToken || token // 如果刷新失败，返回原token让后端处理

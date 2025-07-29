@@ -12,12 +12,17 @@ const RETRY_DELAY = 1000 // 重试延迟时间(毫秒)
 // 防止重复登出的标志
 let isLoggingOut = false
 
+// 防止重复显示认证错误提示
+let lastAuthErrorTime = 0
+const AUTH_ERROR_THROTTLE = 3000 // 3秒内不重复显示认证错误
+
 // 扩展 AxiosRequestConfig 类型
 interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
   showErrorMessage?: boolean
   returnFullResponse?: boolean // 是否返回完整响应（包括message）
   enableRetry?: boolean // 是否启用重试机制，默认关闭
   maxRetries?: number // 最大重试次数，默认使用全局配置
+  _retry?: boolean // 标记请求是否已重试，避免无限循环
 }
 
 const { VITE_API_URL, VITE_WITH_CREDENTIALS } = import.meta.env
@@ -47,12 +52,23 @@ const axiosInstance = axios.create({
   ]
 })
 
+// 处理认证错误（防重复提示）
+function handleAuthError(message: string): void {
+  const now = Date.now()
+  if (now - lastAuthErrorTime > AUTH_ERROR_THROTTLE) {
+    lastAuthErrorTime = now
+    console.error('认证错误:', message)
+    // 显示用户友好的错误提示（防重复）
+    showError(new HttpError(message, ApiStatus.unauthorized), true)
+  }
+}
+
 // 请求拦截器
 axiosInstance.interceptors.request.use(
   async (request: InternalAxiosRequestConfig) => {
-    // 确保token有效，如果即将过期会自动刷新
+    // 确保token有效，如果即将过期会触发后台刷新（非阻塞）
     const { ensureValidToken } = await import('@/utils/tokenManager')
-    const token = await ensureValidToken()
+    const token = ensureValidToken()
 
     // 设置 token 和 请求头
     if (token) {
@@ -81,9 +97,12 @@ axiosInstance.interceptors.response.use(
         // 检查是否是登录请求，如果是登录请求则不执行登出操作
         const isLoginRequest = response.config.url?.includes('/auth/login')
         if (!isLoginRequest) {
+          // 使用统一的认证错误处理（已包含用户提示）
+          handleAuthError(errorMessage || $t('httpMsg.unauthorized'))
           // 异步执行登出操作，不阻塞当前响应处理
           logOut().catch(error => console.error('登出操作失败:', error))
         }
+        // 抛出错误但不再显示额外的用户提示（已在handleAuthError中处理）
         throw new HttpError(errorMessage || $t('httpMsg.unauthorized'), ApiStatus.unauthorized)
       default:
         throw new HttpError(errorMessage || $t('httpMsg.requestFailed'), code)
@@ -92,22 +111,35 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     // 处理HTTP状态码401的情况
     if (error.response?.status === 401) {
-      try {
-        // 尝试刷新token
-        const { refreshToken } = await import('@/utils/tokenManager')
-        const newToken = await refreshToken()
+      // 检查是否是登录或刷新token请求，避免无限循环
+      const isAuthRequest = error.config?.url?.includes('/auth/login') ||
+                           error.config?.url?.includes('/auth/refresh')
 
-        if (newToken && error.config) {
-          // 如果刷新成功，重新发送原请求
-          error.config.headers.Authorization = `Bearer ${newToken}`
-          return axiosInstance.request(error.config)
-        } else {
-          // 如果没有获取到新token，说明刷新失败，执行登出
+      if (!isAuthRequest) {
+        try {
+          // 尝试刷新token
+          const { refreshToken } = await import('@/utils/tokenManager')
+          const newToken = await refreshToken()
+
+          if (newToken && error.config && !error.config._retry) {
+            // 标记请求已重试，避免无限循环
+            error.config._retry = true
+            // 如果刷新成功，重新发送原请求
+            error.config.headers.Authorization = `Bearer ${newToken}`
+            return axiosInstance.request(error.config)
+          } else {
+            // 如果没有获取到新token，说明刷新失败
+            handleAuthError('Token刷新失败，请重新登录')
+            logOut().catch(error => console.error('登出操作失败:', error))
+          }
+        } catch (refreshError) {
+          console.error('Token刷新失败:', refreshError)
+          // 刷新失败，统一处理认证错误
+          handleAuthError('认证失败，请重新登录')
           logOut().catch(error => console.error('登出操作失败:', error))
         }
-      } catch (refreshError) {
-        console.error('Token刷新失败:', refreshError)
-        // 刷新失败，执行登出
+      } else {
+        // 认证请求失败，直接执行登出（不显示重复错误）
         logOut().catch(error => console.error('登出操作失败:', error))
       }
     }
@@ -168,8 +200,9 @@ async function request<T = any>(config: ExtendedAxiosRequestConfig): Promise<T> 
     return res.data.data as T // 只返回数据部分
   } catch (error) {
     if (error instanceof HttpError) {
-      // 根据配置决定是否显示错误消息
-      const showErrorMessage = config.showErrorMessage !== false
+      // 对于认证错误，不再重复显示提示（已在拦截器中处理）
+      const isAuthError = error.code === ApiStatus.unauthorized
+      const showErrorMessage = config.showErrorMessage !== false && !isAuthError
       showError(error, showErrorMessage)
     }
     return Promise.reject(error)
