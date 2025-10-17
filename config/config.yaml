@@ -3,15 +3,22 @@ server:
   mode: debug  # debug/release
 
 database:
-  driver: mysql
-  host: localhost
-  port: 3306
-  username: root
-  password: root
-  database: bico_admin
-  charset: utf8mb4
+  driver: sqlite  # 支持 sqlite / mysql
   max_idle_conns: 10
   max_open_conns: 100
+  
+  # SQLite 配置
+  sqlite:
+    path: data.db
+  
+  # MySQL 配置
+  mysql:
+    host: localhost
+    port: 3306
+    username: root
+    password: root
+    database: bico_admin
+    charset: utf8mb4
 
 log:
   level: info

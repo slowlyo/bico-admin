@@ -17,15 +17,26 @@ type ServerConfig struct {
 
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
-	Driver       string `mapstructure:"driver"`
-	Host         string `mapstructure:"host"`
-	Port         int    `mapstructure:"port"`
-	Username     string `mapstructure:"username"`
-	Password     string `mapstructure:"password"`
-	Database     string `mapstructure:"database"`
-	Charset      string `mapstructure:"charset"`
-	MaxIdleConns int    `mapstructure:"max_idle_conns"`
-	MaxOpenConns int    `mapstructure:"max_open_conns"`
+	Driver       string           `mapstructure:"driver"`
+	SQLite       SQLiteConfig     `mapstructure:"sqlite"`
+	MySQL        MySQLConfig      `mapstructure:"mysql"`
+	MaxIdleConns int              `mapstructure:"max_idle_conns"`
+	MaxOpenConns int              `mapstructure:"max_open_conns"`
+}
+
+// SQLiteConfig SQLite 配置
+type SQLiteConfig struct {
+	Path string `mapstructure:"path"`
+}
+
+// MySQLConfig MySQL 配置
+type MySQLConfig struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+	Database string `mapstructure:"database"`
+	Charset  string `mapstructure:"charset"`
 }
 
 // LogConfig 日志配置
