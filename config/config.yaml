@@ -24,3 +24,13 @@ log:
   level: info
   format: json
   output: stdout
+
+cache:
+  driver: memory  # memory / redis
+  
+  # Redis 配置
+  redis:
+    host: localhost
+    port: 6379
+    password: ""
+    db: 0
