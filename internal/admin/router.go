@@ -8,7 +8,7 @@ import (
 )
 
 // Router 实现路由注册
-type Router struct{
+type Router struct {
 	authHandler   *handler.AuthHandler
 	commonHandler *handler.CommonHandler
 	jwtAuth       gin.HandlerFunc
@@ -26,15 +26,15 @@ func NewRouter(authHandler *handler.AuthHandler, commonHandler *handler.CommonHa
 // Register 注册路由
 func (r *Router) Register(engine *gin.Engine) {
 	admin := engine.Group("/admin-api")
-	
+
 	// 公开路由（无需认证）
 	admin.POST("/login", r.authHandler.Login)
 	admin.GET("/app-config", r.commonHandler.GetAppConfig)
-	
+
 	// 需要认证的路由
 	admin.POST("/logout", r.jwtAuth, r.authHandler.Logout)
 	admin.GET("/current-user", r.jwtAuth, r.authHandler.CurrentUser)
-	
+
 	// 临时路由
 	admin.GET("/menus", func(c *gin.Context) {
 		c.JSON(200, response.Success([]string{}))

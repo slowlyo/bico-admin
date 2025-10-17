@@ -11,6 +11,7 @@ import (
 	"bico-admin/internal/core/middleware"
 	"bico-admin/internal/core/server"
 	"bico-admin/internal/shared/jwt"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/dig"
 	"gorm.io/gorm"
@@ -20,87 +21,84 @@ import (
 func BuildContainer(configPath string) (*dig.Container, error) {
 	container := dig.New()
 
-	// 加载配置
-	if err := container.Provide(func() (*config.Config, error) {
-		return config.LoadConfig(configPath)
-	}); err != nil {
-		return nil, err
+	// 按模块注册依赖（模块化 + 批量错误处理）
+	providers := []interface{}{
+		// 基础设施层
+		func() (*config.Config, error) { return config.LoadConfig(configPath) },
+		provideDatabase,
+		provideGinEngine,
+		provideCache,
+		provideJWT,
+
+		// 服务层
+		provideAuthService,
+		provideConfigService,
+
+		// 处理层
+		adminHandler.NewAuthHandler,
+		adminHandler.NewCommonHandler,
+
+		// 路由层
+		provideAdminRouter,
+		api.NewRouter,
+
+		// 应用实例
+		NewApp,
 	}
 
-	// 提供数据库连接
-	if err := container.Provide(func(cfg *config.Config) (*gorm.DB, error) {
-		return db.InitDB(&cfg.Database)
-	}); err != nil {
-		return nil, err
-	}
-
-	// 提供 Gin 引擎
-	if err := container.Provide(func(cfg *config.Config) *gin.Engine {
-		return server.NewServer(&cfg.Server)
-	}); err != nil {
-		return nil, err
-	}
-
-	// 提供缓存
-	if err := container.Provide(func(cfg *config.Config) (cache.Cache, error) {
-		return cache.NewCache(&cfg.Cache)
-	}); err != nil {
-		return nil, err
-	}
-
-	// 提供 JWT 管理器
-	if err := container.Provide(func(cfg *config.Config) *jwt.JWTManager {
-		return jwt.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpireHours)
-	}); err != nil {
-		return nil, err
-	}
-
-	// 提供 AuthService
-	if err := container.Provide(func(db *gorm.DB, jwtManager *jwt.JWTManager, cacheInstance cache.Cache) *adminService.AuthService {
-		return adminService.NewAuthService(db, jwtManager, cacheInstance)
-	}); err != nil {
-		return nil, err
-	}
-
-	// 提供 AuthHandler
-	if err := container.Provide(func(authService *adminService.AuthService) *adminHandler.AuthHandler {
-		return adminHandler.NewAuthHandler(authService)
-	}); err != nil {
-		return nil, err
-	}
-
-	// 提供 ConfigService
-	if err := container.Provide(func(cfg *config.Config) *adminService.ConfigService {
-		return adminService.NewConfigService(cfg)
-	}); err != nil {
-		return nil, err
-	}
-
-	// 提供 CommonHandler
-	if err := container.Provide(func(configService *adminService.ConfigService) *adminHandler.CommonHandler {
-		return adminHandler.NewCommonHandler(configService)
-	}); err != nil {
-		return nil, err
-	}
-
-	// 提供路由
-	if err := container.Provide(func(authHandler *adminHandler.AuthHandler, commonHandler *adminHandler.CommonHandler, jwtManager *jwt.JWTManager, authService *adminService.AuthService) *admin.Router {
-		return admin.NewRouter(authHandler, commonHandler, middleware.JWTAuth(jwtManager, authService))
-	}); err != nil {
-		return nil, err
-	}
-
-	if err := container.Provide(func() *api.Router {
-		return api.NewRouter()
-	}); err != nil {
-		return nil, err
-	}
-
-	// 提供应用实例
-	if err := container.Provide(NewApp); err != nil {
-		return nil, err
+	for _, provider := range providers {
+		if err := container.Provide(provider); err != nil {
+			return nil, err
+		}
 	}
 
 	return container, nil
 }
 
+// provideDatabase 提供数据库连接
+func provideDatabase(cfg *config.Config) (*gorm.DB, error) {
+	return db.InitDB(&cfg.Database)
+}
+
+// provideGinEngine 提供 Gin 引擎
+func provideGinEngine(cfg *config.Config) *gin.Engine {
+	return server.NewServer(&cfg.Server)
+}
+
+// provideCache 提供缓存实例
+func provideCache(cfg *config.Config) (cache.Cache, error) {
+	return cache.NewCache(&cfg.Cache)
+}
+
+// provideJWT 提供 JWT 管理器
+func provideJWT(cfg *config.Config) *jwt.JWTManager {
+	return jwt.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpireHours)
+}
+
+// provideAuthService 提供认证服务接口（dig 要求返回接口类型）
+func provideAuthService(database *gorm.DB, jwtManager *jwt.JWTManager, cacheInstance cache.Cache) adminService.IAuthService {
+	return adminService.NewAuthService(database, jwtManager, cacheInstance)
+}
+
+// provideConfigService 提供配置服务接口（dig 要求返回接口类型）
+func provideConfigService(cfg *config.Config) adminService.IConfigService {
+	return adminService.NewConfigService(cfg)
+}
+
+// AdminRouterParams 使用 dig.In 简化依赖注入（最佳实践✅）
+type AdminRouterParams struct {
+	dig.In
+	AuthHandler   *adminHandler.AuthHandler
+	CommonHandler *adminHandler.CommonHandler
+	JWTManager    *jwt.JWTManager
+	AuthService   adminService.IAuthService
+}
+
+// provideAdminRouter 提供 Admin 路由（使用 dig.In 简化参数）
+func provideAdminRouter(params AdminRouterParams) *admin.Router {
+	return admin.NewRouter(
+		params.AuthHandler,
+		params.CommonHandler,
+		middleware.JWTAuth(params.JWTManager, params.AuthService),
+	)
+}
