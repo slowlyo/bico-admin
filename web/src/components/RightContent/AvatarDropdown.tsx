@@ -58,9 +58,9 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
     /** 此方法会跳转到 redirect 参数所在的位置 */
     const redirect = urlParams.get('redirect');
     // Note: There may be security issues, please note
-    if (window.location.pathname !== '/user/login' && !redirect) {
+    if (window.location.pathname !== '/auth/login' && !redirect) {
       history.replace({
-        pathname: '/user/login',
+        pathname: '/auth/login',
         search: searchParams.toString(),
       });
     }

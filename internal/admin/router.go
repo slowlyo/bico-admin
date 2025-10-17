@@ -2,6 +2,7 @@ package admin
 
 import (
 	"bico-admin/internal/shared/response"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,7 +16,7 @@ func NewRouter() *Router {
 
 // Register 注册路由
 func (r *Router) Register(engine *gin.Engine) {
-	admin := engine.Group("/admin")
+	admin := engine.Group("/admin-api")
 	{
 		admin.GET("/menus", func(c *gin.Context) {
 			c.JSON(200, response.Success([]string{}))
