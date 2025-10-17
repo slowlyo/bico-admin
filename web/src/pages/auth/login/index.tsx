@@ -3,6 +3,7 @@ import {
     LoginForm,
     ProFormCheckbox,
     ProFormText,
+    ProForm,
 } from "@ant-design/pro-components";
 import {
     FormattedMessage,
@@ -16,6 +17,8 @@ import { createStyles } from "antd-style";
 import React, { useState } from "react";
 import { flushSync } from "react-dom";
 import { Footer } from "@/components";
+import { login } from '@/services/admin';
+import { saveCredentials, getCredentials, clearCredentials } from '@/utils/crypto';
 import Settings from "../../../../config/defaultSettings";
 
 const useStyles = createStyles(({ token }) => {
@@ -69,11 +72,38 @@ const LoginMessage: React.FC<{
 };
 
 const Login: React.FC = () => {
-    const [userLoginState, setUserLoginState] = useState<API.LoginResult>({});
+    const [userLoginState, setUserLoginState] = useState<{status?: string; message?: string}>({});
+    const [form] = ProForm.useForm();
     const { initialState, setInitialState } = useModel("@@initialState");
     const { styles } = useStyles();
     const { message } = App.useApp();
     const intl = useIntl();
+    
+    // 检查是否已登录，已登录则自动跳转
+    React.useEffect(() => {
+        const token = localStorage.getItem('token');
+        
+        if (token) {
+            // 已登录，获取重定向地址或跳转首页
+            const urlParams = new URL(window.location.href).searchParams;
+            const redirect = urlParams.get('redirect') || '/';
+            
+            // 使用 history.push 而不是 window.location.href，避免整页刷新
+            window.location.href = redirect;
+        }
+    }, []);
+    
+    // 组件加载时，检查是否有记住的密码
+    React.useEffect(() => {
+        const credentials = getCredentials();
+        if (credentials) {
+            form.setFieldsValue({
+                username: credentials.username,
+                password: credentials.password,
+                rememberPassword: true,
+            });
+        }
+    }, [form]);
 
     const fetchUserInfo = async () => {
         const userInfo = await initialState?.fetchUserInfo?.();
@@ -87,30 +117,46 @@ const Login: React.FC = () => {
         }
     };
 
-    const handleSubmit = async (values: API.LoginParams) => {
+    const handleSubmit = async (values: API.LoginParams & { rememberPassword?: boolean }) => {
         try {
-            // 使用静态数据直接登录成功
-            const msg: API.LoginResult = {
-                status: "ok",
-                type: "account",
-                currentAuthority: "admin",
-            };
-
+            // 调用后端登录接口
+            const response = await login(values);
+            
+            // 登录成功（响应拦截器已处理错误情况，这里只会收到成功的响应）
+            if (!response.data) {
+                throw new Error('登录响应数据为空');
+            }
+            const { token, user } = response.data;
+            
+            // 保存 token 和用户信息
+            localStorage.setItem('token', token);
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            
+            // 处理记住密码
+            if (values.rememberPassword) {
+                saveCredentials(values.username || '', values.password || '');
+            } else {
+                clearCredentials();
+            }
+            
             const defaultLoginSuccessMessage = intl.formatMessage({
                 id: "pages.login.success",
                 defaultMessage: "登录成功！",
             });
             message.success(defaultLoginSuccessMessage);
+            
+            // 更新全局状态
             await fetchUserInfo();
+            
+            // 跳转到重定向页面或首页
             const urlParams = new URL(window.location.href).searchParams;
             window.location.href = urlParams.get("redirect") || "/";
-        } catch (error) {
-            const defaultLoginFailureMessage = intl.formatMessage({
-                id: "pages.login.failure",
-                defaultMessage: "登录失败，请重试！",
+        } catch (error: any) {
+            // 响应拦截器已将后端错误信息放到 error.message 中
+            setUserLoginState({ 
+                status: 'error',
+                message: error.message || '登录失败，请重试！'
             });
-            console.log(error);
-            message.error(defaultLoginFailureMessage);
         }
     };
     const { status } = userLoginState;
@@ -135,6 +181,7 @@ const Login: React.FC = () => {
                 }}
             >
                 <LoginForm
+                    form={form}
                     contentStyle={{
                         minWidth: 280,
                         marginTop: "70px",
@@ -143,30 +190,25 @@ const Login: React.FC = () => {
                     logo={<img alt="logo" src="/logo.png" />}
                     title="Bico Admin"
                     initialValues={{
-                        autoLogin: true,
+                        rememberPassword: false,
                     }}
                     onFinish={async (values) => {
                         await handleSubmit(values as API.LoginParams);
                     }}
                 >
-                    {status === "error" && (
-                        <LoginMessage
-                            content={intl.formatMessage({
-                                id: "pages.login.accountLogin.errorMessage",
-                                defaultMessage:
-                                    "账户或密码错误(admin/ant.design)",
-                            })}
-                        />
+                    {status === "error" && userLoginState.message && (
+                        <LoginMessage content={userLoginState.message} />
                     )}
                     <ProFormText
                         name="username"
                         fieldProps={{
                             size: "large",
                             prefix: <UserOutlined />,
+                            autoFocus: false,
                         }}
                         placeholder={intl.formatMessage({
                             id: "pages.login.username.placeholder",
-                            defaultMessage: "用户名: admin or user",
+                            defaultMessage: "请输入用户名",
                         })}
                         rules={[
                             {
@@ -185,10 +227,11 @@ const Login: React.FC = () => {
                         fieldProps={{
                             size: "large",
                             prefix: <LockOutlined />,
+                            autoFocus: false,
                         }}
                         placeholder={intl.formatMessage({
                             id: "pages.login.password.placeholder",
-                            defaultMessage: "密码: ant.design",
+                            defaultMessage: "请输入密码",
                         })}
                         rules={[
                             {
@@ -207,10 +250,10 @@ const Login: React.FC = () => {
                             marginBottom: 24,
                         }}
                     >
-                        <ProFormCheckbox noStyle name="autoLogin">
+                        <ProFormCheckbox noStyle name="rememberPassword">
                             <FormattedMessage
-                                id="pages.login.rememberMe"
-                                defaultMessage="自动登录"
+                                id="pages.login.rememberPassword"
+                                defaultMessage="记住密码"
                             />
                         </ProFormCheckbox>
                     </div>

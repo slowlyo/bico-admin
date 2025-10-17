@@ -2,9 +2,19 @@
 /* eslint-disable */
 
 declare namespace API {
+  // 后端统一响应格式
+  type Response<T = any> = {
+    code: number;
+    msg: string;
+    data?: T;
+  };
+
   type CurrentUser = {
+    id?: number;
+    username?: string;
     name?: string;
     avatar?: string;
+    enabled?: boolean;
     userid?: string;
     email?: string;
     signature?: string;
@@ -24,9 +34,8 @@ declare namespace API {
   };
 
   type LoginResult = {
-    status?: string;
-    type?: string;
-    currentAuthority?: string;
+    token: string;
+    user: CurrentUser;
   };
 
   type PageParams = {

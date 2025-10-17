@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"time"
 	
 	"bico-admin/internal/admin/model"
 	"bico-admin/internal/shared/password"
@@ -40,6 +41,7 @@ type IAuthService interface {
 	Login(req interface{}) (interface{}, error)
 	Logout(token string) error
 	IsTokenBlacklisted(token string) bool
+	GetUserByID(userID uint) (*UserInfo, error)
 }
 
 // AuthService 认证服务
@@ -107,22 +109,38 @@ func (s *AuthService) Logout(token string) error {
 	}
 	
 	blacklistKey := "token:blacklist:" + token
-	c := s.cache.(interface {
-		Set(key string, value interface{}, expiration interface{}) error
-	})
-	
-	if err := c.Set(blacklistKey, true, int64(7*24*3600)); err != nil {
-		return err
-	}
-	
-	return nil
+	// 设置 token 黑名单，过期时间 7 天
+	return s.cache.(interface {
+		Set(key string, value interface{}, expiration time.Duration) error
+	}).Set(blacklistKey, true, 7*24*time.Hour)
 }
 
 // IsTokenBlacklisted 检查 token 是否在黑名单中
 func (s *AuthService) IsTokenBlacklisted(token string) bool {
 	blacklistKey := "token:blacklist:" + token
-	c := s.cache.(interface {
+	return s.cache.(interface {
 		Exists(key string) bool
-	})
-	return c.Exists(blacklistKey)
+	}).Exists(blacklistKey)
+}
+
+// GetUserByID 根据用户ID获取用户信息
+func (s *AuthService) GetUserByID(userID uint) (*UserInfo, error) {
+	var user model.AdminUser
+	
+	err := s.db.Where("id = ?", userID).First(&user).Error
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	
+	if !user.Enabled {
+		return nil, ErrUserDisabled
+	}
+	
+	return &UserInfo{
+		ID:       user.ID,
+		Username: user.Username,
+		Name:     user.Name,
+		Avatar:   user.Avatar,
+		Enabled:  user.Enabled,
+	}, nil
 }

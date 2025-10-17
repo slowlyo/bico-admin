@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"bico-admin/internal/admin/handler"
 	"bico-admin/internal/shared/response"
 
 	"github.com/gin-gonic/gin"
@@ -8,38 +9,31 @@ import (
 
 // Router 实现路由注册
 type Router struct{
-	authHandler interface{}
+	authHandler *handler.AuthHandler
+	jwtAuth gin.HandlerFunc
 }
 
 // NewRouter 创建路由实例
-func NewRouter(authHandler interface{}) *Router {
-	return &Router{authHandler: authHandler}
+func NewRouter(authHandler *handler.AuthHandler, jwtAuth gin.HandlerFunc) *Router {
+	return &Router{
+		authHandler: authHandler,
+		jwtAuth: jwtAuth,
+	}
 }
 
 // Register 注册路由
 func (r *Router) Register(engine *gin.Engine) {
 	admin := engine.Group("/admin-api")
-	{
-		admin.GET("/menus", func(c *gin.Context) {
-			c.JSON(200, response.Success([]string{}))
-		})
-		
-		handler := r.authHandler.(interface {
-			Login(c interface {
-				ShouldBindJSON(obj interface{}) error
-				JSON(code int, obj interface{})
-			})
-			Logout(c interface {
-				GetHeader(key string) string
-				JSON(code int, obj interface{})
-			})
-		})
-		
-		admin.POST("/login", func(c *gin.Context) {
-			handler.Login(c)
-		})
-		admin.POST("/logout", func(c *gin.Context) {
-			handler.Logout(c)
-		})
-	}
+	
+	// 公开路由（无需认证）
+	admin.POST("/login", r.authHandler.Login)
+	
+	// 需要认证的路由
+	admin.POST("/logout", r.jwtAuth, r.authHandler.Logout)
+	admin.GET("/current-user", r.jwtAuth, r.authHandler.CurrentUser)
+	
+	// 临时路由
+	admin.GET("/menus", func(c *gin.Context) {
+		c.JSON(200, response.Success([]string{}))
+	})
 }

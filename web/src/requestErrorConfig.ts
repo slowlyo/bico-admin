@@ -1,4 +1,4 @@
-﻿import type { RequestOptions } from '@@/plugin-request/request';
+import type { RequestOptions } from '@@/plugin-request/request';
 import type { RequestConfig } from '@umijs/max';
 import { message, notification } from 'antd';
 
@@ -27,70 +27,56 @@ interface ResponseStructure {
 export const errorConfig: RequestConfig = {
   // 错误处理： umi@3 的错误处理方案。
   errorConfig: {
-    // 错误抛出
-    errorThrower: (res) => {
-      const { success, data, errorCode, errorMessage, showType } =
-        res as unknown as ResponseStructure;
-      if (!success) {
-        const error: any = new Error(errorMessage);
-        error.name = 'BizError';
-        error.info = { errorCode, errorMessage, showType, data };
-        throw error; // 抛出自制的错误
-      }
-    },
+    // 禁用 errorThrower，使用响应拦截器处理
+    errorThrower: () => {},
     // 错误接收及处理
     errorHandler: (error: any, opts: any) => {
       if (opts?.skipErrorHandler) throw error;
-      // 我们的 errorThrower 抛出的错误。
+      
+      // 业务错误不在这里显示消息，由业务代码自行处理
       if (error.name === 'BizError') {
-        const errorInfo: ResponseStructure | undefined = error.info;
-        if (errorInfo) {
-          const { errorMessage, errorCode } = errorInfo;
-          switch (errorInfo.showType) {
-            case ErrorShowType.SILENT:
-              // do nothing
-              break;
-            case ErrorShowType.WARN_MESSAGE:
-              message.warning(errorMessage);
-              break;
-            case ErrorShowType.ERROR_MESSAGE:
-              message.error(errorMessage);
-              break;
-            case ErrorShowType.NOTIFICATION:
-              notification.open({
-                description: errorMessage,
-                message: errorCode,
-              });
-              break;
-            case ErrorShowType.REDIRECT:
-              // TODO: redirect
-              break;
-            default:
-              message.error(errorMessage);
-          }
-        }
-      } else if (error.response) {
-        // Axios 的错误
-        // 请求成功发出且服务器也响应了状态码，但状态代码超出了 2xx 的范围
-        message.error(`Response status:${error.response.status}`);
-      } else if (error.request) {
-        // 请求已经成功发起，但没有收到响应
-        // \`error.request\` 在浏览器中是 XMLHttpRequest 的实例，
-        // 而在node.js中是 http.ClientRequest 的实例
-        message.error('None response! Please retry.');
-      } else {
-        // 发送请求时出了点问题
-        message.error('Request error, please retry.');
+        throw error;
       }
+      
+      // 网络错误统一处理
+      if (error.response) {
+        // HTTP 状态码错误
+        const status = error.response.status;
+        if (status === 401) {
+          message.error('未授权，请重新登录');
+        } else if (status === 403) {
+          message.error('无权限访问');
+        } else if (status === 404) {
+          message.error('请求的资源不存在');
+        } else if (status >= 500) {
+          message.error('服务器错误，请稍后重试');
+        } else {
+          message.error(`请求错误: ${status}`);
+        }
+      } else if (error.request) {
+        // 请求发出但没有收到响应
+        message.error('网络错误，请检查网络连接');
+      } else {
+        // 其他错误
+        message.error('请求失败，请重试');
+      }
+      
+      throw error;
     },
   },
 
   // 请求拦截器
   requestInterceptors: [
     (config: RequestOptions) => {
-      // 拦截请求配置，进行个性化处理。
-      const url = config?.url?.concat('?token=123');
-      return { ...config, url };
+      // 添加 token 到请求头
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers = {
+          ...config.headers,
+          Authorization: `Bearer ${token}`,
+        };
+      }
+      return config;
     },
   ],
 
@@ -98,11 +84,36 @@ export const errorConfig: RequestConfig = {
   responseInterceptors: [
     (response) => {
       // 拦截响应数据，进行个性化处理
-      const { data } = response as unknown as ResponseStructure;
+      const { data } = response;
 
-      if (data?.success === false) {
-        message.error('请求失败！');
+      // 处理后端统一响应格式
+      if (data && typeof data === 'object' && 'code' in data) {
+        const apiResponse = data as any;
+        
+        // code !== 0 表示业务错误
+        if (apiResponse.code !== 0) {
+          // 401 未授权，跳转登录（排除登录页面本身）
+          if (apiResponse.code === 401 && window.location.pathname !== '/auth/login') {
+            localStorage.removeItem('token');
+            localStorage.removeItem('currentUser');
+            window.location.href = '/auth/login';
+            // 跳转后抛出错误中断后续处理
+            const error: any = new Error('未授权，即将跳转登录页');
+            error.name = 'BizError';
+            error.response = response;
+            error.data = apiResponse;
+            throw error;
+          }
+          
+          // 抛出错误，让前端的 catch 块可以捕获
+          const error: any = new Error(apiResponse.msg || '请求失败');
+          error.name = 'BizError';
+          error.response = response;
+          error.data = apiResponse;
+          throw error;
+        }
       }
+      
       return response;
     },
   ],

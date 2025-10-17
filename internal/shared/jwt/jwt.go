@@ -61,3 +61,17 @@ func (j *JWTManager) ParseToken(tokenString string) (*Claims, error) {
 	
 	return claims, nil
 }
+
+// ValidateToken 验证 token 并返回 map 格式的 claims
+func (j *JWTManager) ValidateToken(tokenString string) (map[string]interface{}, error) {
+	claims, err := j.ParseToken(tokenString)
+	if err != nil {
+		return nil, err
+	}
+	
+	return map[string]interface{}{
+		"user_id":  float64(claims.UserID),
+		"username": claims.Username,
+		"exp":      float64(claims.Exp),
+	}, nil
+}

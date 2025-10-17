@@ -2,6 +2,8 @@ package db
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"bico-admin/internal/core/config"
@@ -52,6 +54,15 @@ func buildSQLiteDialector(cfg *config.DatabaseConfig) gorm.Dialector {
 	if dbPath == "" {
 		dbPath = "data.db"
 	}
+	
+	// 确保数据库文件的父目录存在
+	dir := filepath.Dir(dbPath)
+	if dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			fmt.Printf("创建数据库目录失败: %v\n", err)
+		}
+	}
+	
 	return sqlite.Open(dbPath)
 }
 

@@ -9,6 +9,7 @@ import {
   Footer,
   SelectLang,
 } from '@/components';
+import { currentUser as fetchCurrentUser } from '@/services/admin';
 import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
 import '@ant-design/v5-patch-for-react-19';
@@ -26,18 +27,32 @@ export async function getInitialState(): Promise<{
   fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
   const fetchUserInfo = async () => {
-    // 使用静态数据返回用户信息
-    return {
-      name: 'Admin',
-      avatar: 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png',
-      userid: '00000001',
-      email: 'admin@example.com',
-      signature: '管理员',
-      title: '系统管理员',
-      group: '管理组',
-      access: 'admin',
-    };
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      return undefined;
+    }
+    
+    try {
+      // 调用后端接口获取当前用户信息
+      const response = await fetchCurrentUser();
+      
+      if (response.code === 0 && response.data) {
+        // 更新 localStorage 中的用户信息
+        localStorage.setItem('currentUser', JSON.stringify(response.data));
+        return response.data;
+      }
+      
+      return undefined;
+    } catch (e) {
+      console.error('获取用户信息失败:', e);
+      // 清除无效的 token
+      localStorage.removeItem('token');
+      localStorage.removeItem('currentUser');
+      return undefined;
+    }
   };
+  
   // 如果不是登录页面，执行
   const { location } = history;
   if (location.pathname !== loginPath) {
@@ -137,6 +152,6 @@ export const layout: RunTimeLayoutConfig = ({
  * @doc https://umijs.org/docs/max/request#配置
  */
 export const request: RequestConfig = {
-  baseURL: 'https://proapi.azurewebsites.net',
+  baseURL: '',
   ...errorConfig,
 };

@@ -2,6 +2,7 @@ package server
 
 import (
 	"bico-admin/internal/core/config"
+	"bico-admin/internal/core/middleware"
 	"bico-admin/internal/shared/response"
 	"github.com/gin-gonic/gin"
 )
@@ -13,6 +14,9 @@ func NewServer(cfg *config.ServerConfig) *gin.Engine {
 	engine := gin.New()
 	engine.Use(gin.Recovery())
 	engine.Use(gin.Logger())
+	
+	// 添加 CORS 中间件
+	engine.Use(middleware.CORS())
 	
 	return engine
 }

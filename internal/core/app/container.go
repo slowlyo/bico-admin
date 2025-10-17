@@ -8,6 +8,7 @@ import (
 	"bico-admin/internal/core/cache"
 	"bico-admin/internal/core/config"
 	"bico-admin/internal/core/db"
+	"bico-admin/internal/core/middleware"
 	"bico-admin/internal/core/server"
 	"bico-admin/internal/shared/jwt"
 	"github.com/gin-gonic/gin"
@@ -69,8 +70,8 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 	}
 
 	// 提供路由
-	if err := container.Provide(func(authHandler *adminHandler.AuthHandler) *admin.Router {
-		return admin.NewRouter(authHandler)
+	if err := container.Provide(func(authHandler *adminHandler.AuthHandler, jwtManager *jwt.JWTManager, authService *adminService.AuthService) *admin.Router {
+		return admin.NewRouter(authHandler, middleware.JWTAuth(jwtManager, authService))
 	}); err != nil {
 		return nil, err
 	}
