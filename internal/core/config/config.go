@@ -8,6 +8,7 @@ type Config struct {
 	Database DatabaseConfig `mapstructure:"database"`
 	Log      LogConfig      `mapstructure:"log"`
 	Cache    CacheConfig    `mapstructure:"cache"`
+	JWT      JWTConfig      `mapstructure:"jwt"`
 }
 
 // ServerConfig 服务器配置
@@ -61,13 +62,24 @@ type RedisConfig struct {
 	DB       int    `mapstructure:"db"`
 }
 
+// JWTConfig JWT配置
+type JWTConfig struct {
+	Secret      string `mapstructure:"secret"`
+	ExpireHours int    `mapstructure:"expire_hours"`
+}
+
 // GetDriver 获取缓存驱动
 func (c *CacheConfig) GetDriver() string {
 	return c.Driver
 }
 
 // GetRedisConfig 获取Redis配置
-func (c *CacheConfig) GetRedisConfig() *RedisConfig {
+func (c *CacheConfig) GetRedisConfig() interface {
+	GetHost() string
+	GetPort() int
+	GetPassword() string
+	GetDB() int
+} {
 	return &c.Redis
 }
 

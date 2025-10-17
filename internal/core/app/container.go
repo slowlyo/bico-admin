@@ -1,10 +1,15 @@
 package app
 
 import (
+	"bico-admin/internal/admin"
+	adminHandler "bico-admin/internal/admin/handler"
+	adminService "bico-admin/internal/admin/service"
+	"bico-admin/internal/api"
+	"bico-admin/internal/core/cache"
 	"bico-admin/internal/core/config"
 	"bico-admin/internal/core/db"
 	"bico-admin/internal/core/server"
-	"bico-admin/internal/shared/response"
+	"bico-admin/internal/shared/jwt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/dig"
 	"gorm.io/gorm"
@@ -35,12 +40,44 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 		return nil, err
 	}
 
-	// 提供路由
-	if err := container.Provide(NewAdminRouter); err != nil {
+	// 提供缓存
+	if err := container.Provide(func(cfg *config.Config) (cache.Cache, error) {
+		return cache.NewCache(&cfg.Cache)
+	}); err != nil {
 		return nil, err
 	}
 
-	if err := container.Provide(NewAPIRouter); err != nil {
+	// 提供 JWT 管理器
+	if err := container.Provide(func(cfg *config.Config) *jwt.JWTManager {
+		return jwt.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpireHours)
+	}); err != nil {
+		return nil, err
+	}
+
+	// 提供 AuthService
+	if err := container.Provide(func(db *gorm.DB, jwtManager *jwt.JWTManager, cacheInstance cache.Cache) *adminService.AuthService {
+		return adminService.NewAuthService(db, jwtManager, cacheInstance)
+	}); err != nil {
+		return nil, err
+	}
+
+	// 提供 AuthHandler
+	if err := container.Provide(func(authService *adminService.AuthService) *adminHandler.AuthHandler {
+		return adminHandler.NewAuthHandler(authService)
+	}); err != nil {
+		return nil, err
+	}
+
+	// 提供路由
+	if err := container.Provide(func(authHandler *adminHandler.AuthHandler) *admin.Router {
+		return admin.NewRouter(authHandler)
+	}); err != nil {
+		return nil, err
+	}
+
+	if err := container.Provide(func() *api.Router {
+		return api.NewRouter()
+	}); err != nil {
 		return nil, err
 	}
 
@@ -52,32 +89,3 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 	return container, nil
 }
 
-func NewAdminRouter() server.Router {
-	return &adminRouter{}
-}
-
-func NewAPIRouter() server.Router {
-	return &apiRouter{}
-}
-
-type adminRouter struct{}
-
-func (r *adminRouter) Register(engine *gin.Engine) {
-	admin := engine.Group("/admin")
-	{
-		admin.GET("/ping", func(c *gin.Context) {
-			c.JSON(200, response.Success("admin pong"))
-		})
-	}
-}
-
-type apiRouter struct{}
-
-func (r *apiRouter) Register(engine *gin.Engine) {
-	api := engine.Group("/api")
-	{
-		api.GET("/ping", func(c *gin.Context) {
-			c.JSON(200, response.Success("api pong"))
-		})
-	}
-}

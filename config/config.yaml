@@ -9,7 +9,7 @@ database:
   
   # SQLite 配置
   sqlite:
-    path: data.db
+    path: storage/data.db
   
   # MySQL 配置
   mysql:
@@ -34,3 +34,7 @@ cache:
     port: 6379
     password: ""
     db: 0
+
+jwt:
+  secret: "bico-admin-secret-key-change-in-production"
+  expire_hours: 168  # 7天

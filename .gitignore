@@ -43,6 +43,14 @@ tmp/
 temp/
 *.tmp
 
+# Compiled binaries
+bico-admin
+main
+
+# Database files
+*.db
+storage/
+
 # Config files (if containing sensitive data)
 # config/config.local.yaml
 # config/config.prod.yaml

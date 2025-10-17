@@ -7,15 +7,12 @@ import (
 // Config 缓存配置接口
 type Config interface {
 	GetDriver() string
-	GetRedisConfig() RedisConfig
-}
-
-// RedisConfig Redis配置接口
-type RedisConfig interface {
-	GetHost() string
-	GetPort() int
-	GetPassword() string
-	GetDB() int
+	GetRedisConfig() interface {
+		GetHost() string
+		GetPort() int
+		GetPassword() string
+		GetDB() int
+	}
 }
 
 // NewCache 创建缓存实例工厂方法

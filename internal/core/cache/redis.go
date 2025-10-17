@@ -15,26 +15,28 @@ type RedisCache struct {
 	ctx    context.Context
 }
 
-// NewRedisCache 创建Redis缓存实例
-func NewRedisCache(config RedisConfig) (*RedisCache, error) {
-	addr := fmt.Sprintf("%s:%d", config.GetHost(), config.GetPort())
+// NewRedisCache 创建 Redis 缓存实例
+func NewRedisCache(cfg interface {
+	GetHost() string
+	GetPort() int
+	GetPassword() string
+	GetDB() int
+}) (*RedisCache, error) {
+	addr := fmt.Sprintf("%s:%d", cfg.GetHost(), cfg.GetPort())
 	
-	rdb := redis.NewClient(&redis.Options{
+	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
-		Password: config.GetPassword(),
-		DB:       config.GetDB(),
+		Password: cfg.GetPassword(),
+		DB:       cfg.GetDB(),
 	})
 	
 	// 测试连接
 	ctx := context.Background()
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		return nil, fmt.Errorf("Redis连接失败: %w", err)
+	if err := client.Ping(ctx).Err(); err != nil {
+		return nil, fmt.Errorf("Redis 连接失败: %w", err)
 	}
 	
-	return &RedisCache{
-		client: rdb,
-		ctx:    ctx,
-	}, nil
+	return &RedisCache{client: client, ctx: ctx}, nil
 }
 
 // Set 设置缓存
