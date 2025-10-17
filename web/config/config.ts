@@ -83,7 +83,7 @@ export default defineConfig({
    * @name layout 插件
    * @doc https://umijs.org/docs/max/layout-menu
    */
-  title: 'Ant Design Pro',
+  title: 'Bico Admin',
   layout: {
     locale: true,
     ...defaultSettings,
@@ -144,6 +144,14 @@ export default defineConfig({
     // 解决首次加载时白屏的问题
     { src: join(PUBLIC_PATH, 'scripts/loading.js'), async: true },
   ],
+  /**
+   * @name 配置 favicon
+   * @description 配置网站图标
+   */
+  links: [
+    { rel: 'icon', href: '/logo.png' },
+  ],
+  favicons: ['/logo.png'],
   //================ pro 插件配置 =================
   presets: ['umi-presets-pro'],
   mock: {
