@@ -5,6 +5,7 @@ import "github.com/spf13/viper"
 // Config 配置结构体
 type Config struct {
 	Server   ServerConfig   `mapstructure:"server"`
+	App      AppConfig      `mapstructure:"app"`
 	Database DatabaseConfig `mapstructure:"database"`
 	Log      LogConfig      `mapstructure:"log"`
 	Cache    CacheConfig    `mapstructure:"cache"`
@@ -15,6 +16,12 @@ type Config struct {
 type ServerConfig struct {
 	Port int    `mapstructure:"port"`
 	Mode string `mapstructure:"mode"`
+}
+
+// AppConfig 应用配置
+type AppConfig struct {
+	Name string `mapstructure:"name"`
+	Logo string `mapstructure:"logo"`
 }
 
 // DatabaseConfig 数据库配置

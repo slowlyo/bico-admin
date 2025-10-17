@@ -19,7 +19,6 @@ import { flushSync } from "react-dom";
 import { Footer } from "@/components";
 import { login } from '@/services/admin';
 import { saveCredentials, getCredentials, clearCredentials } from '@/utils/crypto';
-import Settings from "../../../../config/defaultSettings";
 
 const useStyles = createStyles(({ token }) => {
     return {
@@ -78,6 +77,9 @@ const Login: React.FC = () => {
     const { styles } = useStyles();
     const { message } = App.useApp();
     const intl = useIntl();
+    
+    const appName = initialState?.appConfig?.name || 'Bico Admin';
+    const appLogo = initialState?.appConfig?.logo || '/logo.png';
     
     // 检查是否已登录，已登录则自动跳转
     React.useEffect(() => {
@@ -169,7 +171,7 @@ const Login: React.FC = () => {
                         id: "menu.login",
                         defaultMessage: "登录页",
                     })}
-                    {Settings.title && ` - ${Settings.title}`}
+                    {appName && ` - ${appName}`}
                 </title>
             </Helmet>
             <Lang />
@@ -187,8 +189,8 @@ const Login: React.FC = () => {
                         marginTop: "70px",
                         maxWidth: "75vw",
                     }}
-                    logo={<img alt="logo" src="/logo.png" />}
-                    title="Bico Admin"
+                    logo={<img alt="logo" src={appLogo} />}
+                    title={appName}
                     initialValues={{
                         rememberPassword: false,
                     }}

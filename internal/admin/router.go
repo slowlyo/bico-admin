@@ -9,15 +9,17 @@ import (
 
 // Router 实现路由注册
 type Router struct{
-	authHandler *handler.AuthHandler
-	jwtAuth gin.HandlerFunc
+	authHandler   *handler.AuthHandler
+	commonHandler *handler.CommonHandler
+	jwtAuth       gin.HandlerFunc
 }
 
 // NewRouter 创建路由实例
-func NewRouter(authHandler *handler.AuthHandler, jwtAuth gin.HandlerFunc) *Router {
+func NewRouter(authHandler *handler.AuthHandler, commonHandler *handler.CommonHandler, jwtAuth gin.HandlerFunc) *Router {
 	return &Router{
-		authHandler: authHandler,
-		jwtAuth: jwtAuth,
+		authHandler:   authHandler,
+		commonHandler: commonHandler,
+		jwtAuth:       jwtAuth,
 	}
 }
 
@@ -27,6 +29,7 @@ func (r *Router) Register(engine *gin.Engine) {
 	
 	// 公开路由（无需认证）
 	admin.POST("/login", r.authHandler.Login)
+	admin.GET("/app-config", r.commonHandler.GetAppConfig)
 	
 	// 需要认证的路由
 	admin.POST("/logout", r.jwtAuth, r.authHandler.Logout)

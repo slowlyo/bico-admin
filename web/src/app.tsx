@@ -9,7 +9,7 @@ import {
   Footer,
   SelectLang,
 } from '@/components';
-import { currentUser as fetchCurrentUser } from '@/services/admin';
+import { currentUser as fetchCurrentUser, getAppConfig } from '@/services/admin';
 import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
 import '@ant-design/v5-patch-for-react-19';
@@ -23,6 +23,7 @@ const loginPath = '/auth/login';
 export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
   currentUser?: API.CurrentUser;
+  appConfig?: API.AppConfig;
   loading?: boolean;
   fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
@@ -52,6 +53,17 @@ export async function getInitialState(): Promise<{
       return undefined;
     }
   };
+
+  // 获取应用配置
+  let appConfig: API.AppConfig | undefined;
+  try {
+    const configResponse = await getAppConfig();
+    if (configResponse.code === 0 && configResponse.data) {
+      appConfig = configResponse.data;
+    }
+  } catch (e) {
+    console.error('获取应用配置失败:', e);
+  }
   
   // 如果不是登录页面，执行
   const { location } = history;
@@ -60,12 +72,22 @@ export async function getInitialState(): Promise<{
     return {
       fetchUserInfo,
       currentUser,
-      settings: defaultSettings as Partial<LayoutSettings>,
+      appConfig,
+      settings: {
+        ...defaultSettings,
+        title: appConfig?.name || defaultSettings.title,
+        logo: appConfig?.logo || defaultSettings.logo,
+      } as Partial<LayoutSettings>,
     };
   }
   return {
     fetchUserInfo,
-    settings: defaultSettings as Partial<LayoutSettings>,
+    appConfig,
+    settings: {
+      ...defaultSettings,
+      title: appConfig?.name || defaultSettings.title,
+      logo: appConfig?.logo || defaultSettings.logo,
+    } as Partial<LayoutSettings>,
   };
 }
 
@@ -126,7 +148,7 @@ export const layout: RunTimeLayoutConfig = ({
       return (
         <>
           {children}
-          {isDev && (
+          {initialState?.appConfig?.debug && (
             <SettingDrawer
               disableUrlParams
               enableDarkTheme
@@ -134,7 +156,11 @@ export const layout: RunTimeLayoutConfig = ({
               onSettingChange={(settings) => {
                 setInitialState((preInitialState) => ({
                   ...preInitialState,
-                  settings,
+                  settings: {
+                    ...settings,
+                    title: preInitialState?.appConfig?.name || defaultSettings.title,
+                    logo: preInitialState?.appConfig?.logo || defaultSettings.logo,
+                  },
                 }));
               }}
             />

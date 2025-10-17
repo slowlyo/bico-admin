@@ -1,11 +1,12 @@
 import { HeartTwoTone, SmileTwoTone } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
-import { useIntl } from '@umijs/max';
+import { useIntl, useModel } from '@umijs/max';
 import { Alert, Card, Typography } from 'antd';
 import React from 'react';
 
 const Admin: React.FC = () => {
   const intl = useIntl();
+  const { initialState } = useModel('@@initialState');
   return (
     <PageContainer
       content={intl.formatMessage({
@@ -29,7 +30,7 @@ const Admin: React.FC = () => {
           }}
         />
         <Typography.Title level={2} style={{ textAlign: 'center' }}>
-          <SmileTwoTone /> Bico Admin{' '}
+          <SmileTwoTone /> {initialState?.appConfig?.name || 'Bico Admin'}{' '}
           <HeartTwoTone twoToneColor="#eb2f96" /> You
         </Typography.Title>
       </Card>

@@ -69,9 +69,23 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 		return nil, err
 	}
 
+	// 提供 ConfigService
+	if err := container.Provide(func(cfg *config.Config) *adminService.ConfigService {
+		return adminService.NewConfigService(cfg)
+	}); err != nil {
+		return nil, err
+	}
+
+	// 提供 CommonHandler
+	if err := container.Provide(func(configService *adminService.ConfigService) *adminHandler.CommonHandler {
+		return adminHandler.NewCommonHandler(configService)
+	}); err != nil {
+		return nil, err
+	}
+
 	// 提供路由
-	if err := container.Provide(func(authHandler *adminHandler.AuthHandler, jwtManager *jwt.JWTManager, authService *adminService.AuthService) *admin.Router {
-		return admin.NewRouter(authHandler, middleware.JWTAuth(jwtManager, authService))
+	if err := container.Provide(func(authHandler *adminHandler.AuthHandler, commonHandler *adminHandler.CommonHandler, jwtManager *jwt.JWTManager, authService *adminService.AuthService) *admin.Router {
+		return admin.NewRouter(authHandler, commonHandler, middleware.JWTAuth(jwtManager, authService))
 	}); err != nil {
 		return nil, err
 	}

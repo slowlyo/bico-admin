@@ -2,6 +2,10 @@ server:
   port: 8080
   mode: debug  # debug/release
 
+app:
+  name: Bico Admin
+  logo: /logo.png
+
 database:
   driver: sqlite  # 支持 sqlite / mysql
   max_idle_conns: 10

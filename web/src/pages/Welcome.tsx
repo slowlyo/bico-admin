@@ -86,6 +86,7 @@ const InfoCard: React.FC<{
 const Welcome: React.FC = () => {
   const { token } = theme.useToken();
   const { initialState } = useModel('@@initialState');
+  const appName = initialState?.appConfig?.name || 'Bico Admin';
   return (
     <PageContainer>
       <Card
@@ -116,7 +117,7 @@ const Welcome: React.FC = () => {
               color: token.colorTextHeading,
             }}
           >
-            欢迎使用 Bico Admin
+            欢迎使用 {appName}
           </div>
           <p
             style={{
@@ -128,7 +129,7 @@ const Welcome: React.FC = () => {
               width: '65%',
             }}
           >
-            Bico Admin 是一个基于 Ant Design Pro 开发的企业级后台管理系统。
+            {appName} 是一个基于 Ant Design Pro 开发的企业级后台管理系统。
           </p>
           <div
             style={{

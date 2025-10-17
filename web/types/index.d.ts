@@ -117,4 +117,40 @@ export namespace API {
     /** example: admin */
     currentAuthority: string;
   };
+
+  // ============ 项目实际使用的类型定义 ============
+  
+  /** 通用响应结构 */
+  export type Response<T = any> = {
+    code: number;
+    msg: string;
+    data: T;
+  };
+
+  /** 登录参数 */
+  export type LoginParams = {
+    username: string;
+    password: string;
+  };
+
+  /** 登录结果 */
+  export type LoginResult = {
+    token: string;
+  };
+
+  /** 当前用户信息 */
+  export type CurrentUser = {
+    id: number;
+    username: string;
+    name: string;
+    avatar?: string;
+    email?: string;
+  };
+
+  /** 应用配置 */
+  export type AppConfig = {
+    name: string;
+    logo: string;
+    debug: boolean;
+  };
 }
