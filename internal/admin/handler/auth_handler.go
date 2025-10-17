@@ -2,20 +2,17 @@ package handler
 
 import (
 	"net/http"
+	
+	"bico-admin/internal/admin/service"
 )
-
-type AuthServiceInterface interface {
-	Login(req interface{}) (interface{}, error)
-	Logout(token string) error
-}
 
 // AuthHandler 认证处理器
 type AuthHandler struct {
-	authService AuthServiceInterface
+	authService service.IAuthService
 }
 
 // NewAuthHandler 创建认证处理器
-func NewAuthHandler(authService AuthServiceInterface) *AuthHandler {
+func NewAuthHandler(authService service.IAuthService) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 	}

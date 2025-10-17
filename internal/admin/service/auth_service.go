@@ -35,6 +35,13 @@ type UserInfo struct {
 	Enabled  bool   `json:"enabled"`
 }
 
+// IAuthService 认证服务接口
+type IAuthService interface {
+	Login(req interface{}) (interface{}, error)
+	Logout(token string) error
+	IsTokenBlacklisted(token string) bool
+}
+
 // AuthService 认证服务
 type AuthService struct {
 	db         *gorm.DB
