@@ -1,175 +1,178 @@
-import type { Settings as LayoutSettings } from '@ant-design/pro-components';
-import { SettingDrawer } from '@ant-design/pro-components';
-import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
-import { history } from '@umijs/max';
-import React from 'react';
+import type { Settings as LayoutSettings } from "@ant-design/pro-components";
+import { SettingDrawer } from "@ant-design/pro-components";
+import type { RequestConfig, RunTimeLayoutConfig } from "@umijs/max";
+import { history } from "@umijs/max";
+import React from "react";
+import { AvatarDropdown, AvatarName, Footer, SelectLang } from "@/components";
 import {
-  AvatarDropdown,
-  AvatarName,
-  Footer,
-  SelectLang,
-} from '@/components';
-import { currentUser as fetchCurrentUser, getAppConfig } from '@/services/admin';
-import defaultSettings from '../config/defaultSettings';
-import { errorConfig } from './requestErrorConfig';
-import '@ant-design/v5-patch-for-react-19';
+    currentUser as fetchCurrentUser,
+    getAppConfig,
+} from "@/services/admin";
+import defaultSettings from "../config/defaultSettings";
+import { errorConfig } from "./requestErrorConfig";
+import "@ant-design/v5-patch-for-react-19";
 
-const isDev = process.env.NODE_ENV === 'development';
-const loginPath = '/auth/login';
+const isDev = process.env.NODE_ENV === "development";
+const loginPath = "/auth/login";
 
 /**
  * @see https://umijs.org/docs/api/runtime-config#getinitialstate
  * */
 export async function getInitialState(): Promise<{
-  settings?: Partial<LayoutSettings>;
-  currentUser?: API.CurrentUser;
-  appConfig?: API.AppConfig;
-  loading?: boolean;
-  fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
+    settings?: Partial<LayoutSettings>;
+    currentUser?: API.CurrentUser;
+    appConfig?: API.AppConfig;
+    loading?: boolean;
+    fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
-  const fetchUserInfo = async () => {
-    const token = localStorage.getItem('token');
-    
-    if (!token) {
-      return undefined;
-    }
-    
-    try {
-      // 调用后端接口获取当前用户信息
-      const response = await fetchCurrentUser();
-      
-      if (response.code === 0 && response.data) {
-        // 更新 localStorage 中的用户信息
-        localStorage.setItem('currentUser', JSON.stringify(response.data));
-        return response.data;
-      }
-      
-      return undefined;
-    } catch (e) {
-      console.error('获取用户信息失败:', e);
-      // 清除无效的 token
-      localStorage.removeItem('token');
-      localStorage.removeItem('currentUser');
-      return undefined;
-    }
-  };
+    const fetchUserInfo = async () => {
+        const token = localStorage.getItem("token");
 
-  // 获取应用配置
-  let appConfig: API.AppConfig | undefined;
-  try {
-    const configResponse = await getAppConfig();
-    if (configResponse.code === 0 && configResponse.data) {
-      appConfig = configResponse.data;
-    }
-  } catch (e) {
-    console.error('获取应用配置失败:', e);
-  }
-  
-  // 如果不是登录页面，执行
-  const { location } = history;
-  if (location.pathname !== loginPath) {
-    const currentUser = await fetchUserInfo();
-    return {
-      fetchUserInfo,
-      currentUser,
-      appConfig,
-      settings: {
-        ...defaultSettings,
-        title: appConfig?.name || defaultSettings.title,
-        logo: appConfig?.logo || defaultSettings.logo,
-      } as Partial<LayoutSettings>,
+        if (!token) {
+            return undefined;
+        }
+
+        try {
+            // 调用后端接口获取当前用户信息
+            const response = await fetchCurrentUser();
+
+            if (response.code === 0 && response.data) {
+                // 更新 localStorage 中的用户信息
+                localStorage.setItem(
+                    "currentUser",
+                    JSON.stringify(response.data)
+                );
+                return response.data;
+            }
+
+            return undefined;
+        } catch (e) {
+            console.error("获取用户信息失败:", e);
+            // 清除无效的 token
+            localStorage.removeItem("token");
+            localStorage.removeItem("currentUser");
+            return undefined;
+        }
     };
-  }
-  return {
-    fetchUserInfo,
-    appConfig,
-    settings: {
-      ...defaultSettings,
-      title: appConfig?.name || defaultSettings.title,
-      logo: appConfig?.logo || defaultSettings.logo,
-    } as Partial<LayoutSettings>,
-  };
+
+    // 获取应用配置
+    let appConfig: API.AppConfig | undefined;
+    try {
+        const configResponse = await getAppConfig();
+        if (configResponse.code === 0 && configResponse.data) {
+            appConfig = configResponse.data;
+        }
+    } catch (e) {
+        console.error("获取应用配置失败:", e);
+    }
+
+    // 如果不是登录页面，执行
+    const { location } = history;
+    if (location.pathname !== loginPath) {
+        const currentUser = await fetchUserInfo();
+        return {
+            fetchUserInfo,
+            currentUser,
+            appConfig,
+            settings: {
+                ...defaultSettings,
+                title: appConfig?.name || defaultSettings.title,
+                logo: appConfig?.logo || defaultSettings.logo,
+            } as Partial<LayoutSettings>,
+        };
+    }
+    return {
+        fetchUserInfo,
+        appConfig,
+        settings: {
+            ...defaultSettings,
+            title: appConfig?.name || defaultSettings.title,
+            logo: appConfig?.logo || defaultSettings.logo,
+        } as Partial<LayoutSettings>,
+    };
 }
 
 // ProLayout 支持的api https://procomponents.ant.design/components/layout
 export const layout: RunTimeLayoutConfig = ({
-  initialState,
-  setInitialState,
+    initialState,
+    setInitialState,
 }) => {
-  return {
-    actionsRender: () => [
-      <SelectLang key="SelectLang" />,
-    ],
-    avatarProps: {
-      src: initialState?.currentUser?.avatar,
-      title: <AvatarName />,
-      render: (_, avatarChildren) => {
-        return <AvatarDropdown menu>{avatarChildren}</AvatarDropdown>;
-      },
-    },
-    waterMarkProps: {
-      content: initialState?.currentUser?.name,
-    },
-    footerRender: () => <Footer />,
-    onPageChange: () => {
-      const { location } = history;
-      // 如果没有登录，重定向到 login
-      if (!initialState?.currentUser && location.pathname !== loginPath) {
-        history.push(loginPath);
-      }
-    },
-    bgLayoutImgList: [
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/D2LWSqNny4sAAAAAAAAAAAAAFl94AQBr',
-        left: 85,
-        bottom: 100,
-        height: '303px',
-      },
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/C2TWRpJpiC0AAAAAAAAAAAAAFl94AQBr',
-        bottom: -68,
-        right: -45,
-        height: '303px',
-      },
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/F6vSTbj8KpYAAAAAAAAAAAAAFl94AQBr',
-        bottom: 0,
-        left: 0,
-        width: '331px',
-      },
-    ],
-    links: [],
-    menuHeaderRender: undefined,
-    // 自定义 403 页面
-    // unAccessible: <div>unAccessible</div>,
-    // 增加一个 loading 的状态
-    childrenRender: (children) => {
-      // if (initialState?.loading) return <PageLoading />;
-      return (
-        <>
-          {children}
-          {initialState?.appConfig?.debug && (
-            <SettingDrawer
-              disableUrlParams
-              enableDarkTheme
-              settings={initialState?.settings}
-              onSettingChange={(settings) => {
-                setInitialState((preInitialState) => ({
-                  ...preInitialState,
-                  settings: {
-                    ...settings,
-                    title: preInitialState?.appConfig?.name || defaultSettings.title,
-                    logo: preInitialState?.appConfig?.logo || defaultSettings.logo,
-                  },
-                }));
-              }}
-            />
-          )}
-        </>
-      );
-    },
-    ...initialState?.settings,
-  };
+    return {
+        // actionsRender: () => [<SelectLang key="SelectLang" />],
+        avatarProps: {
+            src: initialState?.currentUser?.avatar,
+            title: <AvatarName />,
+            render: (_, avatarChildren) => {
+                return <AvatarDropdown menu>{avatarChildren}</AvatarDropdown>;
+            },
+        },
+        waterMarkProps: {
+            content: initialState?.currentUser?.name,
+        },
+        footerRender: () => <Footer />,
+        onPageChange: () => {
+            const { location } = history;
+            // 如果没有登录，重定向到 login
+            if (!initialState?.currentUser && location.pathname !== loginPath) {
+                history.push(loginPath);
+            }
+        },
+        bgLayoutImgList: [
+            {
+                src: "https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/D2LWSqNny4sAAAAAAAAAAAAAFl94AQBr",
+                left: 85,
+                bottom: 100,
+                height: "303px",
+            },
+            {
+                src: "https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/C2TWRpJpiC0AAAAAAAAAAAAAFl94AQBr",
+                bottom: -68,
+                right: -45,
+                height: "303px",
+            },
+            {
+                src: "https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/F6vSTbj8KpYAAAAAAAAAAAAAFl94AQBr",
+                bottom: 0,
+                left: 0,
+                width: "331px",
+            },
+        ],
+        links: [],
+        menuHeaderRender: undefined,
+        // 自定义 403 页面
+        // unAccessible: <div>unAccessible</div>,
+        // 增加一个 loading 的状态
+        childrenRender: (children) => {
+            // if (initialState?.loading) return <PageLoading />;
+            return (
+                <>
+                    {children}
+                    {initialState?.appConfig?.debug && (
+                        <SettingDrawer
+                            disableUrlParams
+                            enableDarkTheme
+                            settings={initialState?.settings}
+                            onSettingChange={(settings) => {
+                                setInitialState((preInitialState) => ({
+                                    ...preInitialState,
+                                    settings: {
+                                        ...settings,
+                                        title:
+                                            preInitialState?.appConfig?.name ||
+                                            defaultSettings.title,
+                                        logo:
+                                            preInitialState?.appConfig?.logo ||
+                                            defaultSettings.logo,
+                                    },
+                                }));
+                            }}
+                        />
+                    )}
+                </>
+            );
+        },
+        ...initialState?.settings,
+    };
 };
 
 /**
@@ -178,6 +181,6 @@ export const layout: RunTimeLayoutConfig = ({
  * @doc https://umijs.org/docs/max/request#配置
  */
 export const request: RequestConfig = {
-  baseURL: '',
-  ...errorConfig,
+    baseURL: "",
+    ...errorConfig,
 };
