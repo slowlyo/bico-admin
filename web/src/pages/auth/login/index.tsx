@@ -8,7 +8,7 @@ import {
 import {
     FormattedMessage,
     Helmet,
-    SelectLang,
+    // SelectLang,
     useIntl,
     useModel,
 } from "@umijs/max";
@@ -45,15 +45,16 @@ const useStyles = createStyles(({ token }) => {
     };
 });
 
-const Lang = () => {
-    const { styles } = useStyles();
+// 语言切换组件（已注释）
+// const Lang = () => {
+//     const { styles } = useStyles();
 
-    return (
-        <div className={styles.lang} data-lang>
-            {SelectLang && <SelectLang />}
-        </div>
-    );
-};
+//     return (
+//         <div className={styles.lang} data-lang>
+//             {SelectLang && <SelectLang />}
+//         </div>
+//     );
+// };
 
 const LoginMessage: React.FC<{
     content: string;
@@ -172,7 +173,7 @@ const Login: React.FC = () => {
                     {appName && ` - ${appName}`}
                 </title>
             </Helmet>
-            <Lang />
+            {/* <Lang /> */}
             <div
                 style={{
                     flex: "1",
