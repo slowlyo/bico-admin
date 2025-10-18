@@ -19,47 +19,85 @@ bico-admin/
 │   │   │   └── config.go   # 配置结构体 + Viper 加载
 │   │   ├── db/             # 数据库层
 │   │   │   └── database.go # GORM 初始化和连接池配置
+│   │   ├── cache/          # 缓存层
+│   │   │   ├── cache.go    # 缓存接口
+│   │   │   ├── memory.go   # 内存缓存实现
+│   │   │   └── redis.go    # Redis缓存实现
 │   │   ├── server/         # 服务器层
 │   │   │   └── server.go   # Gin 引擎创建 + 路由注册
-│   │   └── scheduler/      # 定时任务调度（占位）
+│   │   ├── middleware/     # 核心中间件
+│   │   │   └── jwt.go      # JWT认证中间件
+│   │   ├── upload/         # 文件上传
+│   │   │   └── uploader.go # 上传器（支持本地/七牛云等）
+│   │   └── scheduler/      # 定时任务调度
 │   │
 │   ├── shared/              # 共享层（跨模块复用）
 │   │   ├── model/          # 公共数据模型
 │   │   │   ├── base.go     # BaseModel（ID, CreatedAt, UpdatedAt）
-│   │   │   ├── user.go     # 用户模型
-│   │   │   ├── role.go     # 角色模型
-│   │   │   └── log.go      # 日志模型
+│   │   │   ├── admin_user.go  # 管理员用户模型
+│   │   │   └── admin_role.go  # 管理员角色模型
 │   │   ├── response/       # 统一响应
 │   │   │   └── response.go # Success/Error 响应结构
-│   │   ├── logger/         # 日志工具（占位）
-│   │   └── util/           # 工具函数（占位）
+│   │   ├── jwt/            # JWT令牌管理
+│   │   │   └── jwt.go      # 令牌生成和验证
+│   │   ├── password/       # 密码加密
+│   │   │   └── password.go # bcrypt 密码处理
+│   │   ├── pagination/     # 分页工具
+│   │   │   └── pagination.go
+│   │   ├── logger/         # 日志工具
+│   │   └── util/           # 工具函数
 │   │
-│   ├── admin/               # 管理模块
-│   │   ├── handler/        # HTTP 处理器（占位）
-│   │   ├── service/        # 业务逻辑（占位）
+│   ├── admin/               # 后台管理模块
+│   │   ├── consts/         # 常量定义
+│   │   │   └── permissions.go # 权限树定义
+│   │   ├── handler/        # HTTP 处理器
+│   │   │   ├── auth_handler.go      # 认证处理器
+│   │   │   ├── common_handler.go    # 通用处理器
+│   │   │   ├── admin_user_handler.go # 用户管理
+│   │   │   └── admin_role_handler.go # 角色管理
+│   │   ├── service/        # 业务逻辑
+│   │   │   ├── auth_service.go       # 认证服务
+│   │   │   ├── config_service.go     # 配置服务
+│   │   │   ├── admin_user_service.go # 用户服务
+│   │   │   └── admin_role_service.go # 角色服务
+│   │   ├── middleware/     # 模块中间件
+│   │   │   ├── permission.go    # 权限验证中间件
+│   │   │   └── user_status.go   # 用户状态检查中间件
 │   │   ├── model/          # 模块专属模型
-│   │   │   └── menu.go     # 菜单模型
 │   │   └── router.go       # 路由注册
 │   │
-│   ├── api/                 # API 模块
-│   │   ├── handler/        # HTTP 处理器（占位）
-│   │   ├── service/        # 业务逻辑（占位）
-│   │   ├── model/          # 模块专属模型（占位）
+│   ├── api/                 # 前台 API 模块
+│   │   ├── handler/        # HTTP 处理器
+│   │   ├── service/        # 业务逻辑
+│   │   ├── model/          # 模块专属模型
 │   │   └── router.go       # 路由注册
 │   │
 │   ├── job/                 # 定时任务
 │   │   ├── task/           # 任务实现
-│   │   │   ├── clean.go    # 清理任务
-│   │   │   └── sync.go     # 同步任务
 │   │   └── register.go     # 任务注册器
 │   │
 │   └── migrate/             # 数据库迁移
 │       └── migrate.go       # 统一管理所有模型的 AutoMigrate
 │
-├── web/                      # 前端资源（占位）
+├── web/                      # 前端项目
+│   ├── config/              # 配置文件
+│   │   ├── routes.ts        # 路由配置
+│   │   ├── config.ts        # 构建配置
+│   │   └── proxy.ts         # 代理配置
+│   ├── src/                 # 源代码
+│   │   ├── app.tsx          # 应用入口
+│   │   ├── access.ts        # 权限控制
+│   │   ├── components/      # 公共组件
+│   │   ├── pages/          # 页面组件
+│   │   ├── services/       # API服务
+│   │   └── locales/        # 国际化
+│   └── package.json
 │
 ├── docs/                     # 项目文档
-│   └── structure.md         # 本文档
+│   ├── structure.md         # 本文档
+│   ├── auth-api.md          # 认证API文档
+│   ├── cache.md             # 缓存模块文档
+│   └── AGENT.md             # AI助手项目说明
 │
 ├── go.mod                    # Go 模块定义
 ├── go.sum                    # 依赖校验
