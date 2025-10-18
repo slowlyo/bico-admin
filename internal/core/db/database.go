@@ -7,14 +7,17 @@ import (
 	"time"
 
 	"bico-admin/internal/core/config"
+	"bico-admin/internal/core/logger"
+	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
 // InitDB 初始化数据库连接
-func InitDB(cfg *config.DatabaseConfig) (*gorm.DB, error) {
+func InitDB(cfg *config.DatabaseConfig, zapLogger *zap.Logger, isDebug bool) (*gorm.DB, error) {
 	var dialector gorm.Dialector
 	
 	switch cfg.Driver {
@@ -26,10 +29,22 @@ func InitDB(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 		return nil, fmt.Errorf("不支持的数据库驱动: %s", cfg.Driver)
 	}
 
+	// 根据 debug 模式设置日志级别
+	var logLevel gormlogger.LogLevel
+	if isDebug {
+		logLevel = gormlogger.Info // debug 模式下输出所有 SQL
+	} else {
+		logLevel = gormlogger.Warn // 生产模式仅输出警告和错误
+	}
+
+	// 使用自定义日志
+	gormLog := logger.NewGormLogger(zapLogger, logLevel)
+
 	db, err := gorm.Open(dialector, &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
 		},
+		Logger: gormLog,
 	})
 	
 	if err != nil {

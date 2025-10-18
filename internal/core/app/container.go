@@ -9,6 +9,7 @@ import (
 	"bico-admin/internal/core/cache"
 	"bico-admin/internal/core/config"
 	"bico-admin/internal/core/db"
+	"bico-admin/internal/core/logger"
 	"bico-admin/internal/core/middleware"
 	"bico-admin/internal/core/server"
 	"bico-admin/internal/core/upload"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/dig"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -27,6 +29,7 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 	providers := []interface{}{
 		// 基础设施层
 		func() (*config.Config, error) { return config.LoadConfig(configPath) },
+		provideLogger,
 		provideDatabase,
 		provideGinEngine,
 		provideCache,
@@ -62,9 +65,15 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 	return container, nil
 }
 
+// provideLogger 提供日志实例
+func provideLogger(cfg *config.Config) (*zap.Logger, error) {
+	return logger.InitLogger(&cfg.Log)
+}
+
 // provideDatabase 提供数据库连接
-func provideDatabase(cfg *config.Config) (*gorm.DB, error) {
-	return db.InitDB(&cfg.Database)
+func provideDatabase(cfg *config.Config, zapLogger *zap.Logger) (*gorm.DB, error) {
+	isDebug := cfg.Server.Mode == "debug"
+	return db.InitDB(&cfg.Database, zapLogger, isDebug)
 }
 
 // provideGinEngine 提供 Gin 引擎

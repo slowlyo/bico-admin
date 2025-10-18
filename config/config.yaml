@@ -25,9 +25,9 @@ database:
     charset: utf8mb4
 
 log:
-  level: info
-  format: json
-  output: stdout
+  level: debug        # debug / info / warn / error / fatal
+  format: console     # console / json (console格式更易读，json格式适合日志收集)
+  output: stdout      # stdout / stderr / 文件路径
 
 cache:
   driver: memory  # memory / redis
