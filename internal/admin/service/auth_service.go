@@ -80,8 +80,10 @@ func NewAuthService(db *gorm.DB, jwtManager interface{}, cache interface{}) *Aut
 // Login 用户登录
 func (s *AuthService) Login(req interface{}) (interface{}, error) {
 	loginReq := req.(*struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
+		Username    string `json:"username" binding:"required"`
+		Password    string `json:"password" binding:"required"`
+		CaptchaID   string `json:"captchaId" binding:"required"`
+		CaptchaCode string `json:"captchaCode" binding:"required"`
 	})
 	
 	var user model.AdminUser

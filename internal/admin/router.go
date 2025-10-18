@@ -48,6 +48,8 @@ func (r *Router) Register(engine *gin.Engine) {
 	{
 		// 登录
 		admin.POST("/auth/login", r.authHandler.Login)
+		// 验证码
+		admin.GET("/captcha", r.authHandler.GetCaptcha)
 		// 应用配置
 		admin.GET("/app-config", r.commonHandler.GetAppConfig)
 	}

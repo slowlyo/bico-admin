@@ -33,3 +33,13 @@ export async function currentUser() {
     method: 'GET',
   });
 }
+
+/**
+ * 获取验证码
+ * GET /admin-api/captcha
+ */
+export async function getCaptcha() {
+  return request<API.Response<{ id: string; image: string }>>('/admin-api/captcha', {
+    method: 'GET',
+  });
+}

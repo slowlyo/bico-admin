@@ -17,7 +17,7 @@ import { createStyles } from "antd-style";
 import React, { useState } from "react";
 import { flushSync } from "react-dom";
 import { Footer } from "@/components";
-import { login } from '@/services/admin';
+import { login, getCaptcha } from '@/services/admin';
 import { saveCredentials, getCredentials, clearCredentials } from '@/utils/crypto';
 
 const useStyles = createStyles(({ token }) => {
@@ -73,6 +73,7 @@ const LoginMessage: React.FC<{
 
 const Login: React.FC = () => {
     const [userLoginState, setUserLoginState] = useState<{status?: string; message?: string}>({});
+    const [captchaData, setCaptchaData] = useState<{id: string; image: string}>({id: '', image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='});
     const [form] = ProForm.useForm();
     const { initialState, setInitialState } = useModel("@@initialState");
     const { styles } = useStyles();
@@ -96,6 +97,21 @@ const Login: React.FC = () => {
         }
     }, []);
     
+    // 获取验证码
+    const fetchCaptcha = async () => {
+        try {
+            const response = await getCaptcha();
+            if (response.data) {
+                setCaptchaData({
+                    id: response.data.id,
+                    image: response.data.image,
+                });
+            }
+        } catch (error) {
+            console.error('获取验证码失败', error);
+        }
+    };
+    
     // 组件加载时，检查是否有记住的密码
     React.useEffect(() => {
         const credentials = getCredentials();
@@ -106,6 +122,7 @@ const Login: React.FC = () => {
                 rememberPassword: true,
             });
         }
+        fetchCaptcha();
     }, [form]);
 
     const fetchUserInfo = async () => {
@@ -120,10 +137,14 @@ const Login: React.FC = () => {
         }
     };
 
-    const handleSubmit = async (values: API.LoginParams & { rememberPassword?: boolean }) => {
+    const handleSubmit = async (values: API.LoginParams & { rememberPassword?: boolean; captchaCode?: string }) => {
         try {
             // 调用后端登录接口
-            const response = await login(values);
+            const response = await login({
+                ...values,
+                captchaId: captchaData.id,
+                captchaCode: values.captchaCode,
+            });
             
             // 登录成功（响应拦截器已处理错误情况，这里只会收到成功的响应）
             if (!response.data?.token) {
@@ -158,6 +179,8 @@ const Login: React.FC = () => {
                 status: 'error',
                 message: error.message || '登录失败，请重试！'
             });
+            // 登录失败后刷新验证码
+            fetchCaptcha();
         }
     };
     const { status } = userLoginState;
@@ -246,6 +269,36 @@ const Login: React.FC = () => {
                             },
                         ]}
                     />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <ProFormText
+                            name="captchaCode"
+                            fieldProps={{
+                                size: "large",
+                                autoFocus: false,
+                                maxLength: 4,
+                            }}
+                            placeholder="请输入验证码"
+                            rules={[
+                                {
+                                    required: true,
+                                    message: "请输入验证码！",
+                                },
+                            ]}
+                            style={{ flex: 1 }}
+                        />
+                        <img
+                            src={captchaData.image}
+                            alt="验证码"
+                            onClick={fetchCaptcha}
+                            style={{
+                                height: 40,
+                                cursor: 'pointer',
+                                borderRadius: 8,
+                                border: '1px solid #d9d9d9',
+                            }}
+                            title="点击刷新验证码"
+                        />
+                    </div>
                     <div
                         style={{
                             marginBottom: 24,

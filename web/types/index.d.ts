@@ -131,6 +131,8 @@ declare namespace API {
   export type LoginParams = {
     username: string;
     password: string;
+    captchaId?: string;
+    captchaCode?: string;
   };
 
   /** 登录结果 */

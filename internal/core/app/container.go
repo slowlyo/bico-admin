@@ -14,6 +14,7 @@ import (
 	"bico-admin/internal/core/server"
 	"bico-admin/internal/core/upload"
 	"bico-admin/internal/job"
+	"bico-admin/internal/pkg/captcha"
 	"bico-admin/internal/pkg/jwt"
 
 	"github.com/gin-gonic/gin"
@@ -37,6 +38,7 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 		provideJWT,
 		provideUploader,
 		provideScheduler,
+		provideCaptcha,
 
 		// 服务层
 		provideAuthService,
@@ -120,6 +122,11 @@ func provideUploader(cfg *config.Config) (upload.Uploader, error) {
 // provideScheduler 提供定时任务调度器
 func provideScheduler(zapLogger *zap.Logger) *job.Scheduler {
 	return job.NewScheduler(zapLogger)
+}
+
+// provideCaptcha 提供验证码实例
+func provideCaptcha(cacheInstance cache.Cache) *captcha.Captcha {
+	return captcha.NewCaptcha(cacheInstance)
 }
 
 // AdminRouterParams 使用 dig.In 简化依赖注入（最佳实践✅）
