@@ -12,7 +12,7 @@ const useStyles = createStyles(({ token }) => ({
   },
   avatarSection: {
     textAlign: 'center',
-    marginBottom: '24px',
+    margin: '12px 0',
   },
   avatarWrapper: {
     position: 'relative',
