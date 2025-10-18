@@ -78,9 +78,12 @@ bico-admin/
 │   │   ├── model/          # 模块专属模型
 │   │   └── router.go       # 路由注册
 │   │
-│   ├── job/                 # 定时任务
-│   │   ├── task/           # 任务实现
-│   │   └── register.go     # 任务注册器
+│   ├── job/                 # 定时任务模块
+│   │   ├── scheduler.go     # 调度器封装（基于 robfig/cron）
+│   │   ├── register.go      # 任务注册器
+│   │   └── task/            # 任务实现
+│   │       ├── clean.go     # 清理任务
+│   │       └── sync.go      # 同步任务
 │   │
 │   └── migrate/             # 数据库迁移
 │       └── migrate.go       # 统一管理所有模型的 AutoMigrate
@@ -102,6 +105,7 @@ bico-admin/
 ├── docs/                     # 项目文档
 │   ├── structure.md         # 本文档（项目结构）
 │   ├── logger.md            # 日志功能文档
+│   ├── job.md               # 定时任务文档
 │   ├── auth-api.md          # 认证API文档
 │   ├── cache.md             # 缓存模块文档
 │   └── improvements.md      # 优化建议
@@ -150,10 +154,19 @@ bico-admin/
 
 ### 4. 任务层 (job)
 
-**职责：** 定时任务和后台作业
+**职责：** 定时任务调度和管理
 
-- **task**: 具体任务实现（清理、同步等）
-- **register.go**: 统一注册所有定时任务
+- **scheduler.go**: 调度器封装（基于 `robfig/cron/v3`，支持秒级精度）
+- **register.go**: 任务注册器，统一注册所有定时任务
+- **task/**: 具体任务实现
+  - `clean.go`: 清理过期数据（每天凌晨 3 点）
+  - `sync.go`: 同步统计数据（每小时）
+
+**特点**：
+- 支持 6 位 cron 表达式（秒 分 时 日 月 周）
+- 集成 Zap 日志，记录任务执行状态
+- 自动随应用启动/关闭
+- 支持依赖注入（DB、Cache、Logger）
 
 ### 5. 迁移层 (migrate)
 

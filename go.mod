@@ -5,6 +5,7 @@ go 1.24.4
 require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/redis/go-redis/v9 v9.14.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/viper v1.21.0
 	go.uber.org/dig v1.19.0

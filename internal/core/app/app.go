@@ -9,22 +9,41 @@ import (
 	"syscall"
 	"time"
 
+	"bico-admin/internal/core/cache"
 	"bico-admin/internal/core/config"
+	"bico-admin/internal/job"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // App 应用结构体
 type App struct {
-	cfg    *config.Config
-	engine *gin.Engine
-	server *http.Server
+	cfg       *config.Config
+	engine    *gin.Engine
+	server    *http.Server
+	scheduler *job.Scheduler
+	db        *gorm.DB
+	cache     cache.Cache
+	logger    *zap.Logger
 }
 
 // NewApp 创建应用实例
-func NewApp(cfg *config.Config, engine *gin.Engine) *App {
+func NewApp(
+	cfg *config.Config,
+	engine *gin.Engine,
+	scheduler *job.Scheduler,
+	db *gorm.DB,
+	cache cache.Cache,
+	logger *zap.Logger,
+) *App {
 	return &App{
-		cfg:    cfg,
-		engine: engine,
+		cfg:       cfg,
+		engine:    engine,
+		scheduler: scheduler,
+		db:        db,
+		cache:     cache,
+		logger:    logger,
 	}
 }
 
@@ -36,6 +55,13 @@ func (a *App) Run() error {
 		Addr:    addr,
 		Handler: a.engine,
 	}
+
+	// 注册并启动定时任务
+	if err := job.RegisterJobs(a.scheduler, a.db, a.cache, a.logger); err != nil {
+		a.logger.Error("注册定时任务失败", zap.Error(err))
+		return fmt.Errorf("注册定时任务失败: %w", err)
+	}
+	a.scheduler.Start()
 
 	// 启动服务器
 	go func() {
@@ -60,11 +86,19 @@ func (a *App) gracefulShutdown() {
 
 	fmt.Println("🛑 正在关闭服务...")
 
+	// 停止定时任务调度器
+	a.scheduler.Stop()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := a.server.Shutdown(ctx); err != nil {
 		fmt.Printf("❌ 服务关闭异常: %v\n", err)
+	}
+
+	// 同步日志
+	if err := a.logger.Sync(); err != nil {
+		// 忽略 sync 错误（stdout/stderr 在某些系统上会报错）
 	}
 
 	fmt.Println("👋 服务已关闭")
