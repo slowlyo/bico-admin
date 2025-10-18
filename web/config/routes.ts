@@ -43,6 +43,10 @@ export default [
         access: "system:manage",
         routes: [
             {
+                path: "/system",
+                redirect: "/system/admin-users",
+            },
+            {
                 path: "/system/admin-users",
                 name: "admin-users",
                 component: "./system/admin-users",

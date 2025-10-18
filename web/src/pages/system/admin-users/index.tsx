@@ -134,7 +134,6 @@ const AdminUserList: React.FC = () => {
   return (
     <PageContainer>
       <ProTable<AdminUser>
-        headerTitle="用户列表"
         actionRef={actionRef}
         rowKey="id"
         search={{

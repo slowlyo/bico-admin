@@ -260,7 +260,6 @@ const AdminRoleList: React.FC = () => {
   return (
     <PageContainer>
       <ProTable<AdminRole>
-        headerTitle="角色列表"
         actionRef={actionRef}
         rowKey="id"
         search={{
