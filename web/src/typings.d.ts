@@ -1,3 +1,5 @@
+/// <reference types="../types" />
+
 declare module 'slash2';
 declare module '*.css';
 declare module '*.less';

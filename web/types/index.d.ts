@@ -1,4 +1,4 @@
-export namespace API {
+declare namespace API {
   /** GET /api/currentUser */
   export type GET_API_CURRENT_USER_QUERY = {
     /** example:  123 */
@@ -145,6 +145,7 @@ export namespace API {
     name: string;
     avatar?: string;
     email?: string;
+    permissions?: string[];
   };
 
   /** 应用配置 */
@@ -152,5 +153,18 @@ export namespace API {
     name: string;
     logo: string;
     debug: boolean;
+  };
+
+  /** 更新个人信息参数 */
+  export type UpdateProfileParams = {
+    name?: string;
+    avatar?: string;
+    email?: string;
+  };
+
+  /** 修改密码参数 */
+  export type ChangePasswordParams = {
+    oldPassword: string;
+    newPassword: string;
   };
 }

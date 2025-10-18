@@ -1,7 +1,7 @@
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
-import { Button, message, Popconfirm, Space, Tag } from 'antd';
+import { Button, message, Popconfirm, Space, Tag, Avatar } from 'antd';
 import React, { useRef, useState } from 'react';
 import { getAdminUserList, deleteAdminUser, type AdminUser } from '@/services/admin-user';
 import { useAccess } from '@umijs/max';
@@ -47,6 +47,15 @@ const AdminUserList: React.FC = () => {
       title: '用户名',
       dataIndex: 'username',
       width: 150,
+    },
+    {
+      title: '头像',
+      dataIndex: 'avatar',
+      width: 80,
+      search: false,
+      render: (_, record) => (
+        <Avatar src={record.avatar} size={40} />
+      ),
     },
     {
       title: '姓名',

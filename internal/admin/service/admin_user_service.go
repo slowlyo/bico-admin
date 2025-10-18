@@ -119,11 +119,21 @@ func (s *AdminUserService) Create(req *CreateAdminUserRequest) (*model.AdminUser
 		}
 		
 		if len(req.RoleIDs) > 0 {
+			// 去重 RoleIDs
+			uniqueRoleIDs := make([]uint, 0)
+			seen := make(map[uint]bool)
+			for _, roleID := range req.RoleIDs {
+				if !seen[roleID] {
+					seen[roleID] = true
+					uniqueRoleIDs = append(uniqueRoleIDs, roleID)
+				}
+			}
+			
 			var roles []*model.AdminRole
-			if err := tx.Where("id IN ?", req.RoleIDs).Find(&roles).Error; err != nil {
+			if err := tx.Where("id IN ?", uniqueRoleIDs).Find(&roles).Error; err != nil {
 				return err
 			}
-			if err := tx.Model(user).Association("Roles").Replace(roles); err != nil {
+			if err := tx.Model(user).Association("Roles").Append(roles); err != nil {
 				return err
 			}
 		}
@@ -158,14 +168,30 @@ func (s *AdminUserService) Update(id uint, req *UpdateAdminUserRequest) (*model.
 		}
 		
 		if req.RoleIDs != nil {
-			var roles []*model.AdminRole
-			if len(req.RoleIDs) > 0 {
-				if err := tx.Where("id IN ?", req.RoleIDs).Find(&roles).Error; err != nil {
-					return err
+			// 先清除旧的角色关联
+			if err := tx.Model(&user).Association("Roles").Clear(); err != nil {
+				return err
+			}
+			
+			// 去重 RoleIDs
+			uniqueRoleIDs := make([]uint, 0)
+			seen := make(map[uint]bool)
+			for _, roleID := range req.RoleIDs {
+				if !seen[roleID] {
+					seen[roleID] = true
+					uniqueRoleIDs = append(uniqueRoleIDs, roleID)
 				}
 			}
-			if err := tx.Model(&user).Association("Roles").Replace(roles); err != nil {
-				return err
+			
+			// 添加新的角色关联
+			if len(uniqueRoleIDs) > 0 {
+				var roles []*model.AdminRole
+				if err := tx.Where("id IN ?", uniqueRoleIDs).Find(&roles).Error; err != nil {
+					return err
+				}
+				if err := tx.Model(&user).Association("Roles").Append(roles); err != nil {
+					return err
+				}
 			}
 		}
 		

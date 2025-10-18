@@ -7,11 +7,9 @@ export default function access(
   const { currentUser } = initialState ?? {};
   const permissions = currentUser?.permissions || [];
   
-  const accessObj: Record<string, boolean> = {
-    canAdmin: !!(currentUser && currentUser.username === 'admin'),
-  };
+  const accessObj: Record<string, boolean> = {};
   
-  permissions.forEach(permission => {
+  permissions.forEach((permission: string) => {
     accessObj[permission] = true;
   });
   

@@ -73,17 +73,93 @@ const AdminRoleList: React.FC = () => {
     }
   };
 
+  // 从权限树中查找权限节点的所有父级
+  const findPermissionParents = (
+    permKey: string,
+    tree: Permission[],
+    currentPath: string[] = []
+  ): string[] | null => {
+    for (const node of tree) {
+      // 如果当前节点就是目标，返回当前路径（不包含自己）
+      if (node.key === permKey) {
+        return currentPath;
+      }
+      
+      // 如果有子节点，递归查找
+      if (node.children && node.children.length > 0) {
+        const result = findPermissionParents(permKey, node.children, [...currentPath, node.key]);
+        if (result !== null) {
+          return result;
+        }
+      }
+    }
+    
+    return null;
+  };
+
+  // 过滤权限列表，移除冗余的父级权限（保留实际勾选的权限）
+  const filterRedundantPermissions = (permissions: string[]): string[] => {
+    const filtered = new Set<string>();
+    
+    permissions.forEach(permission => {
+      // 检查是否有子权限也在列表中
+      const hasChildInList = permissions.some(p => {
+        if (p === permission) return false;
+        const parents = findPermissionParents(p, allPermissions);
+        return parents && parents.includes(permission);
+      });
+      
+      // 如果没有子权限在列表中，说明这是用户实际勾选的
+      if (!hasChildInList) {
+        filtered.add(permission);
+      }
+    });
+    
+    return Array.from(filtered);
+  };
+
   const handleOpenPermissionDrawer = (record: AdminRole) => {
     setCurrentRow(record);
-    setSelectedPermissions(record.permissions || []);
+    // 过滤掉冗余的父级权限，只保留用户实际勾选的
+    const filteredPermissions = filterRedundantPermissions(record.permissions || []);
+    console.log('后端返回的权限:', record.permissions);
+    console.log('过滤后显示的权限:', filteredPermissions);
+    setSelectedPermissions(filteredPermissions);
     setPermissionDrawerVisible(true);
+  };
+
+  // 扩展权限列表，包含所有父级权限
+  const expandPermissions = (permissions: string[]): string[] => {
+    const expanded = new Set<string>();
+    
+    permissions.forEach(permission => {
+      // 添加当前权限
+      expanded.add(permission);
+      // 从权限树中查找并添加所有父级权限
+      const parents = findPermissionParents(permission, allPermissions);
+      if (parents && parents.length > 0) {
+        console.log(`权限 "${permission}" 的父级:`, parents);
+        parents.forEach(parent => {
+          expanded.add(parent);
+        });
+      } else {
+        console.log(`权限 "${permission}" 没有父级或是顶级权限`);
+      }
+    });
+    
+    return Array.from(expanded);
   };
 
   const handleSavePermissions = async () => {
     if (!currentRow) return;
     try {
+      // 在保存时扩展权限，添加所有父级权限
+      const expandedPermissions = expandPermissions(selectedPermissions);
+      console.log('用户选择的权限:', selectedPermissions);
+      console.log('扩展后的权限（包含父级）:', expandedPermissions);
+      
       const res = await updateRolePermissions(currentRow.id, {
-        permissions: selectedPermissions,
+        permissions: expandedPermissions,
       });
       if (res.code === 0) {
         message.success('权限配置成功');
@@ -258,7 +334,8 @@ const AdminRoleList: React.FC = () => {
           defaultExpandAll
           checkedKeys={selectedPermissions}
           onCheck={(checkedKeys) => {
-            setSelectedPermissions(checkedKeys as string[]);
+            const keys = Array.isArray(checkedKeys) ? checkedKeys : checkedKeys.checked;
+            setSelectedPermissions(keys as string[]);
           }}
           treeData={convertPermissionsToTreeData(allPermissions)}
         />

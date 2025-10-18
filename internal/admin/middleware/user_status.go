@@ -47,7 +47,7 @@ func (m *UserStatusMiddleware) Check() gin.HandlerFunc {
 
 		if !user.Enabled {
 			c.JSON(http.StatusOK, gin.H{
-				"code": 403,
+				"code": 401,
 				"msg":  "账户已被禁用",
 			})
 			c.Abort()

@@ -1,8 +1,9 @@
 import { ModalForm, ProFormText, ProFormSwitch, ProFormSelect } from '@ant-design/pro-components';
-import { message } from 'antd';
-import React from 'react';
+import { message, Avatar, Space, Upload, Button } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
 import { createAdminUser, type AdminUserCreateParams } from '@/services/admin-user';
-import { getAllAdminRoles } from '@/services/admin-role';
+import { getAllAdminRoles, type AdminRole } from '@/services/admin-role';
 
 interface CreateFormProps {
   open: boolean;
@@ -10,10 +11,27 @@ interface CreateFormProps {
   onSuccess: () => void;
 }
 
+// 生成随机头像URL
+const generateRandomAvatar = () => {
+  const randomSeed = Math.floor(Math.random() * 999999);
+  return `https://api.dicebear.com/9.x/thumbs/png?seed=${randomSeed}`;
+};
+
 const CreateForm: React.FC<CreateFormProps> = ({ open, onOpenChange, onSuccess }) => {
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+
+  // 当弹窗打开时生成新的随机头像
+  useEffect(() => {
+    if (open) {
+      setAvatarUrl(generateRandomAvatar());
+    }
+  }, [open]);
+
   const handleCreate = async (values: AdminUserCreateParams) => {
     try {
-      const res = await createAdminUser(values);
+      // 使用当前的头像URL
+      const params = { ...values, avatar: avatarUrl };
+      const res = await createAdminUser(params);
       if (res.code === 0) {
         message.success('创建成功');
         onSuccess();
@@ -24,6 +42,19 @@ const CreateForm: React.FC<CreateFormProps> = ({ open, onOpenChange, onSuccess }
     } catch (error) {
       message.error('创建失败');
       return false;
+    }
+  };
+
+  const handleUploadChange = (info: any) => {
+    if (info.file.status === 'done') {
+      // 假设上传接口返回的图片URL在 response.data.url
+      const url = info.file.response?.data?.url;
+      if (url) {
+        setAvatarUrl(url);
+        message.success('头像上传成功');
+      }
+    } else if (info.file.status === 'error') {
+      message.error('头像上传失败');
     }
   };
 
@@ -52,13 +83,39 @@ const CreateForm: React.FC<CreateFormProps> = ({ open, onOpenChange, onSuccess }
         label="姓名"
         placeholder="请输入姓名"
       />
+      
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 500 }}>头像</div>
+        <Space size={16}>
+          <Avatar src={avatarUrl} size={80} />
+          <div>
+            <Space direction="vertical" size={8}>
+              <Upload
+                name="avatar"
+                showUploadList={false}
+                action="/admin-api/auth/avatar"
+                headers={{
+                  Authorization: `Bearer ${localStorage.getItem('token')}`,
+                }}
+                onChange={handleUploadChange}
+              >
+                <Button icon={<UploadOutlined />}>上传自定义头像</Button>
+              </Upload>
+              <div style={{ fontSize: 12, color: '#999' }}>
+                默认使用随机头像，可上传自定义图片
+              </div>
+            </Space>
+          </div>
+        </Space>
+      </div>
+
       <ProFormSelect
         name="roleIds"
         label="角色"
         mode="multiple"
         request={async () => {
           const res = await getAllAdminRoles();
-          return (res.data || []).map((role) => ({
+          return (res.data || []).map((role: AdminRole) => ({
             label: role.name,
             value: role.id,
           }));

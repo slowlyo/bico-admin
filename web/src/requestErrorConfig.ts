@@ -92,20 +92,27 @@ export const errorConfig: RequestConfig = {
         
         // code !== 0 表示业务错误
         if (apiResponse.code !== 0) {
-          // 401 未授权，跳转登录（排除登录页面本身）
+          // 401 未授权（包括 token 失效、账户被禁用等），清除 token 并跳转登录
           if (apiResponse.code === 401 && window.location.pathname !== '/auth/login') {
+            message.error(apiResponse.msg || '未授权，请重新登录');
             localStorage.removeItem('token');
             localStorage.removeItem('currentUser');
-            window.location.href = '/auth/login';
-            // 跳转后抛出错误中断后续处理
-            const error: any = new Error('未授权，即将跳转登录页');
+            setTimeout(() => {
+              window.location.href = '/auth/login';
+            }, 1000);
+            const error: any = new Error(apiResponse.msg || '未授权');
             error.name = 'BizError';
             error.response = response;
             error.data = apiResponse;
             throw error;
           }
           
-          // 抛出错误，让前端的 catch 块可以捕获
+          // 403 权限不足，显示错误消息但不跳转
+          if (apiResponse.code === 403) {
+            message.error(apiResponse.msg || '无权访问');
+          }
+          
+          // 抛出错误让业务代码可以捕获
           const error: any = new Error(apiResponse.msg || '请求失败');
           error.name = 'BizError';
           error.response = response;

@@ -11,22 +11,22 @@ type Permission struct {
 const (
 	// 系统管理
 	PermSystemManage = "system:manage"
-	
+
 	// 用户管理
 	PermAdminUserMenu   = "system:admin_user:menu"
 	PermAdminUserList   = "system:admin_user:list"
 	PermAdminUserCreate = "system:admin_user:create"
 	PermAdminUserEdit   = "system:admin_user:edit"
 	PermAdminUserDelete = "system:admin_user:delete"
-	
+
 	// 角色管理
-	PermAdminRoleMenu   = "system:admin_role:menu"
-	PermAdminRoleList   = "system:admin_role:list"
-	PermAdminRoleCreate = "system:admin_role:create"
-	PermAdminRoleEdit   = "system:admin_role:edit"
-	PermAdminRoleDelete = "system:admin_role:delete"
+	PermAdminRoleMenu       = "system:admin_role:menu"
+	PermAdminRoleList       = "system:admin_role:list"
+	PermAdminRoleCreate     = "system:admin_role:create"
+	PermAdminRoleEdit       = "system:admin_role:edit"
+	PermAdminRoleDelete     = "system:admin_role:delete"
 	PermAdminRolePermission = "system:admin_role:permission"
-	
+
 	// Dashboard
 	PermDashboardMenu = "dashboard:menu"
 )
@@ -35,7 +35,7 @@ const (
 var AllPermissions = []Permission{
 	{
 		Key:   PermDashboardMenu,
-		Label: "Dashboard",
+		Label: "工作台",
 	},
 	{
 		Key:   PermSystemManage,
@@ -70,7 +70,7 @@ var AllPermissions = []Permission{
 func GetAllPermissionKeys() []string {
 	var keys []string
 	var collectKeys func(perms []Permission)
-	
+
 	collectKeys = func(perms []Permission) {
 		for _, perm := range perms {
 			keys = append(keys, perm.Key)
@@ -79,7 +79,7 @@ func GetAllPermissionKeys() []string {
 			}
 		}
 	}
-	
+
 	collectKeys(AllPermissions)
 	return keys
 }

@@ -32,8 +32,8 @@ func (AdminRolePermission) TableName() string {
 // AdminUserRole 用户角色关联表
 type AdminUserRole struct {
 	ID     uint `gorm:"primarykey" json:"id"`
-	UserID uint `gorm:"not null;index" json:"user_id"`
-	RoleID uint `gorm:"not null;index" json:"role_id"`
+	UserID uint `gorm:"not null;index:idx_user_role,unique" json:"user_id"`
+	RoleID uint `gorm:"not null;index:idx_user_role,unique" json:"role_id"`
 }
 
 // TableName 指定表名

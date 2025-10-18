@@ -63,7 +63,7 @@ func initAdminUser(db *gorm.DB) error {
 		Username: "admin",
 		Password: hashedPassword,
 		Name:     "系统管理员",
-		Avatar:   "https://api.dicebear.com/9.x/thumbs/svg?seed=Avery",
+		Avatar:   "https://api.dicebear.com/9.x/thumbs/png?seed=slowlyo",
 		Enabled:  true,
 	}
 
