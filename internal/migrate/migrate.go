@@ -25,6 +25,9 @@ func AutoMigrate(db *gorm.DB) error {
 	if err := db.AutoMigrate(
 		&adminModel.Menu{},
 		&adminModel.AdminUser{},
+		&adminModel.AdminRole{},
+		&adminModel.AdminRolePermission{},
+		&adminModel.AdminUserRole{},
 	); err != nil {
 		return err
 	}
@@ -69,5 +72,6 @@ func initAdminUser(db *gorm.DB) error {
 	}
 
 	fmt.Printf("✅ 初始化管理员账户成功 (用户名: admin, 密码: admin)\n")
+	fmt.Println("💡 admin 账户自动拥有所有权限，后续新增权限无需手动分配")
 	return nil
 }

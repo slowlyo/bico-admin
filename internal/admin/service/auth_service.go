@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 	
+	"bico-admin/internal/admin/consts"
 	"bico-admin/internal/admin/model"
 	"bico-admin/internal/shared/password"
 	"gorm.io/gorm"
@@ -24,17 +25,17 @@ type LoginRequest struct {
 
 // LoginResponse 登录响应
 type LoginResponse struct {
-	Token string      `json:"token"`
-	User  *UserInfo   `json:"user"`
+	Token string `json:"token"`
 }
 
 // UserInfo 用户信息
 type UserInfo struct {
-	ID       uint   `json:"id"`
-	Username string `json:"username"`
-	Name     string `json:"name"`
-	Avatar   string `json:"avatar"`
-	Enabled  bool   `json:"enabled"`
+	ID          uint     `json:"id"`
+	Username    string   `json:"username"`
+	Name        string   `json:"name"`
+	Avatar      string   `json:"avatar"`
+	Enabled     bool     `json:"enabled"`
+	Permissions []string `json:"permissions"`
 }
 
 // UpdateProfileRequest 更新用户资料请求
@@ -57,6 +58,7 @@ type IAuthService interface {
 	GetUserByID(userID uint) (*UserInfo, error)
 	UpdateProfile(userID uint, req *UpdateProfileRequest) (*UserInfo, error)
 	ChangePassword(userID uint, req *ChangePasswordRequest) error
+	GetUserPermissions(userID uint) ([]string, error)
 }
 
 // AuthService 认证服务
@@ -107,13 +109,6 @@ func (s *AuthService) Login(req interface{}) (interface{}, error) {
 	
 	return &LoginResponse{
 		Token: token,
-		User: &UserInfo{
-			ID:       user.ID,
-			Username: user.Username,
-			Name:     user.Name,
-			Avatar:   user.Avatar,
-			Enabled:  user.Enabled,
-		},
 	}, nil
 }
 
@@ -151,12 +146,15 @@ func (s *AuthService) GetUserByID(userID uint) (*UserInfo, error) {
 		return nil, ErrUserDisabled
 	}
 	
+	permissions, _ := s.GetUserPermissions(userID)
+	
 	return &UserInfo{
-		ID:       user.ID,
-		Username: user.Username,
-		Name:     user.Name,
-		Avatar:   user.Avatar,
-		Enabled:  user.Enabled,
+		ID:          user.ID,
+		Username:    user.Username,
+		Name:        user.Name,
+		Avatar:      user.Avatar,
+		Enabled:     user.Enabled,
+		Permissions: permissions,
 	}, nil
 }
 
@@ -188,12 +186,15 @@ func (s *AuthService) UpdateProfile(userID uint, req *UpdateProfileRequest) (*Us
 		}
 	}
 	
+	permissions, _ := s.GetUserPermissions(userID)
+	
 	return &UserInfo{
-		ID:       user.ID,
-		Username: user.Username,
-		Name:     user.Name,
-		Avatar:   user.Avatar,
-		Enabled:  user.Enabled,
+		ID:          user.ID,
+		Username:    user.Username,
+		Name:        user.Name,
+		Avatar:      user.Avatar,
+		Enabled:     user.Enabled,
+		Permissions: permissions,
 	}, nil
 }
 
@@ -225,4 +226,29 @@ func (s *AuthService) ChangePassword(userID uint, req *ChangePasswordRequest) er
 	}
 	
 	return nil
+}
+
+// GetUserPermissions 获取用户的所有权限
+func (s *AuthService) GetUserPermissions(userID uint) ([]string, error) {
+	// 获取用户信息
+	var user model.AdminUser
+	if err := s.db.Select("username").First(&user, userID).Error; err != nil {
+		return nil, err
+	}
+	
+	// 如果是默认管理员账户，返回所有权限
+	if user.Username == "admin" {
+		return consts.GetAllPermissionKeys(), nil
+	}
+	
+	// 从数据库查询普通用户权限
+	var permissions []string
+	err := s.db.Table("admin_user_roles").
+		Select("DISTINCT admin_role_permissions.permission").
+		Joins("JOIN admin_role_permissions ON admin_user_roles.role_id = admin_role_permissions.role_id").
+		Joins("JOIN admin_roles ON admin_role_permissions.role_id = admin_roles.id").
+		Where("admin_user_roles.user_id = ? AND admin_roles.enabled = ?", userID, true).
+		Pluck("permission", &permissions).Error
+	
+	return permissions, err
 }

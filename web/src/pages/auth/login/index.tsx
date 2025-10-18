@@ -125,14 +125,12 @@ const Login: React.FC = () => {
             const response = await login(values);
             
             // 登录成功（响应拦截器已处理错误情况，这里只会收到成功的响应）
-            if (!response.data) {
+            if (!response.data?.token) {
                 throw new Error('登录响应数据为空');
             }
-            const { token, user } = response.data;
             
-            // 保存 token 和用户信息
-            localStorage.setItem('token', token);
-            localStorage.setItem('currentUser', JSON.stringify(user));
+            // 保存 token
+            localStorage.setItem('token', response.data.token);
             
             // 处理记住密码
             if (values.rememberPassword) {
@@ -141,14 +139,14 @@ const Login: React.FC = () => {
                 clearCredentials();
             }
             
+            // 更新全局状态（获取用户信息）
+            await fetchUserInfo();
+            
             const defaultLoginSuccessMessage = intl.formatMessage({
                 id: "pages.login.success",
                 defaultMessage: "登录成功！",
             });
             message.success(defaultLoginSuccessMessage);
-            
-            // 更新全局状态
-            await fetchUserInfo();
             
             // 跳转到重定向页面或首页
             const urlParams = new URL(window.location.href).searchParams;

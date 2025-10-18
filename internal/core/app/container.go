@@ -3,6 +3,7 @@ package app
 import (
 	"bico-admin/internal/admin"
 	adminHandler "bico-admin/internal/admin/handler"
+	adminMiddleware "bico-admin/internal/admin/middleware"
 	adminService "bico-admin/internal/admin/service"
 	"bico-admin/internal/api"
 	"bico-admin/internal/core/cache"
@@ -35,10 +36,14 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 		// 服务层
 		provideAuthService,
 		provideConfigService,
+		adminService.NewAdminUserService,
+		adminService.NewAdminRoleService,
 
 		// 处理层
 		adminHandler.NewAuthHandler,
 		adminHandler.NewCommonHandler,
+		adminHandler.NewAdminUserHandler,
+		adminHandler.NewAdminRoleHandler,
 
 		// 路由层
 		provideAdminRouter,
@@ -104,17 +109,29 @@ func provideUploader(cfg *config.Config) (upload.Uploader, error) {
 // AdminRouterParams 使用 dig.In 简化依赖注入（最佳实践✅）
 type AdminRouterParams struct {
 	dig.In
-	AuthHandler   *adminHandler.AuthHandler
-	CommonHandler *adminHandler.CommonHandler
-	JWTManager    *jwt.JWTManager
-	AuthService   adminService.IAuthService
+	AuthHandler      *adminHandler.AuthHandler
+	CommonHandler    *adminHandler.CommonHandler
+	AdminUserHandler *adminHandler.AdminUserHandler
+	AdminRoleHandler *adminHandler.AdminRoleHandler
+	JWTManager       *jwt.JWTManager
+	AuthService      adminService.IAuthService
+	DB               *gorm.DB
 }
 
 // provideAdminRouter 提供 Admin 路由（使用 dig.In 简化参数）
 func provideAdminRouter(params AdminRouterParams) *admin.Router {
+	// 创建权限中间件
+	permMiddleware := adminMiddleware.NewPermissionMiddleware(params.AuthService)
+	// 创建用户状态中间件
+	userStatusMiddleware := adminMiddleware.NewUserStatusMiddleware(params.DB)
+	
 	return admin.NewRouter(
 		params.AuthHandler,
 		params.CommonHandler,
+		params.AdminUserHandler,
+		params.AdminRoleHandler,
 		middleware.JWTAuth(params.JWTManager, params.AuthService),
+		permMiddleware,
+		userStatusMiddleware,
 	)
 }

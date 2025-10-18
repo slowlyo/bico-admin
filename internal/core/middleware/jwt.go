@@ -60,8 +60,10 @@ func JWTAuth(jwtManager interface{}, authService interface{}) gin.HandlerFunc {
 			return
 		}
 
+		userID := uint(claims["user_id"].(float64))
+
 		// 将用户信息存入上下文
-		c.Set("user_id", uint(claims["user_id"].(float64)))
+		c.Set("user_id", userID)
 		c.Set("username", claims["username"].(string))
 
 		c.Next()
