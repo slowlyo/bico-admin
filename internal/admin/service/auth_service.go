@@ -6,7 +6,7 @@ import (
 	
 	"bico-admin/internal/admin/consts"
 	"bico-admin/internal/admin/model"
-	"bico-admin/internal/shared/password"
+	"bico-admin/internal/pkg/password"
 	"gorm.io/gorm"
 )
 

@@ -3,7 +3,7 @@ package server
 import (
 	"bico-admin/internal/core/config"
 	"bico-admin/internal/core/middleware"
-	"bico-admin/internal/shared/response"
+	"bico-admin/internal/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 

@@ -1,6 +1,6 @@
 package model
 
-import "bico-admin/internal/shared/model"
+import "bico-admin/internal/core/model"
 
 // AdminRole 角色模型
 type AdminRole struct {

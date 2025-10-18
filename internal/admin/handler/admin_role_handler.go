@@ -6,7 +6,7 @@ import (
 
 	"bico-admin/internal/admin/consts"
 	"bico-admin/internal/admin/service"
-	"bico-admin/internal/shared/pagination"
+	"bico-admin/internal/pkg/pagination"
 	"github.com/gin-gonic/gin"
 )
 

@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"bico-admin/internal/admin/model"
-	"bico-admin/internal/shared/pagination"
+	"bico-admin/internal/pkg/pagination"
 	"gorm.io/gorm"
 )
 

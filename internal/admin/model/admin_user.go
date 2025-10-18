@@ -1,6 +1,6 @@
 package model
 
-import "bico-admin/internal/shared/model"
+import "bico-admin/internal/core/model"
 
 // AdminUser 后台用户模型
 type AdminUser struct {

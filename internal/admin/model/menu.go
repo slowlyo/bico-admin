@@ -1,6 +1,6 @@
 package model
 
-import "bico-admin/internal/shared/model"
+import "bico-admin/internal/core/model"
 
 // Menu 菜单模型
 type Menu struct {

@@ -11,7 +11,7 @@ bico-admin/
 │   └── config.yaml          # 应用配置（服务器、数据库、日志）
 │
 ├── internal/                 # 内部代码（不对外暴露）
-│   ├── core/                # 核心层
+│   ├── core/                # 核心基础设施层（有状态、需配置）
 │   │   ├── app/            # 应用生命周期管理
 │   │   │   ├── app.go      # App 实例，处理启动和优雅关闭
 │   │   │   └── container.go # DI 容器构建
@@ -21,31 +21,34 @@ bico-admin/
 │   │   │   └── database.go # GORM 初始化和连接池配置
 │   │   ├── cache/          # 缓存层
 │   │   │   ├── cache.go    # 缓存接口
+│   │   │   ├── factory.go  # 缓存工厂
 │   │   │   ├── memory.go   # 内存缓存实现
 │   │   │   └── redis.go    # Redis缓存实现
+│   │   ├── logger/         # 日志系统
+│   │   │   ├── logger.go   # Zap日志封装
+│   │   │   └── gorm_logger.go # GORM日志适配器
+│   │   ├── model/          # 基础模型
+│   │   │   └── base.go     # BaseModel（ID, CreatedAt, UpdatedAt）
 │   │   ├── server/         # 服务器层
 │   │   │   └── server.go   # Gin 引擎创建 + 路由注册
-│   │   ├── middleware/     # 核心中间件
-│   │   │   └── jwt.go      # JWT认证中间件
-│   │   ├── upload/         # 文件上传
-│   │   │   └── uploader.go # 上传器（支持本地/七牛云等）
-│   │   └── scheduler/      # 定时任务调度
+│   │   ├── middleware/     # 通用中间件
+│   │   │   ├── jwt.go      # JWT认证中间件
+│   │   │   └── cors.go     # 跨域中间件
+│   │   └── upload/         # 文件上传
+│   │       ├── upload.go   # 上传接口
+│   │       ├── factory.go  # 上传工厂
+│   │       └── local.go    # 本地存储实现
 │   │
-│   ├── shared/              # 共享层（跨模块复用）
-│   │   ├── model/          # 公共数据模型
-│   │   │   ├── base.go     # BaseModel（ID, CreatedAt, UpdatedAt）
-│   │   │   ├── admin_user.go  # 管理员用户模型
-│   │   │   └── admin_role.go  # 管理员角色模型
+│   ├── pkg/                 # 工具包（无状态、零依赖）
 │   │   ├── response/       # 统一响应
 │   │   │   └── response.go # Success/Error 响应结构
 │   │   ├── jwt/            # JWT令牌管理
-│   │   │   └── jwt.go      # 令牌生成和验证
+│   │   │   ├── jwt.go      # 令牌生成和验证
+│   │   │   └── token.go    # token 工具
 │   │   ├── password/       # 密码加密
 │   │   │   └── password.go # bcrypt 密码处理
-│   │   ├── pagination/     # 分页工具
-│   │   │   └── pagination.go
-│   │   ├── logger/         # 日志工具
-│   │   └── util/           # 工具函数
+│   │   └── pagination/     # 分页工具
+│   │       └── pagination.go
 │   │
 │   ├── admin/               # 后台管理模块
 │   │   ├── consts/         # 常量定义
@@ -60,10 +63,13 @@ bico-admin/
 │   │   │   ├── config_service.go     # 配置服务
 │   │   │   ├── admin_user_service.go # 用户服务
 │   │   │   └── admin_role_service.go # 角色服务
-│   │   ├── middleware/     # 模块中间件
+│   │   ├── middleware/     # 业务中间件
 │   │   │   ├── permission.go    # 权限验证中间件
 │   │   │   └── user_status.go   # 用户状态检查中间件
 │   │   ├── model/          # 模块专属模型
+│   │   │   ├── admin_user.go   # 后台用户模型
+│   │   │   ├── admin_role.go   # 后台角色模型
+│   │   │   └── menu.go         # 菜单模型
 │   │   └── router.go       # 路由注册
 │   │
 │   ├── api/                 # 前台 API 模块
@@ -94,10 +100,11 @@ bico-admin/
 │   └── package.json
 │
 ├── docs/                     # 项目文档
-│   ├── structure.md         # 本文档
+│   ├── structure.md         # 本文档（项目结构）
+│   ├── logger.md            # 日志功能文档
 │   ├── auth-api.md          # 认证API文档
 │   ├── cache.md             # 缓存模块文档
-│   └── AGENT.md             # AI助手项目说明
+│   └── improvements.md      # 优化建议
 │
 ├── go.mod                    # Go 模块定义
 ├── go.sum                    # 依赖校验
@@ -109,22 +116,26 @@ bico-admin/
 
 ### 1. 核心层 (core)
 
-**职责：** 提供基础设施和框架能力
+**职责：** 提供基础设施和框架能力（有状态、需配置、单例）
 
 - **app**: DI 容器管理、应用生命周期（启动、关闭）
 - **config**: 配置文件加载和解析
 - **db**: 数据库连接和连接池管理
-- **server**: HTTP 服务器初始化、中间件、路由注册
-- **scheduler**: 定时任务调度器
+- **cache**: 缓存驱动（Memory/Redis）
+- **logger**: 日志系统（Zap + GORM 日志适配）
+- **model**: 基础模型（BaseModel）
+- **server**: HTTP 服务器初始化、路由注册
+- **middleware**: 通用中间件（JWT、CORS）
+- **upload**: 文件上传驱动
 
-### 2. 共享层 (shared)
+### 2. 工具层 (pkg)
 
-**职责：** 提供跨模块复用的通用能力
+**职责：** 提供无状态的工具函数（零依赖、可复用）
 
-- **model**: 公共数据模型（User、Role、Log 等）
 - **response**: 统一的 API 响应格式
-- **logger**: 日志组件
-- **util**: 通用工具函数
+- **jwt**: JWT token 生成和解析
+- **password**: 密码加密（bcrypt）
+- **pagination**: 分页工具
 
 ### 3. 业务模块 (admin / api)
 
@@ -213,24 +224,36 @@ log:
 
 ## 数据模型设计
 
-### BaseModel (shared/model/base.go)
+### BaseModel (core/model/base.go)
 
 所有模型继承 BaseModel：
 
 ```go
 type BaseModel struct {
-    ID        uint
-    CreatedAt time.Time
-    UpdatedAt time.Time
+    ID        uint      `gorm:"primarykey" json:"id"`
+    CreatedAt time.Time `json:"created_at"`
+    UpdatedAt time.Time `json:"updated_at"`
+}
+```
+
+### 模型使用
+
+```go
+import "bico-admin/internal/core/model"
+
+type AdminUser struct {
+    model.BaseModel
+    Username string `json:"username"`
+    // ...
 }
 ```
 
 ### 模型分类
 
-- **共享模型** (shared/model): User, Role, Log
-  - 跨模块使用的通用模型
+- **基础模型** (core/model): BaseModel
+  - 所有业务模型的基础，提供公共字段
   
-- **模块模型** (module/model): Menu, Order, Product
+- **模块模型** (module/model): AdminUser, AdminRole, Menu
   - 模块专属，仅在模块内使用
 
 ## 命令行工具

@@ -13,7 +13,7 @@ import (
 	"bico-admin/internal/core/middleware"
 	"bico-admin/internal/core/server"
 	"bico-admin/internal/core/upload"
-	"bico-admin/internal/shared/jwt"
+	"bico-admin/internal/pkg/jwt"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/dig"
