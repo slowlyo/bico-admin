@@ -38,6 +38,22 @@ declare namespace API {
     user: CurrentUser;
   };
 
+  type AppConfig = {
+    name?: string;
+    logo?: string;
+    debug?: boolean;
+  };
+
+  type UpdateProfileParams = {
+    name?: string;
+    avatar?: string;
+  };
+
+  type ChangePasswordParams = {
+    oldPassword: string;
+    newPassword: string;
+  };
+
   type PageParams = {
     current?: number;
     pageSize?: number;

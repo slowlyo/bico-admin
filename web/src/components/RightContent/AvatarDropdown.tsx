@@ -1,7 +1,6 @@
 import {
   LogoutOutlined,
   SettingOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import type { MenuProps } from 'antd';
@@ -86,7 +85,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
       loginOut();
       return;
     }
-    history.push(`/account/${key}`);
+    history.push(`/auth/${key}`);
   };
 
   const loading = (
@@ -115,12 +114,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
     ...(menu
       ? [
           {
-            key: 'center',
-            icon: <UserOutlined />,
-            label: '个人中心',
-          },
-          {
-            key: 'settings',
+            key: 'profile',
             icon: <SettingOutlined />,
             label: '个人设置',
           },

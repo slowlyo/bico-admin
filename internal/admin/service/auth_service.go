@@ -13,6 +13,7 @@ var (
 	ErrUserNotFound      = errors.New("用户不存在")
 	ErrInvalidPassword   = errors.New("密码错误")
 	ErrUserDisabled      = errors.New("用户已被禁用")
+	ErrOldPasswordWrong  = errors.New("原密码错误")
 )
 
 // LoginRequest 登录请求
@@ -36,12 +37,26 @@ type UserInfo struct {
 	Enabled  bool   `json:"enabled"`
 }
 
+// UpdateProfileRequest 更新用户资料请求
+type UpdateProfileRequest struct {
+	Name   string `json:"name"`
+	Avatar string `json:"avatar"`
+}
+
+// ChangePasswordRequest 修改密码请求
+type ChangePasswordRequest struct {
+	OldPassword string `json:"oldPassword" binding:"required"`
+	NewPassword string `json:"newPassword" binding:"required"`
+}
+
 // IAuthService 认证服务接口
 type IAuthService interface {
 	Login(req interface{}) (interface{}, error)
 	Logout(token string) error
 	IsTokenBlacklisted(token string) bool
 	GetUserByID(userID uint) (*UserInfo, error)
+	UpdateProfile(userID uint, req *UpdateProfileRequest) (*UserInfo, error)
+	ChangePassword(userID uint, req *ChangePasswordRequest) error
 }
 
 // AuthService 认证服务
@@ -143,4 +158,71 @@ func (s *AuthService) GetUserByID(userID uint) (*UserInfo, error) {
 		Avatar:   user.Avatar,
 		Enabled:  user.Enabled,
 	}, nil
+}
+
+// UpdateProfile 更新用户资料
+func (s *AuthService) UpdateProfile(userID uint, req *UpdateProfileRequest) (*UserInfo, error) {
+	var user model.AdminUser
+	
+	err := s.db.Where("id = ?", userID).First(&user).Error
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	
+	if !user.Enabled {
+		return nil, ErrUserDisabled
+	}
+	
+	updates := make(map[string]interface{})
+	if req.Name != "" {
+		updates["name"] = req.Name
+	}
+	if req.Avatar != "" {
+		updates["avatar"] = req.Avatar
+	}
+	
+	if len(updates) > 0 {
+		err = s.db.Model(&user).Updates(updates).Error
+		if err != nil {
+			return nil, err
+		}
+	}
+	
+	return &UserInfo{
+		ID:       user.ID,
+		Username: user.Username,
+		Name:     user.Name,
+		Avatar:   user.Avatar,
+		Enabled:  user.Enabled,
+	}, nil
+}
+
+// ChangePassword 修改密码
+func (s *AuthService) ChangePassword(userID uint, req *ChangePasswordRequest) error {
+	var user model.AdminUser
+	
+	err := s.db.Where("id = ?", userID).First(&user).Error
+	if err != nil {
+		return ErrUserNotFound
+	}
+	
+	if !user.Enabled {
+		return ErrUserDisabled
+	}
+	
+	if !password.Verify(user.Password, req.OldPassword) {
+		return ErrOldPasswordWrong
+	}
+	
+	hashedPassword, err := password.Hash(req.NewPassword)
+	if err != nil {
+		return err
+	}
+	
+	err = s.db.Model(&user).Update("password", hashedPassword).Error
+	if err != nil {
+		return err
+	}
+	
+	return nil
 }

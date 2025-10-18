@@ -94,3 +94,111 @@ func (h *AuthHandler) CurrentUser(c *gin.Context) {
 		"data": user,
 	})
 }
+
+// UpdateProfile 更新用户资料
+func (h *AuthHandler) UpdateProfile(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists || userID == nil {
+		c.JSON(http.StatusOK, map[string]interface{}{
+			"code": 401,
+			"msg":  "未授权",
+		})
+		return
+	}
+	
+	var req service.UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"code": 400,
+			"msg":  "参数错误: " + err.Error(),
+		})
+		return
+	}
+	
+	user, err := h.authService.UpdateProfile(userID.(uint), &req)
+	if err != nil {
+		c.JSON(http.StatusOK, map[string]interface{}{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+		return
+	}
+	
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"code": 0,
+		"msg":  "更新成功",
+		"data": user,
+	})
+}
+
+// ChangePassword 修改密码
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists || userID == nil {
+		c.JSON(http.StatusOK, map[string]interface{}{
+			"code": 401,
+			"msg":  "未授权",
+		})
+		return
+	}
+	
+	var req service.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"code": 400,
+			"msg":  "参数错误: " + err.Error(),
+		})
+		return
+	}
+	
+	err := h.authService.ChangePassword(userID.(uint), &req)
+	if err != nil {
+		c.JSON(http.StatusOK, map[string]interface{}{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+		return
+	}
+	
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"code": 0,
+		"msg":  "密码修改成功",
+	})
+}
+
+// UploadAvatar 上传头像
+func (h *AuthHandler) UploadAvatar(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists || userID == nil {
+		c.JSON(http.StatusOK, map[string]interface{}{
+			"code": 401,
+			"msg":  "未授权",
+		})
+		return
+	}
+	
+	// 获取上传的文件
+	_, err := c.FormFile("avatar")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"code": 400,
+			"msg":  "请上传头像文件",
+		})
+		return
+	}
+	
+	// TODO: 实现文件保存逻辑
+	// 1. 验证文件类型（仅允许图片）
+	// 2. 生成唯一文件名
+	// 3. 保存文件到指定目录或云存储
+	// 4. 返回文件访问URL
+	// 实现时将上面的 _ 改为 file 变量使用
+	
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"code": 0,
+		"msg":  "上传成功",
+		"data": map[string]interface{}{
+			"url": "/uploads/avatars/example.jpg", // 临时返回示例URL
+		},
+	})
+}

@@ -27,13 +27,22 @@ func NewRouter(authHandler *handler.AuthHandler, commonHandler *handler.CommonHa
 func (r *Router) Register(engine *gin.Engine) {
 	admin := engine.Group("/admin-api")
 
-	// 公开路由（无需认证）
-	admin.POST("/login", r.authHandler.Login)
-	admin.GET("/app-config", r.commonHandler.GetAppConfig)
+	// 认证相关路由
+	auth := admin.Group("/auth")
+	{
+		// 公开路由（无需认证）
+		auth.POST("/login", r.authHandler.Login)
+		
+		// 需要认证的路由
+		auth.POST("/logout", r.jwtAuth, r.authHandler.Logout)
+		auth.GET("/current-user", r.jwtAuth, r.authHandler.CurrentUser)
+		auth.PUT("/profile", r.jwtAuth, r.authHandler.UpdateProfile)
+		auth.PUT("/password", r.jwtAuth, r.authHandler.ChangePassword)
+		auth.POST("/avatar", r.jwtAuth, r.authHandler.UploadAvatar)
+	}
 
-	// 需要认证的路由
-	admin.POST("/logout", r.jwtAuth, r.authHandler.Logout)
-	admin.GET("/current-user", r.jwtAuth, r.authHandler.CurrentUser)
+	// 应用配置
+	admin.GET("/app-config", r.commonHandler.GetAppConfig)
 
 	// 临时路由
 	admin.GET("/menus", func(c *gin.Context) {

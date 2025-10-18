@@ -11,53 +11,58 @@
  * @doc https://umijs.org/docs/guides/routes
  */
 export default [
-  {
-    path: '/auth',
-    layout: false,
-    routes: [
-      {
-        name: 'login',
-        path: '/auth/login',
-        component: './auth/login',
-      },
-    ],
-  },
-  {
-    path: '/welcome',
-    name: 'welcome',
-    icon: 'smile',
-    component: './Welcome',
-  },
-  {
-    path: '/admin',
-    name: 'admin',
-    icon: 'crown',
-    access: 'canAdmin',
-    routes: [
-      {
-        path: '/admin',
-        redirect: '/admin/sub-page',
-      },
-      {
-        path: '/admin/sub-page',
-        name: 'sub-page',
-        component: './Admin',
-      },
-    ],
-  },
-  {
-    name: 'list.table-list',
-    icon: 'table',
-    path: '/list',
-    component: './table-list',
-  },
-  {
-    path: '/',
-    redirect: '/welcome',
-  },
-  {
-    path: '*',
-    layout: false,
-    component: './404',
-  },
+    {
+        path: "/auth",
+        layout: false,
+        routes: [
+            {
+                name: "login",
+                path: "/auth/login",
+                component: "./auth/login",
+            },
+        ],
+    },
+    {
+        name: "profile",
+        path: "/auth/profile",
+        component: "./auth/profile",
+    },
+    {
+        path: "/welcome",
+        name: "welcome",
+        icon: "smile",
+        component: "./Welcome",
+    },
+    {
+        path: "/admin",
+        name: "admin",
+        icon: "crown",
+        access: "canAdmin",
+        routes: [
+            {
+                path: "/admin",
+                redirect: "/admin/sub-page",
+            },
+            {
+                path: "/admin/sub-page",
+                name: "sub-page",
+                component: "./Admin",
+            },
+        ],
+    },
+    {
+        name: "list.table-list",
+        icon: "table",
+        path: "/list",
+        component: "./table-list",
+    },
+    {
+        path: "/",
+        redirect: "/welcome",
+    },
+    {
+        path: "*",
+        layout: false,
+        component: "./404",
+    },
 ];
