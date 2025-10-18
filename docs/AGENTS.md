@@ -532,7 +532,7 @@ make serve     # 启动服务
 
 # 前端
 cd web
-npm run dev
+pnpm dev
 
 # 测试
 curl http://localhost:8080/admin-api/articles \
@@ -714,7 +714,7 @@ make build
 
 ```bash
 cd web
-npm run build
+pnpm build
 # 产物在 web/dist 目录
 ```
 
