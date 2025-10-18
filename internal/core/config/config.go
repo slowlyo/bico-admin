@@ -15,8 +15,9 @@ type Config struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Port int    `mapstructure:"port"`
-	Mode string `mapstructure:"mode"`
+	Port        int    `mapstructure:"port"`
+	Mode        string `mapstructure:"mode"`
+	EmbedStatic bool   `mapstructure:"embed_static"`
 }
 
 // AppConfig 应用配置

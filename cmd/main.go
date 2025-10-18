@@ -10,6 +10,7 @@ import (
 	"bico-admin/internal/core/config"
 	"bico-admin/internal/core/server"
 	"bico-admin/internal/migrate"
+	"bico-admin/web"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
@@ -50,7 +51,7 @@ var serveCmd = &cobra.Command{
 			cfg *config.Config,
 			application *app.App,
 		) error {
-			server.RegisterRoutes(engine, adminRouter, apiRouter, cfg)
+			server.RegisterRoutes(engine, adminRouter, apiRouter, cfg, web.DistFS)
 			return application.Run()
 		}); err != nil {
 			fmt.Printf("❌ 启动失败: %v\n", err)

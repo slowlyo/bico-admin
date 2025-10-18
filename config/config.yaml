@@ -1,6 +1,7 @@
 server:
   port: 8080
   mode: debug  # debug/release
+  embed_static: false  # 是否将前端静态文件打包到二进制文件中
 
 app:
   name: Bico Admin

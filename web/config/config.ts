@@ -27,6 +27,15 @@ const config: ReturnType<typeof defineConfig> = defineConfig({
     publicPath: PUBLIC_PATH,
 
     /**
+     * @name history 模式配置
+     * @description 配置 history 类型和其他相关配置
+     * @doc https://umijs.org/docs/api/config#history
+     */
+    history: {
+        type: "hash",
+    },
+
+    /**
      * @name 兼容性设置
      * @description 设置 ie11 不一定完美兼容，需要检查自己使用的所有依赖
      * @doc https://umijs.org/docs/api/config#targets
