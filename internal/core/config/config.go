@@ -10,6 +10,7 @@ type Config struct {
 	Log      LogConfig      `mapstructure:"log"`
 	Cache    CacheConfig    `mapstructure:"cache"`
 	JWT      JWTConfig      `mapstructure:"jwt"`
+	Upload   UploadConfig   `mapstructure:"upload"`
 }
 
 // ServerConfig 服务器配置
@@ -73,6 +74,21 @@ type RedisConfig struct {
 type JWTConfig struct {
 	Secret      string `mapstructure:"secret"`
 	ExpireHours int    `mapstructure:"expire_hours"`
+}
+
+// UploadConfig 文件上传配置
+type UploadConfig struct {
+	Driver       string         `mapstructure:"driver"` // local / qiniu / aliyun / tencent
+	MaxSize      int64          `mapstructure:"max_size"`
+	AllowedTypes []string       `mapstructure:"allowed_types"`
+	Local        LocalUploadConfig `mapstructure:"local"`
+}
+
+// LocalUploadConfig 本地存储配置
+type LocalUploadConfig struct {
+	BasePath  string `mapstructure:"base_path"`
+	ServePath string `mapstructure:"serve_path"`
+	URLPrefix string `mapstructure:"url_prefix"`
 }
 
 // GetDriver 获取缓存驱动

@@ -4,18 +4,21 @@ import (
 	"net/http"
 	
 	"bico-admin/internal/admin/service"
+	"bico-admin/internal/core/upload"
 	"github.com/gin-gonic/gin"
 )
 
 // AuthHandler 认证处理器
 type AuthHandler struct {
 	authService service.IAuthService
+	uploader    upload.Uploader
 }
 
 // NewAuthHandler 创建认证处理器
-func NewAuthHandler(authService service.IAuthService) *AuthHandler {
+func NewAuthHandler(authService service.IAuthService, uploader upload.Uploader) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
+		uploader:    uploader,
 	}
 }
 
@@ -177,8 +180,7 @@ func (h *AuthHandler) UploadAvatar(c *gin.Context) {
 		return
 	}
 	
-	// 获取上传的文件
-	_, err := c.FormFile("avatar")
+	file, err := c.FormFile("avatar")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"code": 400,
@@ -187,18 +189,20 @@ func (h *AuthHandler) UploadAvatar(c *gin.Context) {
 		return
 	}
 	
-	// TODO: 实现文件保存逻辑
-	// 1. 验证文件类型（仅允许图片）
-	// 2. 生成唯一文件名
-	// 3. 保存文件到指定目录或云存储
-	// 4. 返回文件访问URL
-	// 实现时将上面的 _ 改为 file 变量使用
+	url, err := h.uploader.Upload(file, "avatars")
+	if err != nil {
+		c.JSON(http.StatusOK, map[string]interface{}{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+		return
+	}
 	
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"code": 0,
 		"msg":  "上传成功",
 		"data": map[string]interface{}{
-			"url": "/uploads/avatars/example.jpg", // 临时返回示例URL
+			"url": url,
 		},
 	})
 }

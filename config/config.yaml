@@ -42,3 +42,19 @@ cache:
 jwt:
   secret: "bico-admin-secret-key-change-in-production"
   expire_hours: 168  # 7天
+
+upload:
+  driver: local  # local / qiniu / aliyun / tencent
+  max_size: 10485760  # 10MB (单位: 字节)
+  allowed_types:
+    - image/jpeg
+    - image/jpg
+    - image/png
+    - image/gif
+    - image/webp
+  
+  # 本地存储配置
+  local:
+    base_path: storage/uploads  # 文件保存根目录
+    serve_path: /uploads  # 静态文件服务路径
+    url_prefix: http://localhost:8080/uploads  # 返回给前端的完整URL前缀

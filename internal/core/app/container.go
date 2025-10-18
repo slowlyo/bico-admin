@@ -10,6 +10,7 @@ import (
 	"bico-admin/internal/core/db"
 	"bico-admin/internal/core/middleware"
 	"bico-admin/internal/core/server"
+	"bico-admin/internal/core/upload"
 	"bico-admin/internal/shared/jwt"
 
 	"github.com/gin-gonic/gin"
@@ -29,6 +30,7 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 		provideGinEngine,
 		provideCache,
 		provideJWT,
+		provideUploader,
 
 		// 服务层
 		provideAuthService,
@@ -83,6 +85,20 @@ func provideAuthService(database *gorm.DB, jwtManager *jwt.JWTManager, cacheInst
 // provideConfigService 提供配置服务接口（dig 要求返回接口类型）
 func provideConfigService(cfg *config.Config) adminService.IConfigService {
 	return adminService.NewConfigService(cfg)
+}
+
+// provideUploader 提供文件上传器
+func provideUploader(cfg *config.Config) (upload.Uploader, error) {
+	uploaderConfig := &upload.UploaderConfig{
+		Driver:       cfg.Upload.Driver,
+		MaxSize:      cfg.Upload.MaxSize,
+		AllowedTypes: cfg.Upload.AllowedTypes,
+		LocalConfig: upload.LocalConfig{
+			BasePath:  cfg.Upload.Local.BasePath,
+			URLPrefix: cfg.Upload.Local.URLPrefix,
+		},
+	}
+	return upload.NewUploader(uploaderConfig)
 }
 
 // AdminRouterParams 使用 dig.In 简化依赖注入（最佳实践✅）

@@ -2,10 +2,11 @@ package migrate
 
 import (
 	"fmt"
-	
+
 	adminModel "bico-admin/internal/admin/model"
 	sharedModel "bico-admin/internal/shared/model"
 	"bico-admin/internal/shared/password"
+
 	"gorm.io/gorm"
 )
 
@@ -44,29 +45,29 @@ func initAdminUser(db *gorm.DB) error {
 	if err := db.Model(&adminModel.AdminUser{}).Count(&count).Error; err != nil {
 		return err
 	}
-	
+
 	if count > 0 {
 		fmt.Println("⏭️  管理员账户已存在，跳过初始化")
 		return nil
 	}
-	
+
 	hashedPassword, err := password.Hash("admin")
 	if err != nil {
 		return fmt.Errorf("密码加密失败: %w", err)
 	}
-	
+
 	admin := adminModel.AdminUser{
 		Username: "admin",
 		Password: hashedPassword,
 		Name:     "系统管理员",
-		Avatar:   "",
+		Avatar:   "https://api.dicebear.com/9.x/thumbs/svg?seed=Avery",
 		Enabled:  true,
 	}
-	
+
 	if err := db.Create(&admin).Error; err != nil {
 		return fmt.Errorf("创建管理员失败: %w", err)
 	}
-	
+
 	fmt.Printf("✅ 初始化管理员账户成功 (用户名: admin, 密码: admin)\n")
 	return nil
 }

@@ -1,4 +1,4 @@
-import { UploadOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
+import { CameraOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
 import { ProForm, ProFormText } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import { Card, Upload, Avatar, App, Row, Col, Divider } from 'antd';
@@ -14,8 +14,34 @@ const useStyles = createStyles(({ token }) => ({
     textAlign: 'center',
     marginBottom: '24px',
   },
-  avatar: {
-    marginBottom: '16px',
+  avatarWrapper: {
+    position: 'relative',
+    display: 'inline-block',
+    cursor: 'pointer',
+    '&:hover .avatar-mask': {
+      opacity: 1,
+    },
+  },
+  avatarMask: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '120px',
+    height: '120px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0,
+    transition: 'opacity 0.3s',
+    color: '#fff',
+    fontSize: '14px',
+  },
+  uploadIcon: {
+    fontSize: '24px',
+    marginBottom: '8px',
   },
 }));
 
@@ -119,21 +145,23 @@ const Profile: React.FC = () => {
         <Col xs={24} lg={8}>
           <Card title="头像设置">
             <div className={styles.avatarSection}>
-              <Avatar 
-                size={120} 
-                src={currentUser?.avatar}
-                icon={<UserOutlined />}
-                className={styles.avatar}
-              />
               <Upload
                 accept="image/*"
                 showUploadList={false}
                 customRequest={handleAvatarUpload}
                 disabled={uploading}
               >
-                <a>
-                  <UploadOutlined /> {uploading ? '上传中...' : '更换头像'}
-                </a>
+                <div className={styles.avatarWrapper}>
+                  <Avatar 
+                    size={120} 
+                    src={currentUser?.avatar}
+                    icon={<UserOutlined />}
+                  />
+                  <div className={`${styles.avatarMask} avatar-mask`}>
+                    <CameraOutlined className={styles.uploadIcon} />
+                    <span>{uploading ? '上传中...' : '点击上传'}</span>
+                  </div>
+                </div>
               </Upload>
             </div>
           </Card>
