@@ -1,10 +1,11 @@
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
-import { PageContainer, ProTable } from '@ant-design/pro-components';
+import { ProTable } from '@ant-design/pro-components';
 import { Button, message, Popconfirm, Space, Tag, Drawer, Tree } from 'antd';
 import React, { useRef, useState, useEffect } from 'react';
 import { getAdminRoleList, deleteAdminRole, getAllPermissions, updateRolePermissions, type AdminRole, type Permission } from '@/services/admin-role';
 import { useAccess } from '@umijs/max';
+import { PageContainer } from '@/components';
 import CreateForm from './components/CreateForm';
 import UpdateForm from './components/UpdateForm';
 
@@ -264,6 +265,12 @@ const AdminRoleList: React.FC = () => {
         rowKey="id"
         search={{
           labelWidth: 120,
+        }}
+        pagination={{
+          showSizeChanger: true,
+          showQuickJumper: true,
+          pageSizeOptions: ['10', '20', '50', '100'],
+          defaultPageSize: 10,
         }}
         toolBarRender={() => [
           access['system:admin_role:create'] && (

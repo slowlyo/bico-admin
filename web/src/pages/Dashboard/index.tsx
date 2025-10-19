@@ -1,8 +1,8 @@
-import { PageContainer } from '@ant-design/pro-components';
 import { Card, Col, Row, Statistic } from 'antd';
 import { UserOutlined, TeamOutlined, SafetyOutlined } from '@ant-design/icons';
 import React from 'react';
 import { useModel } from '@umijs/max';
+import { PageContainer } from '@/components';
 
 const Dashboard: React.FC = () => {
   const { initialState } = useModel('@@initialState');

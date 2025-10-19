@@ -20,13 +20,15 @@
     "start:test": "cross-env REACT_APP_ENV=test UMI_ENV=dev max dev",
     "tsc": "tsc --noEmit"
   },
-  "browserslist": ["defaults"],
+  "browserslist": [
+    "defaults"
+  ],
   "dependencies": {
     "@ant-design/icons": "^5.6.1",
-    "@ant-design/pro-components": "^2.7.19",
+    "@ant-design/pro-components": "^2.8.10",
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
-    "antd": "^5.25.4",
-    "antd-style": "^3.7.0",
+    "antd": "^5.27.5",
+    "antd-style": "^3.7.1",
     "classnames": "^2.5.1",
     "dayjs": "^1.11.13",
     "react": "^19.1.0",
@@ -50,5 +52,7 @@
     "umi-presets-pro": "^2.0.3",
     "umi-serve": "^1.9.11"
   },
-  "engines": { "node": ">=20.0.0" }
+  "engines": {
+    "node": ">=20.0.0"
+  }
 }
