@@ -6,6 +6,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import { getAdminRoleList, deleteAdminRole, getAllPermissions, updateRolePermissions, type AdminRole, type Permission } from '@/services/admin-role';
 import { useAccess } from '@umijs/max';
 import { PageContainer } from '@/components';
+import { DEFAULT_PAGINATION } from '@/constants';
+import { transformTableParams, transformTableResponse } from '@/utils/table';
 import CreateForm from './components/CreateForm';
 import UpdateForm from './components/UpdateForm';
 
@@ -37,7 +39,7 @@ const AdminRoleList: React.FC = () => {
         setAllPermissions(res.data || []);
       }
     } catch (error) {
-      console.error('加载权限失败', error);
+      message.error('加载权限失败');
     }
   };
 
@@ -69,8 +71,8 @@ const AdminRoleList: React.FC = () => {
       } else {
         message.error(res.msg || '删除失败');
       }
-    } catch (error) {
-      message.error('删除失败');
+    } catch (error: any) {
+      message.error(error.message || error.data?.msg || '删除失败');
     }
   };
 
@@ -123,8 +125,6 @@ const AdminRoleList: React.FC = () => {
     setCurrentRow(record);
     // 过滤掉冗余的父级权限，只保留用户实际勾选的
     const filteredPermissions = filterRedundantPermissions(record.permissions || []);
-    console.log('后端返回的权限:', record.permissions);
-    console.log('过滤后显示的权限:', filteredPermissions);
     setSelectedPermissions(filteredPermissions);
     setPermissionDrawerVisible(true);
   };
@@ -139,12 +139,9 @@ const AdminRoleList: React.FC = () => {
       // 从权限树中查找并添加所有父级权限
       const parents = findPermissionParents(permission, allPermissions);
       if (parents && parents.length > 0) {
-        console.log(`权限 "${permission}" 的父级:`, parents);
         parents.forEach(parent => {
           expanded.add(parent);
         });
-      } else {
-        console.log(`权限 "${permission}" 没有父级或是顶级权限`);
       }
     });
     
@@ -156,8 +153,6 @@ const AdminRoleList: React.FC = () => {
     try {
       // 在保存时扩展权限，添加所有父级权限
       const expandedPermissions = expandPermissions(selectedPermissions);
-      console.log('用户选择的权限:', selectedPermissions);
-      console.log('扩展后的权限（包含父级）:', expandedPermissions);
       
       const res = await updateRolePermissions(currentRow.id, {
         permissions: expandedPermissions,
@@ -170,8 +165,8 @@ const AdminRoleList: React.FC = () => {
       } else {
         message.error(res.msg || '权限配置失败');
       }
-    } catch (error) {
-      message.error('权限配置失败');
+    } catch (error: any) {
+      message.error(error.message || error.data?.msg || '权限配置失败');
     }
   };
 
@@ -220,6 +215,7 @@ const AdminRoleList: React.FC = () => {
       valueType: 'dateTime',
       width: 180,
       search: false,
+      sorter: true,
     },
     {
       title: '操作',
@@ -266,12 +262,7 @@ const AdminRoleList: React.FC = () => {
         search={{
           labelWidth: 120,
         }}
-        pagination={{
-          showSizeChanger: true,
-          showQuickJumper: true,
-          pageSizeOptions: ['10', '20', '50', '100'],
-          defaultPageSize: 10,
-        }}
+        pagination={DEFAULT_PAGINATION}
         toolBarRender={() => [
           access['system:admin_role:create'] && (
             <Button
@@ -284,19 +275,12 @@ const AdminRoleList: React.FC = () => {
             </Button>
           ),
         ]}
-        request={async (params) => {
+        request={async (params, sort) => {
           const res = await getAdminRoleList({
-            page: params.current,
-            pageSize: params.pageSize,
-            name: params.name,
-            code: params.code,
+            ...transformTableParams(params, sort),
             enabled: params.enabled === 'true' ? true : params.enabled === 'false' ? false : undefined,
           });
-          return {
-            data: (res.data || []) as AdminRole[],
-            total: res.total || 0,
-            success: res.code === 0,
-          };
+          return transformTableResponse<AdminRole>(res);
         }}
         columns={columns}
         scroll={{ x: 1200 }}

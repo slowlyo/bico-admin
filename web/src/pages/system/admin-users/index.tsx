@@ -6,6 +6,8 @@ import React, { useRef, useState } from 'react';
 import { getAdminUserList, deleteAdminUser, type AdminUser } from '@/services/admin-user';
 import { useAccess } from '@umijs/max';
 import { PageContainer } from '@/components';
+import { DEFAULT_PAGINATION } from '@/constants';
+import { transformTableParams, transformTableResponse } from '@/utils/table';
 import CreateForm from './components/CreateForm';
 import UpdateForm from './components/UpdateForm';
 
@@ -32,8 +34,8 @@ const AdminUserList: React.FC = () => {
       } else {
         message.error(res.msg || '删除失败');
       }
-    } catch (error) {
-      message.error('删除失败');
+    } catch (error: any) {
+      message.error(error.message || error.data?.msg || '删除失败');
     }
   };
 
@@ -99,6 +101,7 @@ const AdminUserList: React.FC = () => {
       valueType: 'dateTime',
       width: 180,
       search: false,
+      sorter: true,
     },
     {
       title: '操作',
@@ -140,12 +143,7 @@ const AdminUserList: React.FC = () => {
         search={{
           labelWidth: 120,
         }}
-        pagination={{
-          showSizeChanger: true,
-          showQuickJumper: true,
-          pageSizeOptions: ['10', '20', '50', '100'],
-          defaultPageSize: 10,
-        }}
+        pagination={DEFAULT_PAGINATION}
         toolBarRender={() => [
           access['system:admin_user:create'] && (
             <Button
@@ -158,19 +156,12 @@ const AdminUserList: React.FC = () => {
             </Button>
           ),
         ]}
-        request={async (params) => {
+        request={async (params, sort) => {
           const res = await getAdminUserList({
-            page: params.current,
-            pageSize: params.pageSize,
-            username: params.username,
-            name: params.name,
+            ...transformTableParams(params, sort),
             enabled: params.enabled === 'true' ? true : params.enabled === 'false' ? false : undefined,
           });
-          return {
-            data: (res.data || []) as AdminUser[],
-            total: res.total || 0,
-            success: res.code === 0,
-          };
+          return transformTableResponse<AdminUser>(res);
         }}
         columns={columns}
         scroll={{ x: 1200 }}

@@ -71,6 +71,13 @@ func (s *AdminRoleService) ListRoles(req *RoleListRequest) (*pagination.Response
 		return nil, err
 	}
 	
+	// 应用排序
+	if orderBy := req.GetOrderBy(); orderBy != "" {
+		query = query.Order(orderBy)
+	} else {
+		query = query.Order("created_at DESC")
+	}
+	
 	var roles []model.AdminRole
 	if err := query.Offset(req.GetOffset()).Limit(req.GetPageSize()).Find(&roles).Error; err != nil {
 		return nil, err

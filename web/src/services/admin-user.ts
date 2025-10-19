@@ -25,6 +25,8 @@ export interface AdminUserListParams {
   username?: string;
   name?: string;
   enabled?: boolean;
+  sortField?: string;
+  sortOrder?: string;
 }
 
 export interface AdminUserCreateParams {

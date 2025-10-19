@@ -23,6 +23,8 @@ export interface AdminRoleListParams {
   name?: string;
   code?: string;
   enabled?: boolean;
+  sortField?: string;
+  sortOrder?: string;
 }
 
 export interface AdminRoleCreateParams {

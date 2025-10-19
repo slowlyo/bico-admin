@@ -35,8 +35,8 @@ const UpdateForm: React.FC<UpdateFormProps> = ({ open, onOpenChange, onSuccess, 
       }
       message.error(res.msg || '更新失败');
       return false;
-    } catch (error) {
-      message.error('更新失败');
+    } catch (error: any) {
+      message.error(error.message || error.data?.msg || '更新失败');
       return false;
     }
   };
@@ -65,6 +65,9 @@ const UpdateForm: React.FC<UpdateFormProps> = ({ open, onOpenChange, onSuccess, 
         roleIds: currentRow?.roles?.map((role) => role.id),
       }}
       onFinish={handleUpdate}
+      modalProps={{
+        destroyOnClose: true,
+      }}
     >
       <ProFormText
         name="name"

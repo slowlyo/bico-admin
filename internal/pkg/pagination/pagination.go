@@ -14,8 +14,10 @@ const (
 
 // Pagination 分页参数
 type Pagination struct {
-	Page     int `json:"page" form:"page"`
-	PageSize int `json:"pageSize" form:"pageSize"`
+	Page      int    `json:"page" form:"page"`
+	PageSize  int    `json:"pageSize" form:"pageSize"`
+	SortField string `json:"sortField" form:"sortField"`
+	SortOrder string `json:"sortOrder" form:"sortOrder"`
 }
 
 // GetOffset 获取偏移量
@@ -51,11 +53,27 @@ func FromContext(c *gin.Context) *Pagination {
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", strconv.Itoa(DefaultPageSize)))
 
 	p := &Pagination{
-		Page:     page,
-		PageSize: pageSize,
+		Page:      page,
+		PageSize:  pageSize,
+		SortField: c.Query("sortField"),
+		SortOrder: c.Query("sortOrder"),
 	}
 
 	return p
+}
+
+// GetOrderBy 获取排序子句
+func (p *Pagination) GetOrderBy() string {
+	if p.SortField == "" {
+		return ""
+	}
+	
+	order := "DESC"
+	if p.SortOrder == "ascend" {
+		order = "ASC"
+	}
+	
+	return p.SortField + " " + order
 }
 
 // Response 分页响应

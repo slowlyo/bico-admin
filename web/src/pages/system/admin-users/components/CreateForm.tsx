@@ -39,8 +39,8 @@ const CreateForm: React.FC<CreateFormProps> = ({ open, onOpenChange, onSuccess }
       }
       message.error(res.msg || '创建失败');
       return false;
-    } catch (error) {
-      message.error('创建失败');
+    } catch (error: any) {
+      message.error(error.message || error.data?.msg || '创建失败');
       return false;
     }
   };
@@ -65,6 +65,9 @@ const CreateForm: React.FC<CreateFormProps> = ({ open, onOpenChange, onSuccess }
       open={open}
       onOpenChange={onOpenChange}
       onFinish={handleCreate}
+      modalProps={{
+        destroyOnClose: true,
+      }}
     >
       <ProFormText
         name="username"

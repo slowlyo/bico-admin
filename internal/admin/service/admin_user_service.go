@@ -68,6 +68,13 @@ func (s *AdminUserService) List(req *ListRequest) (*pagination.Response, error) 
 		return nil, err
 	}
 	
+	// 应用排序
+	if orderBy := req.GetOrderBy(); orderBy != "" {
+		query = query.Order(orderBy)
+	} else {
+		query = query.Order("created_at DESC")
+	}
+	
 	var users []model.AdminUser
 	if err := query.Offset(req.GetOffset()).Limit(req.GetPageSize()).Find(&users).Error; err != nil {
 		return nil, err
