@@ -66,7 +66,7 @@ const CreateForm: React.FC<CreateFormProps> = ({ open, onOpenChange, onSuccess }
       onOpenChange={onOpenChange}
       onFinish={handleCreate}
       modalProps={{
-        destroyOnClose: true,
+        destroyOnHidden: true,
       }}
     >
       <ProFormText

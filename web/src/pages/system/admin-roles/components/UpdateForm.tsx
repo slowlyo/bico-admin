@@ -41,7 +41,7 @@ const UpdateForm: React.FC<UpdateFormProps> = ({ open, onOpenChange, onSuccess, 
       }}
       onFinish={handleUpdate}
       modalProps={{
-        destroyOnClose: true,
+        destroyOnHidden: true,
       }}
     >
       <ProFormText
