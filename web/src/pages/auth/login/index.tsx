@@ -38,8 +38,7 @@ const useStyles = createStyles(({ token }) => {
             flexDirection: "column",
             height: "100vh",
             overflow: "auto",
-            backgroundImage:
-                "url('https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/V-_oS6r-i7wAAAAAAAAAAAAAFl94AQBr')",
+            backgroundImage: "url('/login-bg.png')",
             backgroundSize: "100% 100%",
         },
     };
