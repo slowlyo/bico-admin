@@ -17,7 +17,7 @@ import { createStyles } from "antd-style";
 import React, { useState } from "react";
 import { flushSync } from "react-dom";
 import { Footer } from "@/components";
-import { login, getCaptcha } from '@/services/admin';
+import { login, getCaptcha } from '@/services/auth';
 import { saveCredentials, getCredentials, clearCredentials } from '@/utils/crypto';
 
 const useStyles = createStyles(({ token }) => {
@@ -142,7 +142,7 @@ const Login: React.FC = () => {
             const response = await login({
                 ...values,
                 captchaId: captchaData.id,
-                captchaCode: values.captchaCode,
+                captchaCode: values.captchaCode || '',
             });
             
             // 登录成功（响应拦截器已处理错误情况，这里只会收到成功的响应）

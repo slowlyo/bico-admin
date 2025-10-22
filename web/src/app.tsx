@@ -4,10 +4,8 @@ import type { RequestConfig, RunTimeLayoutConfig } from "@umijs/max";
 import { history } from "@umijs/max";
 import React from "react";
 import { AvatarDropdown, AvatarName, Footer, SelectLang } from "@/components";
-import {
-    currentUser as fetchCurrentUser,
-    getAppConfig,
-} from "@/services/admin";
+import { getCurrentUser as fetchCurrentUser } from "@/services/auth";
+import { getAppConfig } from "@/services/common";
 import defaultSettings from "../config/defaultSettings";
 import { errorConfig } from "./requestErrorConfig";
 import "@ant-design/v5-patch-for-react-19";

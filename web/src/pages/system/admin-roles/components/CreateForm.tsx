@@ -1,7 +1,8 @@
 import { ModalForm, ProFormText, ProFormTextArea, ProFormSwitch } from '@ant-design/pro-components';
 import { message } from 'antd';
 import React from 'react';
-import { createAdminRole, type AdminRoleCreateParams } from '@/services/admin-role';
+import { createAdminRole } from '@/services/system/admin-role';
+import type { AdminRoleCreateParams } from '@/services/system/admin-role/types';
 
 interface CreateFormProps {
   open: boolean;

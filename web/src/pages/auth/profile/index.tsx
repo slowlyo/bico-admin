@@ -4,7 +4,7 @@ import { useModel } from '@umijs/max';
 import { Card, Upload, Avatar, App, Row, Col, Divider } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useState } from 'react';
-import { updateProfile, changePassword, uploadAvatar } from '@/services/admin';
+import { updateProfile, changePassword, uploadAvatar } from '@/services/auth/profile';
 import type { UploadFile, UploadProps } from 'antd';
 
 const useStyles = createStyles(({ token }) => ({

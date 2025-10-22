@@ -1,7 +1,8 @@
 import { ModalForm, ProFormText, ProFormTextArea, ProFormSwitch } from '@ant-design/pro-components';
 import { message } from 'antd';
 import React from 'react';
-import { updateAdminRole, type AdminRole, type AdminRoleUpdateParams } from '@/services/admin-role';
+import { updateAdminRole } from '@/services/system/admin-role';
+import type { AdminRole, AdminRoleUpdateParams } from '@/services/system/admin-role/types';
 
 interface UpdateFormProps {
   open: boolean;

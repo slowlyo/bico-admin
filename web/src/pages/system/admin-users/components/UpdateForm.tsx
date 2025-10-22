@@ -2,8 +2,10 @@ import { ModalForm, ProFormText, ProFormSwitch, ProFormSelect } from '@ant-desig
 import { message, Avatar, Space, Upload, Button } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import React, { useState, useEffect } from 'react';
-import { updateAdminUser, type AdminUser, type AdminUserUpdateParams } from '@/services/admin-user';
-import { getAllAdminRoles } from '@/services/admin-role';
+import { updateAdminUser } from '@/services/system/admin-user';
+import type { AdminUser, AdminUserUpdateParams } from '@/services/system/admin-user/types';
+import { getAllAdminRoles } from '@/services/system/admin-role';
+import { buildApiUrl } from '@/services/config';
 
 interface UpdateFormProps {
   open: boolean;
@@ -83,7 +85,7 @@ const UpdateForm: React.FC<UpdateFormProps> = ({ open, onOpenChange, onSuccess, 
             <Upload
               name="avatar"
               showUploadList={false}
-              action="/admin-api/auth/avatar"
+              action={buildApiUrl('/auth/avatar')}
               headers={{
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
               }}
