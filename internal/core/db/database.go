@@ -8,9 +8,9 @@ import (
 
 	"bico-admin/internal/core/config"
 	"bico-admin/internal/core/logger"
+	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
