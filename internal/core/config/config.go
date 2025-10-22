@@ -1,6 +1,11 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"fmt"
+	"os"
+
+	"github.com/spf13/viper"
+)
 
 // Config 配置结构体
 type Config struct {
@@ -128,19 +133,54 @@ func (r *RedisConfig) GetDB() int {
 }
 
 // LoadConfig 加载配置文件
+// 支持多路径自动查找，优先级：
+// 1. 指定的路径（如果存在）
+// 2. ./config.yaml（项目根目录，Docker 友好）
+// 3. ./config/config.yaml（传统位置）
 func LoadConfig(configPath string) (*Config, error) {
 	cfg := &Config{}
 	
+	// 查找配置文件
+	actualPath, err := findConfigFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	
 	v := viper.New()
-	v.SetConfigFile(configPath)
+	v.SetConfigFile(actualPath)
 	
 	if err := v.ReadInConfig(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("读取配置文件失败: %w", err)
 	}
 	
 	if err := v.Unmarshal(cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("解析配置文件失败: %w", err)
 	}
 	
 	return cfg, nil
+}
+
+// findConfigFile 查找配置文件
+func findConfigFile(configPath string) (string, error) {
+	// 如果指定了路径且文件存在，直接使用
+	if configPath != "" {
+		if _, err := os.Stat(configPath); err == nil {
+			return configPath, nil
+		}
+	}
+	
+	// 尝试默认路径列表
+	defaultPaths := []string{
+		"config.yaml",         // 项目根目录（Docker 友好）
+		"config/config.yaml",  // 传统位置
+	}
+	
+	for _, path := range defaultPaths {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+	
+	// 所有路径都找不到，返回详细错误
+	return "", fmt.Errorf("配置文件未找到，已尝试的路径: %s, %v", configPath, defaultPaths)
 }

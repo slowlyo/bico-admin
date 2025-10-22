@@ -1,0 +1,54 @@
+server:
+  port: 8080
+  mode: release
+  embed_static: true
+
+app:
+  name: Bico Admin
+  logo: /logo.png
+
+database:
+  driver: mysql
+  max_idle_conns: 10
+  max_open_conns: 100
+  
+  mysql:
+    host: mysql
+    port: 3306
+    username: root
+    password: root123456
+    database: bico_admin
+    charset: utf8mb4
+
+log:
+  level: info
+  format: json
+  output: /app/logs/app.log
+
+cache:
+  driver: redis
+  
+  redis:
+    host: redis
+    port: 6379
+    password: ""
+    db: 0
+
+jwt:
+  secret: "change-this-secret-key-in-production"
+  expire_hours: 168
+
+upload:
+  driver: local
+  max_size: 10485760
+  allowed_types:
+    - image/jpeg
+    - image/jpg
+    - image/png
+    - image/gif
+    - image/webp
+  
+  local:
+    base_path: /app/data/uploads
+    serve_path: /uploads
+    url_prefix: http://your-domain.com/uploads

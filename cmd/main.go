@@ -86,7 +86,7 @@ var migrateCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "config/config.yaml", "配置文件路径")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "配置文件路径（默认自动查找 config.yaml 或 config/config.yaml）")
 	
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(migrateCmd)

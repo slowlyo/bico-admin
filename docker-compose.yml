@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    image: bico-admin:latest
+    container_name: bico-admin
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - TZ=Asia/Shanghai
+    depends_on:
+      - mysql
+      - redis
+    restart: unless-stopped
+    networks:
+      - bico-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: bico-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: bico_admin
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql-data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    networks:
+      - bico-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: bico-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - bico-network
+
+volumes:
+  mysql-data:
+  redis-data:
+
+networks:
+  bico-network:
+    driver: bridge

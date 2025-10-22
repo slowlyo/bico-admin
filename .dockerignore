@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# IDEs
+.idea
+.vscode
+*.swp
+*.swo
+
+# Build artifacts
+bin/
+web/dist/
+web/node_modules/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs
+docs/
+README.md
+
+# CI/CD
+.github/
