@@ -1,4 +1,4 @@
-.PHONY: help serve tidy install migrate build web build-web package clean
+.PHONY: help serve tidy install migrate build web build-web package package-win clean
 
 help:
 	@echo "可用命令:"
@@ -6,8 +6,9 @@ help:
 	@echo "  make web       - 启动前端开发服务器"
 	@echo "  make build     - 编译后端"
 	@echo "  make build-web - 编译前端"
-	@echo "  make package   - 构建生产版本（嵌入前端）"
-	@echo "  make install   - 安装前端依赖"
+	@echo "  make package     - 构建生产版本（嵌入前端）"
+	@echo "  make package-win - 构建 Windows 版本（嵌入前端）"
+	@echo "  make install     - 安装前端依赖"
 	@echo "  make migrate   - 执行数据库迁移"
 	@echo "  make tidy      - 整理后端依赖"
 	@echo "  make clean     - 清理构建产物"
@@ -46,6 +47,11 @@ package: build-web
 	@echo "🔨 构建生产版本（嵌入前端）..."
 	@go build -tags embed -ldflags="-s -w" -o bin/bico-admin ./cmd/main.go
 	@echo "✅ 构建完成: bin/bico-admin"
+
+package-win: build-web
+	@echo "🔨 构建 Windows 版本（嵌入前端）..."
+	@GOOS=windows GOARCH=amd64 go build -tags embed -ldflags="-s -w" -o bin/bico-admin.exe ./cmd/main.go
+	@echo "✅ 构建完成: bin/bico-admin.exe"
 
 clean:
 	@echo "🧹 清理构建产物..."
