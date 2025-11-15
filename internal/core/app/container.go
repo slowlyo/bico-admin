@@ -16,6 +16,8 @@ import (
 	"bico-admin/internal/job"
 	"bico-admin/internal/pkg/captcha"
 	"bico-admin/internal/pkg/jwt"
+	"fmt"
+	"math"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/dig"
@@ -28,50 +30,65 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 	container := dig.New()
 
 	// 按模块注册依赖（模块化 + 批量错误处理）
-	providers := []interface{}{
+	providers := []struct {
+		provider interface{}
+		name     string
+	}{
 		// 基础设施层 - 先加载初始配置用于创建 logger
-		func() (*config.Config, error) { return config.LoadConfig(configPath) },
-		provideLogger,
+		{provideConfig(configPath), "Config"},
+		{provideLogger, "Logger"},
 		// 创建 ConfigManager 用于热更新
-		func(zapLogger *zap.Logger) (*config.ConfigManager, error) {
-			return config.NewConfigManager(configPath, zapLogger)
-		},
-		provideDatabase,
-		provideCache,
-		provideJWT,
-		provideRateLimiter,
-		provideGinEngine,
-		provideUploader,
-		provideScheduler,
-		provideCaptcha,
+		{provideConfigManager(configPath), "ConfigManager"},
+		{provideDatabase, "Database"},
+		{provideCache, "Cache"},
+		{provideJWT, "JWT"},
+		{provideRateLimiter, "RateLimiter"},
+		{provideGinEngine, "GinEngine"},
+		{provideUploader, "Uploader"},
+		{provideScheduler, "Scheduler"},
+		{provideCaptcha, "Captcha"},
 
 		// 服务层
-		provideAuthService,
-		provideConfigService,
-		adminService.NewAdminUserService,
-		adminService.NewAdminRoleService,
+		{provideAuthService, "AuthService"},
+		{provideConfigService, "ConfigService"},
+		{adminService.NewAdminUserService, "AdminUserService"},
+		{adminService.NewAdminRoleService, "AdminRoleService"},
 
 		// 处理层
-		adminHandler.NewAuthHandler,
-		adminHandler.NewCommonHandler,
-		adminHandler.NewAdminUserHandler,
-		adminHandler.NewAdminRoleHandler,
+		{adminHandler.NewAuthHandler, "AuthHandler"},
+		{adminHandler.NewCommonHandler, "CommonHandler"},
+		{adminHandler.NewAdminUserHandler, "AdminUserHandler"},
+		{adminHandler.NewAdminRoleHandler, "AdminRoleHandler"},
 
 		// 路由层
-		provideAdminRouter,
-		api.NewRouter,
+		{provideAdminRouter, "AdminRouter"},
+		{api.NewRouter, "ApiRouter"},
 
 		// 应用实例
-		NewApp,
+		{NewApp, "App"},
 	}
 
-	for _, provider := range providers {
-		if err := container.Provide(provider); err != nil {
-			return nil, err
+	for _, p := range providers {
+		if err := container.Provide(p.provider); err != nil {
+			return nil, fmt.Errorf("provide %s failed: %w", p.name, err)
 		}
 	}
 
 	return container, nil
+}
+
+// provideConfig 提供配置实例
+func provideConfig(configPath string) func() (*config.Config, error) {
+	return func() (*config.Config, error) {
+		return config.LoadConfig(configPath)
+	}
+}
+
+// provideConfigManager 提供配置管理器（支持热更新）
+func provideConfigManager(configPath string) func(*zap.Logger) (*config.ConfigManager, error) {
+	return func(zapLogger *zap.Logger) (*config.ConfigManager, error) {
+		return config.NewConfigManager(configPath, zapLogger)
+	}
 }
 
 // provideLogger 提供日志实例
@@ -112,33 +129,7 @@ func provideConfigService(cm *config.ConfigManager) adminService.IConfigService 
 
 // provideUploader 提供文件上传器
 func provideUploader(cfg *config.Config) (upload.Uploader, error) {
-	uploaderConfig := &upload.UploaderConfig{
-		Driver:       cfg.Upload.Driver,
-		MaxSize:      cfg.Upload.MaxSize,
-		AllowedTypes: cfg.Upload.AllowedTypes,
-		LocalConfig: upload.LocalConfig{
-			BasePath:  cfg.Upload.Local.BasePath,
-			URLPrefix: cfg.Upload.Local.URLPrefix,
-		},
-		QiniuConfig: upload.QiniuConfig{
-			AccessKey:    cfg.Upload.Qiniu.AccessKey,
-			SecretKey:    cfg.Upload.Qiniu.SecretKey,
-			Bucket:       cfg.Upload.Qiniu.Bucket,
-			Domain:       cfg.Upload.Qiniu.Domain,
-			Zone:         cfg.Upload.Qiniu.Zone,
-			UseHTTPS:     cfg.Upload.Qiniu.UseHTTPS,
-			UseCDNDomain: cfg.Upload.Qiniu.UseCDNDomain,
-		},
-		AliyunConfig: upload.AliyunConfig{
-			AccessKeyId:     cfg.Upload.Aliyun.AccessKeyId,
-			AccessKeySecret: cfg.Upload.Aliyun.AccessKeySecret,
-			Bucket:          cfg.Upload.Aliyun.Bucket,
-			Endpoint:        cfg.Upload.Aliyun.Endpoint,
-			Domain:          cfg.Upload.Aliyun.Domain,
-			UseHTTPS:        cfg.Upload.Aliyun.UseHTTPS,
-		},
-	}
-	return upload.NewUploader(uploaderConfig)
+	return upload.NewUploader(upload.ConfigFromAppConfig(cfg))
 }
 
 // provideScheduler 提供定时任务调度器
@@ -151,12 +142,15 @@ func provideCaptcha(cacheInstance cache.Cache) *captcha.Captcha {
 	return captcha.NewCaptcha(cacheInstance)
 }
 
+const (
+	disabledRateLimitValue = math.MaxInt32
+)
+
 // provideRateLimiter 提供限流器（支持热更新）
 func provideRateLimiter(cm *config.ConfigManager) *middleware.RateLimiter {
 	cfg := cm.GetConfig()
 	if !cfg.RateLimit.Enabled {
-		// 如果禁用限流，返回一个允许所有请求的限流器
-		return middleware.NewRateLimiter(999999, 999999)
+		return middleware.NewRateLimiter(disabledRateLimitValue, disabledRateLimitValue)
 	}
 	return middleware.NewRateLimiter(cfg.RateLimit.RPS, cfg.RateLimit.Burst)
 }
