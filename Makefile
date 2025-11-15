@@ -1,4 +1,4 @@
-.PHONY: help serve tidy install migrate build web build-web package package-win clean
+.PHONY: help serve tidy install migrate build web build-web package package-win clean swagger
 
 help:
 	@echo "可用命令:"
@@ -10,6 +10,7 @@ help:
 	@echo "  make package-win - 构建 Windows 版本（嵌入前端）"
 	@echo "  make install     - 安装前端依赖"
 	@echo "  make migrate   - 执行数据库迁移"
+	@echo "  make swagger   - 生成 Swagger 文档"
 	@echo "  make tidy      - 整理后端依赖"
 	@echo "  make clean     - 清理构建产物"
 
@@ -28,6 +29,12 @@ install:
 
 migrate:
 	@go run cmd/main.go migrate
+
+swagger:
+	@echo "📝 生成 Swagger 文档..."
+	@go install github.com/swaggo/swag/cmd/swag@latest
+	@swag init -g cmd/main.go -o docs
+	@echo "✅ Swagger 文档生成完成"
 
 build:
 	@echo "🔨 编译后端..."

@@ -1,0 +1,21 @@
+basePath: /
+host: localhost:8080
+info:
+  contact:
+    name: API Support
+    url: https://github.com/slowlyo/bico-admin
+  description: 基于 Gin + GORM 构建的管理系统 API 文档
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://github.com/slowlyo/bico-admin
+  title: Bico Admin API
+  version: "1.0"
+paths: {}
+securityDefinitions:
+  BearerAuth:
+    description: 'JWT 认证，格式: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

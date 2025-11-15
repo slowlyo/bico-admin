@@ -7,20 +7,23 @@ import (
 	"embed"
 	"io/fs"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // NewServer 创建 Gin 服务器
 func NewServer(cfg *config.ServerConfig) *gin.Engine {
 	gin.SetMode(cfg.Mode)
-	
+
 	engine := gin.New()
 	engine.Use(gin.Recovery())
 	engine.Use(gin.Logger())
-	
+
 	// 添加 CORS 中间件
 	engine.Use(middleware.CORS())
-	
+
 	return engine
 }
 
@@ -30,16 +33,19 @@ func RegisterRoutes(engine *gin.Engine, adminRouter, apiRouter Router, cfg *conf
 	engine.GET("/health", func(c *gin.Context) {
 		c.JSON(200, response.Success(gin.H{"status": "ok"}))
 	})
-	
+
+	// Swagger 文档
+	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// 静态文件服务（用于访问上传的文件）
 	if cfg.Upload.Driver == "local" {
 		engine.Static(cfg.Upload.Local.ServePath, cfg.Upload.Local.BasePath)
 	}
-	
+
 	// 注册模块路由
 	adminRouter.Register(engine)
 	apiRouter.Register(engine)
-	
+
 	// 前端静态文件服务
 	if cfg.Server.EmbedStatic {
 		serveEmbedStatic(engine, embedFS)
@@ -57,9 +63,9 @@ func serveEmbedStatic(engine *gin.Engine, embedFS embed.FS) {
 	if err != nil {
 		panic("failed to create sub filesystem: " + err.Error())
 	}
-	
+
 	fileServer := http.FileServer(http.FS(subFS))
-	
+
 	engine.NoRoute(func(c *gin.Context) {
 		// API 路由返回 JSON 404
 		if len(c.Request.URL.Path) >= 10 && c.Request.URL.Path[:10] == "/admin-api" {
@@ -70,7 +76,7 @@ func serveEmbedStatic(engine *gin.Engine, embedFS embed.FS) {
 			c.JSON(404, response.Error(404, "路由不存在"))
 			return
 		}
-		
+
 		// 其他请求交给文件服务器处理
 		fileServer.ServeHTTP(c.Writer, c.Request)
 	})

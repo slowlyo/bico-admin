@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	_ "bico-admin/docs"
 	"bico-admin/internal/admin"
 	"bico-admin/internal/api"
 	"bico-admin/internal/core/app"
@@ -11,10 +12,30 @@ import (
 	"bico-admin/internal/core/server"
 	"bico-admin/internal/migrate"
 	"bico-admin/web"
+
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )
+
+// @title Bico Admin API
+// @version 1.0
+// @description 基于 Gin + GORM 构建的管理系统 API 文档
+// @termsOfService https://github.com/slowlyo/bico-admin
+
+// @contact.name API Support
+// @contact.url https://github.com/slowlyo/bico-admin
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description JWT 认证，格式: Bearer {token}
 
 var (
 	configPath string
@@ -87,7 +108,7 @@ var migrateCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "配置文件路径（默认自动查找 config.yaml 或 config/config.yaml）")
-	
+
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(migrateCmd)
 }
