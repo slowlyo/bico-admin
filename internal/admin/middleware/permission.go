@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"net/http"
+	"bico-admin/internal/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,24 +27,18 @@ func (pm *PermissionMiddleware) RequirePermission(permission string) gin.Handler
 	return func(c *gin.Context) {
 		userID, exists := c.Get("user_id")
 		if !exists {
-			c.JSON(http.StatusOK, gin.H{
-				"code": 401,
-				"msg":  "未授权",
-			})
+			response.ErrorWithCode(c, 401, "未授权")
 			c.Abort()
 			return
 		}
-		
+
 		permissions, err := pm.userService.GetUserPermissions(userID.(uint))
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"code": 500,
-				"msg":  "获取权限失败",
-			})
+			response.ErrorWithCode(c, 500, "获取权限失败")
 			c.Abort()
 			return
 		}
-		
+
 		hasPermission := false
 		for _, perm := range permissions {
 			if perm == permission {
@@ -52,16 +46,13 @@ func (pm *PermissionMiddleware) RequirePermission(permission string) gin.Handler
 				break
 			}
 		}
-		
+
 		if !hasPermission {
-			c.JSON(http.StatusOK, gin.H{
-				"code": 403,
-				"msg":  "无权访问",
-			})
+			response.ErrorWithCode(c, 403, "无权访问")
 			c.Abort()
 			return
 		}
-		
+
 		c.Next()
 	}
 }
@@ -71,24 +62,18 @@ func (pm *PermissionMiddleware) RequireAnyPermission(requiredPermissions ...stri
 	return func(c *gin.Context) {
 		userID, exists := c.Get("user_id")
 		if !exists {
-			c.JSON(http.StatusOK, gin.H{
-				"code": 401,
-				"msg":  "未授权",
-			})
+			response.ErrorWithCode(c, 401, "未授权")
 			c.Abort()
 			return
 		}
-		
+
 		permissions, err := pm.userService.GetUserPermissions(userID.(uint))
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"code": 500,
-				"msg":  "获取权限失败",
-			})
+			response.ErrorWithCode(c, 500, "获取权限失败")
 			c.Abort()
 			return
 		}
-		
+
 		hasPermission := false
 		for _, userPerm := range permissions {
 			for _, reqPerm := range requiredPermissions {
@@ -101,16 +86,13 @@ func (pm *PermissionMiddleware) RequireAnyPermission(requiredPermissions ...stri
 				break
 			}
 		}
-		
+
 		if !hasPermission {
-			c.JSON(http.StatusOK, gin.H{
-				"code": 403,
-				"msg":  "无权访问",
-			})
+			response.ErrorWithCode(c, 403, "无权访问")
 			c.Abort()
 			return
 		}
-		
+
 		c.Next()
 	}
 }

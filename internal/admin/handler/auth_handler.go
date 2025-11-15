@@ -1,11 +1,10 @@
 package handler
 
 import (
-	"net/http"
-
 	"bico-admin/internal/admin/service"
 	"bico-admin/internal/core/upload"
 	"bico-admin/internal/pkg/captcha"
+	"bico-admin/internal/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,36 +35,23 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"code": 400,
-			"msg":  "参数错误: " + err.Error(),
-		})
+		response.BadRequest(c, "参数错误: "+err.Error())
 		return
 	}
 
 	// 验证验证码
 	if !h.captcha.Verify(req.CaptchaID, req.CaptchaCode) {
-		c.JSON(http.StatusOK, map[string]interface{}{
-			"code": 400,
-			"msg":  "验证码错误",
-		})
+		response.ErrorWithCode(c, 400, "验证码错误")
 		return
 	}
 
 	resp, err := h.authService.Login(&req)
 	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
-			"code": 400,
-			"msg":  err.Error(),
-		})
+		response.ErrorWithCode(c, 400, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"code": 0,
-		"msg":  "登录成功",
-		"data": resp,
-	})
+	response.SuccessWithMessage(c, "登录成功", resp)
 }
 
 // Logout 退出登录接口
@@ -76,10 +62,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	}
 
 	h.authService.Logout(token)
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"code": 0,
-		"msg":  "退出成功",
-	})
+	response.SuccessWithMessage(c, "退出成功", nil)
 }
 
 // CurrentUser 获取当前用户信息
@@ -90,155 +73,98 @@ func (h *AuthHandler) CurrentUser(c *gin.Context) {
 		userID = nil
 	}
 	if userID == nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
-			"code": 401,
-			"msg":  "未授权",
-		})
+		response.ErrorWithCode(c, 401, "未授权")
 		return
 	}
 
 	user, err := h.authService.GetUserByID(userID.(uint))
 	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
-			"code": 404,
-			"msg":  "用户不存在",
-		})
+		response.NotFound(c, "用户不存在")
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"code": 0,
-		"msg":  "success",
-		"data": user,
-	})
+	response.SuccessWithData(c, user)
 }
 
 // UpdateProfile 更新用户资料
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists || userID == nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
-			"code": 401,
-			"msg":  "未授权",
-		})
+		response.ErrorWithCode(c, 401, "未授权")
 		return
 	}
 
 	var req service.UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"code": 400,
-			"msg":  "参数错误: " + err.Error(),
-		})
+		response.BadRequest(c, "参数错误: "+err.Error())
 		return
 	}
 
 	user, err := h.authService.UpdateProfile(userID.(uint), &req)
 	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
-			"code": 400,
-			"msg":  err.Error(),
-		})
+		response.ErrorWithCode(c, 400, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"code": 0,
-		"msg":  "更新成功",
-		"data": user,
-	})
+	response.SuccessWithMessage(c, "更新成功", user)
 }
 
 // ChangePassword 修改密码
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists || userID == nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
-			"code": 401,
-			"msg":  "未授权",
-		})
+		response.ErrorWithCode(c, 401, "未授权")
 		return
 	}
 
 	var req service.ChangePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"code": 400,
-			"msg":  "参数错误: " + err.Error(),
-		})
+		response.BadRequest(c, "参数错误: "+err.Error())
 		return
 	}
 
 	err := h.authService.ChangePassword(userID.(uint), &req)
 	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
-			"code": 400,
-			"msg":  err.Error(),
-		})
+		response.ErrorWithCode(c, 400, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"code": 0,
-		"msg":  "密码修改成功",
-	})
+	response.SuccessWithMessage(c, "密码修改成功", nil)
 }
 
 // UploadAvatar 上传头像
 func (h *AuthHandler) UploadAvatar(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists || userID == nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
-			"code": 401,
-			"msg":  "未授权",
-		})
+		response.ErrorWithCode(c, 401, "未授权")
 		return
 	}
 
 	file, err := c.FormFile("avatar")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"code": 400,
-			"msg":  "请上传头像文件",
-		})
+		response.BadRequest(c, "请上传头像文件")
 		return
 	}
 
 	url, err := h.uploader.Upload(file, "avatars")
 	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
-			"code": 400,
-			"msg":  err.Error(),
-		})
+		response.ErrorWithCode(c, 400, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"code": 0,
-		"msg":  "上传成功",
-		"data": map[string]interface{}{
-			"url": url,
-		},
-	})
+	response.SuccessWithMessage(c, "上传成功", gin.H{"url": url})
 }
 
 // GetCaptcha 获取验证码
 func (h *AuthHandler) GetCaptcha(c *gin.Context) {
 	id, b64s, err := h.captcha.Generate()
 	if err != nil {
-		c.JSON(http.StatusOK, map[string]interface{}{
-			"code": 500,
-			"msg":  "生成验证码失败",
-		})
+		response.ErrorWithCode(c, 500, "生成验证码失败")
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"code": 0,
-		"msg":  "success",
-		"data": map[string]interface{}{
-			"id":    id,
-			"image": b64s,
-		},
+	response.SuccessWithData(c, gin.H{
+		"id":    id,
+		"image": b64s,
 	})
 }

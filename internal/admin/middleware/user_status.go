@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"net/http"
-
 	"bico-admin/internal/admin/model"
+	"bico-admin/internal/pkg/response"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -30,26 +30,17 @@ func (m *UserStatusMiddleware) Check() gin.HandlerFunc {
 		var user model.AdminUser
 		if err := m.db.Select("enabled").First(&user, userID).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
-				c.JSON(http.StatusOK, gin.H{
-					"code": 401,
-					"msg":  "用户不存在",
-				})
+				response.ErrorWithCode(c, 401, "用户不存在")
 				c.Abort()
 				return
 			}
-			c.JSON(http.StatusOK, gin.H{
-				"code": 500,
-				"msg":  "查询用户状态失败",
-			})
+			response.ErrorWithCode(c, 500, "查询用户状态失败")
 			c.Abort()
 			return
 		}
 
 		if !user.Enabled {
-			c.JSON(http.StatusOK, gin.H{
-				"code": 401,
-				"msg":  "账户已被禁用",
-			})
+			response.ErrorWithCode(c, 401, "账户已被禁用")
 			c.Abort()
 			return
 		}

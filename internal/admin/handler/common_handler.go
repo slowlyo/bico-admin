@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"net/http"
-	
 	"bico-admin/internal/admin/service"
+	"bico-admin/internal/pkg/response"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,10 +22,5 @@ func NewCommonHandler(configService service.IConfigService) *CommonHandler {
 // GetAppConfig 获取应用配置
 func (h *CommonHandler) GetAppConfig(c *gin.Context) {
 	config := h.configService.GetAppConfig()
-	
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"code": 0,
-		"msg":  "success",
-		"data": config,
-	})
+	response.SuccessWithData(c, config)
 }

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"net/http"
+	"bico-admin/internal/pkg/response"
 	"sync"
 	"time"
 
@@ -78,10 +78,7 @@ func (rl *RateLimiter) RateLimit() gin.HandlerFunc {
 		limiter := rl.getLimiter(ip)
 
 		if !limiter.Allow() {
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"code": 429,
-				"msg":  "请求过于频繁，请稍后再试",
-			})
+			response.TooManyRequests(c, "请求过于频繁，请稍后再试")
 			c.Abort()
 			return
 		}
@@ -102,10 +99,7 @@ func (rl *RateLimiter) RateLimitByUser() gin.HandlerFunc {
 			ip := c.ClientIP()
 			limiter := rl.getLimiter(ip)
 			if !limiter.Allow() {
-				c.JSON(http.StatusTooManyRequests, gin.H{
-					"code": 429,
-					"msg":  "请求过于频繁，请稍后再试",
-				})
+				response.TooManyRequests(c, "请求过于频繁，请稍后再试")
 				c.Abort()
 				return
 			}
@@ -114,10 +108,7 @@ func (rl *RateLimiter) RateLimitByUser() gin.HandlerFunc {
 			key := userID.(string)
 			limiter := rl.getLimiter(key)
 			if !limiter.Allow() {
-				c.JSON(http.StatusTooManyRequests, gin.H{
-					"code": 429,
-					"msg":  "请求过于频繁，请稍后再试",
-				})
+				response.TooManyRequests(c, "请求过于频繁，请稍后再试")
 				c.Abort()
 				return
 			}
@@ -136,10 +127,7 @@ func (rl *RateLimiter) RateLimitByKey(keyFunc func(*gin.Context) string) gin.Han
 		limiter := rl.getLimiter(key)
 
 		if !limiter.Allow() {
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"code": 429,
-				"msg":  "请求过于频繁，请稍后再试",
-			})
+			response.TooManyRequests(c, "请求过于频繁，请稍后再试")
 			c.Abort()
 			return
 		}

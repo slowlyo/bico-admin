@@ -1,12 +1,13 @@
 package server
 
 import (
-	"bico-admin/internal/core/config"
-	"bico-admin/internal/core/middleware"
-	"bico-admin/internal/pkg/response"
 	"embed"
 	"io/fs"
 	"net/http"
+
+	"bico-admin/internal/core/config"
+	"bico-admin/internal/core/middleware"
+	"bico-admin/internal/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -36,7 +37,7 @@ func NewServer(cfg *config.ServerConfig, rateLimiter *middleware.RateLimiter) *g
 func RegisterRoutes(engine *gin.Engine, adminRouter, apiRouter Router, cfg *config.Config, embedFS embed.FS) {
 	// 健康检查
 	engine.GET("/health", func(c *gin.Context) {
-		c.JSON(200, response.Success(gin.H{"status": "ok"}))
+		response.SuccessWithData(c, gin.H{"status": "ok"})
 	})
 
 	// Swagger 文档
@@ -74,11 +75,11 @@ func serveEmbedStatic(engine *gin.Engine, embedFS embed.FS) {
 	engine.NoRoute(func(c *gin.Context) {
 		// API 路由返回 JSON 404
 		if len(c.Request.URL.Path) >= 10 && c.Request.URL.Path[:10] == "/admin-api" {
-			c.JSON(404, response.Error(404, "路由不存在"))
+			response.NotFound(c, "路由不存在")
 			return
 		}
 		if len(c.Request.URL.Path) >= 4 && c.Request.URL.Path[:4] == "/api" {
-			c.JSON(404, response.Error(404, "路由不存在"))
+			response.NotFound(c, "路由不存在")
 			return
 		}
 

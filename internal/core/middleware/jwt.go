@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"net/http"
+	"bico-admin/internal/pkg/response"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -13,10 +13,7 @@ func JWTAuth(jwtManager interface{}, authService interface{}) gin.HandlerFunc {
 		// 获取 Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusOK, gin.H{
-				"code": 401,
-				"msg":  "请先登录",
-			})
+			response.ErrorWithCode(c, 401, "请先登录")
 			c.Abort()
 			return
 		}
@@ -24,10 +21,7 @@ func JWTAuth(jwtManager interface{}, authService interface{}) gin.HandlerFunc {
 		// 解析 Bearer token
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusOK, gin.H{
-				"code": 401,
-				"msg":  "token 格式错误",
-			})
+			response.ErrorWithCode(c, 401, "token 格式错误")
 			c.Abort()
 			return
 		}
@@ -38,10 +32,7 @@ func JWTAuth(jwtManager interface{}, authService interface{}) gin.HandlerFunc {
 		if authService.(interface {
 			IsTokenBlacklisted(token string) bool
 		}).IsTokenBlacklisted(token) {
-			c.JSON(http.StatusOK, gin.H{
-				"code": 401,
-				"msg":  "token 已失效",
-			})
+			response.ErrorWithCode(c, 401, "token 已失效")
 			c.Abort()
 			return
 		}
@@ -52,10 +43,7 @@ func JWTAuth(jwtManager interface{}, authService interface{}) gin.HandlerFunc {
 		}).ValidateToken(token)
 
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"code": 401,
-				"msg":  "token 无效或已过期",
-			})
+			response.ErrorWithCode(c, 401, "token 无效或已过期")
 			c.Abort()
 			return
 		}
