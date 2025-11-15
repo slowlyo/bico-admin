@@ -33,11 +33,11 @@ type AppConfig struct {
 
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
-	Driver       string           `mapstructure:"driver"`
-	SQLite       SQLiteConfig     `mapstructure:"sqlite"`
-	MySQL        MySQLConfig      `mapstructure:"mysql"`
-	MaxIdleConns int              `mapstructure:"max_idle_conns"`
-	MaxOpenConns int              `mapstructure:"max_open_conns"`
+	Driver       string       `mapstructure:"driver"`
+	SQLite       SQLiteConfig `mapstructure:"sqlite"`
+	MySQL        MySQLConfig  `mapstructure:"mysql"`
+	MaxIdleConns int          `mapstructure:"max_idle_conns"`
+	MaxOpenConns int          `mapstructure:"max_open_conns"`
 }
 
 // SQLiteConfig SQLite 配置
@@ -84,11 +84,12 @@ type JWTConfig struct {
 
 // UploadConfig 文件上传配置
 type UploadConfig struct {
-	Driver       string         `mapstructure:"driver"` // local / qiniu / aliyun / tencent
-	MaxSize      int64          `mapstructure:"max_size"`
-	AllowedTypes []string       `mapstructure:"allowed_types"`
-	Local        LocalUploadConfig `mapstructure:"local"`
-	Qiniu        QiniuUploadConfig `mapstructure:"qiniu"`
+	Driver       string             `mapstructure:"driver"` // local / qiniu / aliyun
+	MaxSize      int64              `mapstructure:"max_size"`
+	AllowedTypes []string           `mapstructure:"allowed_types"`
+	Local        LocalUploadConfig  `mapstructure:"local"`
+	Qiniu        QiniuUploadConfig  `mapstructure:"qiniu"`
+	Aliyun       AliyunUploadConfig `mapstructure:"aliyun"`
 }
 
 // LocalUploadConfig 本地存储配置
@@ -100,13 +101,23 @@ type LocalUploadConfig struct {
 
 // QiniuUploadConfig 七牛云存储配置
 type QiniuUploadConfig struct {
-	AccessKey     string `mapstructure:"access_key"`
-	SecretKey     string `mapstructure:"secret_key"`
-	Bucket        string `mapstructure:"bucket"`
-	Domain        string `mapstructure:"domain"`
-	Zone          string `mapstructure:"zone"`
-	UseHTTPS      bool   `mapstructure:"use_https"`
-	UseCDNDomain  bool   `mapstructure:"use_cdn_domain"`
+	AccessKey    string `mapstructure:"access_key"`
+	SecretKey    string `mapstructure:"secret_key"`
+	Bucket       string `mapstructure:"bucket"`
+	Domain       string `mapstructure:"domain"`
+	Zone         string `mapstructure:"zone"`
+	UseHTTPS     bool   `mapstructure:"use_https"`
+	UseCDNDomain bool   `mapstructure:"use_cdn_domain"`
+}
+
+// AliyunUploadConfig 阿里云OSS存储配置
+type AliyunUploadConfig struct {
+	AccessKeyId     string `mapstructure:"access_key_id"`
+	AccessKeySecret string `mapstructure:"access_key_secret"`
+	Bucket          string `mapstructure:"bucket"`
+	Endpoint        string `mapstructure:"endpoint"`
+	Domain          string `mapstructure:"domain"`
+	UseHTTPS        bool   `mapstructure:"use_https"`
 }
 
 // GetDriver 获取缓存驱动
@@ -151,24 +162,24 @@ func (r *RedisConfig) GetDB() int {
 // 3. ./config/config.yaml（传统位置）
 func LoadConfig(configPath string) (*Config, error) {
 	cfg := &Config{}
-	
+
 	// 查找配置文件
 	actualPath, err := findConfigFile(configPath)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	v := viper.New()
 	v.SetConfigFile(actualPath)
-	
+
 	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("读取配置文件失败: %w", err)
 	}
-	
+
 	if err := v.Unmarshal(cfg); err != nil {
 		return nil, fmt.Errorf("解析配置文件失败: %w", err)
 	}
-	
+
 	return cfg, nil
 }
 
@@ -180,19 +191,19 @@ func findConfigFile(configPath string) (string, error) {
 			return configPath, nil
 		}
 	}
-	
+
 	// 尝试默认路径列表
 	defaultPaths := []string{
-		"config.yaml",         // 项目根目录（Docker 友好）
-		"config/config.yaml",  // 传统位置
+		"config.yaml",        // 项目根目录（Docker 友好）
+		"config/config.yaml", // 传统位置
 	}
-	
+
 	for _, path := range defaultPaths {
 		if _, err := os.Stat(path); err == nil {
 			return path, nil
 		}
 	}
-	
+
 	// 所有路径都找不到，返回详细错误
 	return "", fmt.Errorf("配置文件未找到，已尝试的路径: %s, %v", configPath, defaultPaths)
 }

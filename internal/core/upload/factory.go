@@ -15,6 +15,7 @@ type UploaderConfig struct {
 	AllowedTypes []string
 	LocalConfig  LocalConfig
 	QiniuConfig  QiniuConfig
+	AliyunConfig AliyunConfig
 }
 
 // LocalConfig 本地存储配置
@@ -40,11 +41,11 @@ func NewUploader(config *UploaderConfig) (Uploader, error) {
 			config.AllowedTypes,
 		)
 	case "aliyun":
-		// TODO: 实现阿里云OSS上传器
-		return nil, ErrInvalidDriver
-	case "tencent":
-		// TODO: 实现腾讯云COS上传器
-		return nil, ErrInvalidDriver
+		return NewAliyunUploader(
+			config.AliyunConfig,
+			config.MaxSize,
+			config.AllowedTypes,
+		)
 	default:
 		return nil, ErrInvalidDriver
 	}

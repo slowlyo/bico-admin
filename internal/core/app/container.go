@@ -124,6 +124,14 @@ func provideUploader(cfg *config.Config) (upload.Uploader, error) {
 			UseHTTPS:     cfg.Upload.Qiniu.UseHTTPS,
 			UseCDNDomain: cfg.Upload.Qiniu.UseCDNDomain,
 		},
+		AliyunConfig: upload.AliyunConfig{
+			AccessKeyId:     cfg.Upload.Aliyun.AccessKeyId,
+			AccessKeySecret: cfg.Upload.Aliyun.AccessKeySecret,
+			Bucket:          cfg.Upload.Aliyun.Bucket,
+			Endpoint:        cfg.Upload.Aliyun.Endpoint,
+			Domain:          cfg.Upload.Aliyun.Domain,
+			UseHTTPS:        cfg.Upload.Aliyun.UseHTTPS,
+		},
 	}
 	return upload.NewUploader(uploaderConfig)
 }
@@ -138,7 +146,7 @@ func provideCaptcha(cacheInstance cache.Cache) *captcha.Captcha {
 	return captcha.NewCaptcha(cacheInstance)
 }
 
-// AdminRouterParams 使用 dig.In 简化依赖注入（最佳实践✅）
+// AdminRouterParams 使用 dig.In 简化依赖注入
 type AdminRouterParams struct {
 	dig.In
 	AuthHandler      *adminHandler.AuthHandler
