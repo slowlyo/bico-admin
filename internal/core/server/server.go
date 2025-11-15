@@ -14,7 +14,7 @@ import (
 )
 
 // NewServer 创建 Gin 服务器
-func NewServer(cfg *config.ServerConfig) *gin.Engine {
+func NewServer(cfg *config.ServerConfig, rateLimiter *middleware.RateLimiter) *gin.Engine {
 	gin.SetMode(cfg.Mode)
 
 	engine := gin.New()
@@ -23,6 +23,11 @@ func NewServer(cfg *config.ServerConfig) *gin.Engine {
 
 	// 添加 CORS 中间件
 	engine.Use(middleware.CORS())
+
+	// 添加全局限流中间件（如果启用）
+	if rateLimiter != nil {
+		engine.Use(rateLimiter.RateLimit())
+	}
 
 	return engine
 }

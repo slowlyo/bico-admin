@@ -135,6 +135,8 @@ make tidy      # 整理依赖
 - [项目结构说明](./docs/structure.md)
 - [认证 API](./docs/auth-api.md)
 - [缓存机制](./docs/cache.md)
+- [限流中间件](./docs/rate-limit.md)
+- [配置热更新](./docs/config-hot-reload.md)
 
 ## 开发环境
 

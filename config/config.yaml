@@ -54,6 +54,11 @@ jwt:
   secret: "bico-admin-secret-key-change-in-production"
   expire_hours: 168  # 7天
 
+rate_limit:
+  enabled: true  # 是否启用限流
+  rps: 100       # 每秒请求数（Requests Per Second）
+  burst: 200     # 突发流量桶容量
+
 upload:
   driver: local  # local / qiniu / aliyun
   max_size: 10485760  # 10MB (单位: 字节)

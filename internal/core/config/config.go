@@ -3,19 +3,23 @@ package config
 import (
 	"fmt"
 	"os"
+	"sync"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 // Config 配置结构体
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	App      AppConfig      `mapstructure:"app"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Log      LogConfig      `mapstructure:"log"`
-	Cache    CacheConfig    `mapstructure:"cache"`
-	JWT      JWTConfig      `mapstructure:"jwt"`
-	Upload   UploadConfig   `mapstructure:"upload"`
+	Server    ServerConfig    `mapstructure:"server"`
+	App       AppConfig       `mapstructure:"app"`
+	Database  DatabaseConfig  `mapstructure:"database"`
+	Log       LogConfig       `mapstructure:"log"`
+	Cache     CacheConfig     `mapstructure:"cache"`
+	JWT       JWTConfig       `mapstructure:"jwt"`
+	Upload    UploadConfig    `mapstructure:"upload"`
+	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 }
 
 // ServerConfig 服务器配置
@@ -132,6 +136,13 @@ type AliyunUploadConfig struct {
 	UseHTTPS        bool   `mapstructure:"use_https"`
 }
 
+// RateLimitConfig 限流配置
+type RateLimitConfig struct {
+	Enabled bool `mapstructure:"enabled"` // 是否启用限流
+	RPS     int  `mapstructure:"rps"`     // 每秒请求数
+	Burst   int  `mapstructure:"burst"`   // 突发流量桶容量
+}
+
 // GetDriver 获取缓存驱动
 func (c *CacheConfig) GetDriver() string {
 	return c.Driver
@@ -165,6 +176,79 @@ func (r *RedisConfig) GetPassword() string {
 // GetDB 获取Redis数据库
 func (r *RedisConfig) GetDB() int {
 	return r.DB
+}
+
+// ConfigManager 配置管理器（支持热更新）
+type ConfigManager struct {
+	config *Config
+	mu     sync.RWMutex
+	viper  *viper.Viper
+	logger *zap.Logger
+}
+
+// NewConfigManager 创建配置管理器
+func NewConfigManager(configPath string, logger *zap.Logger) (*ConfigManager, error) {
+	actualPath, err := findConfigFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	v := viper.New()
+	v.SetConfigFile(actualPath)
+
+	if err := v.ReadInConfig(); err != nil {
+		return nil, fmt.Errorf("读取配置文件失败: %w", err)
+	}
+
+	cfg := &Config{}
+	if err := v.Unmarshal(cfg); err != nil {
+		return nil, fmt.Errorf("解析配置文件失败: %w", err)
+	}
+
+	cm := &ConfigManager{
+		config: cfg,
+		viper:  v,
+		logger: logger,
+	}
+
+	// 监听配置文件变化
+	v.WatchConfig()
+	v.OnConfigChange(func(e fsnotify.Event) {
+		cm.onConfigChange(e)
+	})
+
+	return cm, nil
+}
+
+// onConfigChange 配置变更回调
+func (cm *ConfigManager) onConfigChange(e fsnotify.Event) {
+	cm.logger.Info("检测到配置文件变化", zap.String("file", e.Name))
+
+	newConfig := &Config{}
+	if err := cm.viper.Unmarshal(newConfig); err != nil {
+		cm.logger.Error("重新加载配置失败", zap.Error(err))
+		return
+	}
+
+	cm.mu.Lock()
+	cm.config = newConfig
+	cm.mu.Unlock()
+
+	cm.logger.Info("配置已热更新")
+}
+
+// GetConfig 获取当前配置（线程安全）
+func (cm *ConfigManager) GetConfig() *Config {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	return cm.config
+}
+
+// GetRateLimitConfig 获取限流配置
+func (cm *ConfigManager) GetRateLimitConfig() RateLimitConfig {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	return cm.config.RateLimit
 }
 
 // LoadConfig 加载配置文件

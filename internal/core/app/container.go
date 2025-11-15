@@ -33,9 +33,10 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 		func() (*config.Config, error) { return config.LoadConfig(configPath) },
 		provideLogger,
 		provideDatabase,
-		provideGinEngine,
 		provideCache,
 		provideJWT,
+		provideRateLimiter,
+		provideGinEngine,
 		provideUploader,
 		provideScheduler,
 		provideCaptcha,
@@ -81,8 +82,8 @@ func provideDatabase(cfg *config.Config, zapLogger *zap.Logger) (*gorm.DB, error
 }
 
 // provideGinEngine 提供 Gin 引擎
-func provideGinEngine(cfg *config.Config) *gin.Engine {
-	return server.NewServer(&cfg.Server)
+func provideGinEngine(cfg *config.Config, rateLimiter *middleware.RateLimiter) *gin.Engine {
+	return server.NewServer(&cfg.Server, rateLimiter)
 }
 
 // provideCache 提供缓存实例
@@ -144,6 +145,14 @@ func provideScheduler(zapLogger *zap.Logger) *job.Scheduler {
 // provideCaptcha 提供验证码实例
 func provideCaptcha(cacheInstance cache.Cache) *captcha.Captcha {
 	return captcha.NewCaptcha(cacheInstance)
+}
+
+// provideRateLimiter 提供限流器实例
+func provideRateLimiter(cfg *config.Config) *middleware.RateLimiter {
+	if !cfg.RateLimit.Enabled {
+		return nil
+	}
+	return middleware.NewRateLimiter(cfg.RateLimit.RPS, cfg.RateLimit.Burst)
 }
 
 // AdminRouterParams 使用 dig.In 简化依赖注入
