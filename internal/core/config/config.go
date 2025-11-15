@@ -33,11 +33,12 @@ type AppConfig struct {
 
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
-	Driver       string       `mapstructure:"driver"`
-	SQLite       SQLiteConfig `mapstructure:"sqlite"`
-	MySQL        MySQLConfig  `mapstructure:"mysql"`
-	MaxIdleConns int          `mapstructure:"max_idle_conns"`
-	MaxOpenConns int          `mapstructure:"max_open_conns"`
+	Driver       string         `mapstructure:"driver"`
+	SQLite       SQLiteConfig   `mapstructure:"sqlite"`
+	MySQL        MySQLConfig    `mapstructure:"mysql"`
+	Postgres     PostgresConfig `mapstructure:"postgres"`
+	MaxIdleConns int            `mapstructure:"max_idle_conns"`
+	MaxOpenConns int            `mapstructure:"max_open_conns"`
 }
 
 // SQLiteConfig SQLite 配置
@@ -53,6 +54,17 @@ type MySQLConfig struct {
 	Password string `mapstructure:"password"`
 	Database string `mapstructure:"database"`
 	Charset  string `mapstructure:"charset"`
+}
+
+// PostgresConfig PostgreSQL 配置
+type PostgresConfig struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+	Database string `mapstructure:"database"`
+	SSLMode  string `mapstructure:"sslmode"`
+	TimeZone string `mapstructure:"timezone"`
 }
 
 // LogConfig 日志配置

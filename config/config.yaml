@@ -8,7 +8,7 @@ app:
   logo: /logo.png
 
 database:
-  driver: sqlite  # 支持 sqlite / mysql
+  driver: sqlite  # 支持 sqlite / mysql / postgres
   max_idle_conns: 10
   max_open_conns: 100
   
@@ -24,6 +24,16 @@ database:
     password: root
     database: bico_admin
     charset: utf8mb4
+  
+  # PostgreSQL 配置
+  postgres:
+    host: localhost
+    port: 5432
+    username: root
+    password: root
+    database: bico_admin
+    sslmode: disable  # disable / require / verify-ca / verify-full
+    timezone: Asia/Shanghai
 
 log:
   level: debug        # debug / info / warn / error / fatal

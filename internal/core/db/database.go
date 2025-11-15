@@ -8,9 +8,11 @@ import (
 
 	"bico-admin/internal/core/config"
 	"bico-admin/internal/core/logger"
+
 	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -19,12 +21,14 @@ import (
 // InitDB 初始化数据库连接
 func InitDB(cfg *config.DatabaseConfig, zapLogger *zap.Logger, isDebug bool) (*gorm.DB, error) {
 	var dialector gorm.Dialector
-	
+
 	switch cfg.Driver {
 	case "sqlite":
 		dialector = buildSQLiteDialector(cfg)
 	case "mysql":
 		dialector = buildMySQLDialector(cfg)
+	case "postgres":
+		dialector = buildPostgresDialector(cfg)
 	default:
 		return nil, fmt.Errorf("不支持的数据库驱动: %s", cfg.Driver)
 	}
@@ -46,7 +50,7 @@ func InitDB(cfg *config.DatabaseConfig, zapLogger *zap.Logger, isDebug bool) (*g
 		},
 		Logger: gormLog,
 	})
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +73,7 @@ func buildSQLiteDialector(cfg *config.DatabaseConfig) gorm.Dialector {
 	if dbPath == "" {
 		dbPath = "data.db"
 	}
-	
+
 	// 确保数据库文件的父目录存在
 	dir := filepath.Dir(dbPath)
 	if dir != "" && dir != "." {
@@ -77,7 +81,7 @@ func buildSQLiteDialector(cfg *config.DatabaseConfig) gorm.Dialector {
 			fmt.Printf("创建数据库目录失败: %v\n", err)
 		}
 	}
-	
+
 	return sqlite.Open(dbPath)
 }
 
@@ -92,4 +96,18 @@ func buildMySQLDialector(cfg *config.DatabaseConfig) gorm.Dialector {
 		cfg.MySQL.Charset,
 	)
 	return mysql.Open(dsn)
+}
+
+// buildPostgresDialector 构建 PostgreSQL 驱动配置
+func buildPostgresDialector(cfg *config.DatabaseConfig) gorm.Dialector {
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=%s",
+		cfg.Postgres.Host,
+		cfg.Postgres.Username,
+		cfg.Postgres.Password,
+		cfg.Postgres.Database,
+		cfg.Postgres.Port,
+		cfg.Postgres.SSLMode,
+		cfg.Postgres.TimeZone,
+	)
+	return postgres.Open(dsn)
 }
