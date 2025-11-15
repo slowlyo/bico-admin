@@ -88,6 +88,7 @@ type UploadConfig struct {
 	MaxSize      int64          `mapstructure:"max_size"`
 	AllowedTypes []string       `mapstructure:"allowed_types"`
 	Local        LocalUploadConfig `mapstructure:"local"`
+	Qiniu        QiniuUploadConfig `mapstructure:"qiniu"`
 }
 
 // LocalUploadConfig 本地存储配置
@@ -95,6 +96,17 @@ type LocalUploadConfig struct {
 	BasePath  string `mapstructure:"base_path"`
 	ServePath string `mapstructure:"serve_path"`
 	URLPrefix string `mapstructure:"url_prefix"`
+}
+
+// QiniuUploadConfig 七牛云存储配置
+type QiniuUploadConfig struct {
+	AccessKey     string `mapstructure:"access_key"`
+	SecretKey     string `mapstructure:"secret_key"`
+	Bucket        string `mapstructure:"bucket"`
+	Domain        string `mapstructure:"domain"`
+	Zone          string `mapstructure:"zone"`
+	UseHTTPS      bool   `mapstructure:"use_https"`
+	UseCDNDomain  bool   `mapstructure:"use_cdn_domain"`
 }
 
 // GetDriver 获取缓存驱动

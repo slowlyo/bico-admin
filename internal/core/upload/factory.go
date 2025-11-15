@@ -14,6 +14,7 @@ type UploaderConfig struct {
 	MaxSize      int64
 	AllowedTypes []string
 	LocalConfig  LocalConfig
+	QiniuConfig  QiniuConfig
 }
 
 // LocalConfig 本地存储配置
@@ -33,8 +34,11 @@ func NewUploader(config *UploaderConfig) (Uploader, error) {
 			config.AllowedTypes,
 		), nil
 	case "qiniu":
-		// TODO: 实现七牛云上传器
-		return nil, ErrInvalidDriver
+		return NewQiniuUploader(
+			config.QiniuConfig,
+			config.MaxSize,
+			config.AllowedTypes,
+		)
 	case "aliyun":
 		// TODO: 实现阿里云OSS上传器
 		return nil, ErrInvalidDriver

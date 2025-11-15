@@ -115,6 +115,15 @@ func provideUploader(cfg *config.Config) (upload.Uploader, error) {
 			BasePath:  cfg.Upload.Local.BasePath,
 			URLPrefix: cfg.Upload.Local.URLPrefix,
 		},
+		QiniuConfig: upload.QiniuConfig{
+			AccessKey:    cfg.Upload.Qiniu.AccessKey,
+			SecretKey:    cfg.Upload.Qiniu.SecretKey,
+			Bucket:       cfg.Upload.Qiniu.Bucket,
+			Domain:       cfg.Upload.Qiniu.Domain,
+			Zone:         cfg.Upload.Qiniu.Zone,
+			UseHTTPS:     cfg.Upload.Qiniu.UseHTTPS,
+			UseCDNDomain: cfg.Upload.Qiniu.UseCDNDomain,
+		},
 	}
 	return upload.NewUploader(uploaderConfig)
 }
@@ -147,7 +156,7 @@ func provideAdminRouter(params AdminRouterParams) *admin.Router {
 	permMiddleware := adminMiddleware.NewPermissionMiddleware(params.AuthService)
 	// 创建用户状态中间件
 	userStatusMiddleware := adminMiddleware.NewUserStatusMiddleware(params.DB)
-	
+
 	return admin.NewRouter(
 		params.AuthHandler,
 		params.CommonHandler,

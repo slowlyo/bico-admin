@@ -59,3 +59,13 @@ upload:
     base_path: storage/uploads  # 文件保存根目录
     serve_path: /uploads  # 静态文件服务路径
     url_prefix: http://localhost:8080/uploads  # 返回给前端的完整URL前缀
+  
+  # 七牛云存储配置
+  qiniu:
+    access_key: "your-access-key"  # 七牛云 AccessKey
+    secret_key: "your-secret-key"  # 七牛云 SecretKey
+    bucket: "your-bucket-name"  # 存储空间名称
+    domain: "your-domain.com"  # CDN 加速域名（例如：https://cdn.example.com）
+    zone: "z2"  # 存储区域：z0(华东) / z1(华北) / z2(华南) / na0(北美) / as0(东南亚)
+    use_https: true  # 是否使用 HTTPS
+    use_cdn_domain: true  # 是否使用 CDN 加速域名
