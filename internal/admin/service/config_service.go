@@ -9,7 +9,7 @@ type IConfigService interface {
 
 // ConfigService 配置服务
 type ConfigService struct {
-	config *config.Config
+	configManager *config.ConfigManager
 }
 
 // AppConfigResponse 应用配置响应
@@ -20,17 +20,18 @@ type AppConfigResponse struct {
 }
 
 // NewConfigService 创建配置服务
-func NewConfigService(config *config.Config) *ConfigService {
+func NewConfigService(cm *config.ConfigManager) *ConfigService {
 	return &ConfigService{
-		config: config,
+		configManager: cm,
 	}
 }
 
-// GetAppConfig 获取应用配置
+// GetAppConfig 获取应用配置（支持热更新）
 func (s *ConfigService) GetAppConfig() *AppConfigResponse {
+	cfg := s.configManager.GetConfig()
 	return &AppConfigResponse{
-		Name:  s.config.App.Name,
-		Logo:  s.config.App.Logo,
-		Debug: s.config.Server.Mode == "debug",
+		Name:  cfg.App.Name,
+		Logo:  cfg.App.Logo,
+		Debug: cfg.Server.Mode == "debug",
 	}
 }

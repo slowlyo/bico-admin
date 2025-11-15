@@ -1,8 +1,66 @@
 # 配置热更新
 
-## 功能介绍
+## 概述
 
-配置热更新允许在不重启应用的情况下动态加载配置文件的变更，提升运维效率。
+配置热更新允许在不重启应用的情况下，自动检测配置文件变化并重新加载配置。这对于调整运行时参数（如日志级别、限流参数等）非常有用。
+
+## ⚠️ 重要说明
+
+**并非所有配置都支持热更新**。配置分为两类：
+
+### 1. 静态配置（不支持热更新）
+这些配置在应用启动时固定，修改后需要重启应用：
+- 数据库连接配置 (`database`)
+- 服务器端口配置 (`server.port`)
+- JWT 密钥 (`jwt.secret`)
+- 上传驱动配置 (`upload.driver`)
+
+### 2. 动态配置（支持热更新）
+这些配置可以通过 `ConfigManager` 动态获取，支持热更新：
+- 限流参数 (`rate_limit.rps`, `rate_limit.burst`)
+- 日志级别 (`log.level`) - 需要应用层实现
+- 业务相关配置
+
+## 使用方法
+
+### 1. 在服务中使用 ConfigManager
+
+如果你的服务需要访问可能会变化的配置，应该依赖 `ConfigManager` 而不是 `Config`：
+
+```go
+type MyService struct {
+    configManager *config.ConfigManager
+}
+
+func NewMyService(cm *config.ConfigManager) *MyService {
+    return &MyService{
+        configManager: cm,
+    }
+}
+
+func (s *MyService) DoSomething() {
+    // 每次调用时获取最新配置
+    cfg := s.configManager.GetConfig()
+    
+    // 使用配置
+    if cfg.RateLimit.Enabled {
+        // ...
+    }
+}
+```
+
+### 2. 在 Handler 中使用
+
+```go
+type MyHandler struct {
+    configManager *config.ConfigManager
+}
+
+func (h *MyHandler) HandleRequest(c *gin.Context) {
+    cfg := h.configManager.GetConfig()
+    // 使用最新配置处理请求
+}
+```
 
 ## 支持的配置项
 

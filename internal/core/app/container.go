@@ -29,9 +29,13 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 
 	// 按模块注册依赖（模块化 + 批量错误处理）
 	providers := []interface{}{
-		// 基础设施层
+		// 基础设施层 - 先加载初始配置用于创建 logger
 		func() (*config.Config, error) { return config.LoadConfig(configPath) },
 		provideLogger,
+		// 创建 ConfigManager 用于热更新
+		func(zapLogger *zap.Logger) (*config.ConfigManager, error) {
+			return config.NewConfigManager(configPath, zapLogger)
+		},
 		provideDatabase,
 		provideCache,
 		provideJWT,
@@ -101,9 +105,9 @@ func provideAuthService(database *gorm.DB, jwtManager *jwt.JWTManager, cacheInst
 	return adminService.NewAuthService(database, jwtManager, cacheInstance)
 }
 
-// provideConfigService 提供配置服务接口（dig 要求返回接口类型）
-func provideConfigService(cfg *config.Config) adminService.IConfigService {
-	return adminService.NewConfigService(cfg)
+// provideConfigService 提供配置服务接口（dig 要求返回接口类型，支持热更新）
+func provideConfigService(cm *config.ConfigManager) adminService.IConfigService {
+	return adminService.NewConfigService(cm)
 }
 
 // provideUploader 提供文件上传器
@@ -147,10 +151,12 @@ func provideCaptcha(cacheInstance cache.Cache) *captcha.Captcha {
 	return captcha.NewCaptcha(cacheInstance)
 }
 
-// provideRateLimiter 提供限流器实例
-func provideRateLimiter(cfg *config.Config) *middleware.RateLimiter {
+// provideRateLimiter 提供限流器（支持热更新）
+func provideRateLimiter(cm *config.ConfigManager) *middleware.RateLimiter {
+	cfg := cm.GetConfig()
 	if !cfg.RateLimit.Enabled {
-		return nil
+		// 如果禁用限流，返回一个允许所有请求的限流器
+		return middleware.NewRateLimiter(999999, 999999)
 	}
 	return middleware.NewRateLimiter(cfg.RateLimit.RPS, cfg.RateLimit.Burst)
 }
