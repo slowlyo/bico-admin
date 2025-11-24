@@ -1,5 +1,7 @@
 # Bico Admin
 
+<img src="./web/public/logo.png" width="200" />
+
 基于 Go + React 构建的现代化后台管理系统。
 
 ## 技术栈
