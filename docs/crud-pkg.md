@@ -1,4 +1,6 @@
-# CRUD 包文档
+# CRUD 包使用文档
+
+> 支持多模块分组（admin/api/自定义），自动注册 DI 和路由
 
 > `internal/pkg/crud` - 声明式 CRUD 框架，让新功能开发只需一个文件。
 
@@ -68,6 +70,53 @@ var _ crud.Module = (*ArticleHandler)(nil)
 ```
 
 完成！不需要修改 `router.go`、`container.go` 或任何其他文件。
+
+---
+
+## 多模块分组
+
+支持 `admin`、`api` 及自定义模块分组，不同分组可配置不同的中间件。
+
+### 注册到不同分组
+
+```go
+// 注册到 admin 分组（默认，需要 JWT + 权限验证）
+func init() {
+    crud.RegisterModule(NewArticleHandler)
+}
+
+// 注册到 api 分组（前台 API，可配置不同中间件）
+func init() {
+    crud.RegisterModuleTo(crud.GroupAPI, NewProductHandler)
+}
+
+// 注册到自定义分组
+func init() {
+    crud.RegisterModuleTo("wechat", NewWechatHandler)
+}
+```
+
+### 配置分组中间件
+
+在 `container.go` 或 `router.go` 中配置：
+
+```go
+// admin 分组：JWT + 权限 + 用户状态
+adminRouter := crud.NewModuleRouter(jwtAuth, permMiddleware, userStatusMiddleware)
+
+// api 分组：仅 JWT，无权限验证
+apiRouter := crud.NewModuleRouterWithConfig(crud.RouterConfig{
+    AuthMiddleware: jwtAuth,
+    // 不设置 PermMiddleware，则不验证权限
+})
+
+// 公开分组：无需认证
+publicRouter := crud.NewModuleRouterWithConfig(crud.RouterConfig{})
+
+// 注册路由
+adminRouter.RegisterAllModules(engine.Group("/admin-api"), crud.GroupAdmin)
+apiRouter.RegisterAllModules(engine.Group("/api"), crud.GroupAPI)
+```
 
 ---
 

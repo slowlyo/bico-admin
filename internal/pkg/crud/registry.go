@@ -50,7 +50,14 @@ type Module interface {
 type ModuleRegistration struct {
 	Module      Module
 	Constructor interface{} // dig 构造函数
+	Group       string      // 模块分组，如 "admin", "api"
 }
+
+// 默认分组
+const (
+	GroupAdmin = "admin"
+	GroupAPI   = "api"
+)
 
 var (
 	registeredModules = make([]ModuleRegistration, 0)
@@ -59,12 +66,18 @@ var (
 	permissionsMu     sync.RWMutex
 )
 
-// RegisterModule 注册模块（在 init() 中调用）
+// RegisterModule 注册模块到 admin 分组（在 init() 中调用）
 func RegisterModule(constructor interface{}) {
+	RegisterModuleTo(GroupAdmin, constructor)
+}
+
+// RegisterModuleTo 注册模块到指定分组
+func RegisterModuleTo(group string, constructor interface{}) {
 	moduleMu.Lock()
 	defer moduleMu.Unlock()
 	registeredModules = append(registeredModules, ModuleRegistration{
 		Constructor: constructor,
+		Group:       group,
 	})
 }
 
@@ -73,6 +86,19 @@ func GetRegisteredModules() []ModuleRegistration {
 	moduleMu.RLock()
 	defer moduleMu.RUnlock()
 	return append([]ModuleRegistration{}, registeredModules...)
+}
+
+// GetModulesByGroup 获取指定分组的模块
+func GetModulesByGroup(group string) []ModuleRegistration {
+	moduleMu.RLock()
+	defer moduleMu.RUnlock()
+	var result []ModuleRegistration
+	for _, reg := range registeredModules {
+		if reg.Group == group {
+			result = append(result, reg)
+		}
+	}
+	return result
 }
 
 // ProvideModules 将所有模块注册到 dig 容器
@@ -149,16 +175,24 @@ func GetAllPermissionKeys() []string {
 	return keys
 }
 
-// ModuleRouter 模块路由注册器
-type ModuleRouter struct {
-	jwtAuth              gin.HandlerFunc
-	permMiddleware       PermissionChecker
-	userStatusMiddleware gin.HandlerFunc
-}
-
 // PermissionChecker 权限检查接口
 type PermissionChecker interface {
 	RequirePermission(permission string) gin.HandlerFunc
+}
+
+// RouterConfig 路由配置
+type RouterConfig struct {
+	// 认证中间件（可选，为 nil 时所有路由都是公开的）
+	AuthMiddleware gin.HandlerFunc
+	// 用户状态检查（可选）
+	UserStatusMiddleware gin.HandlerFunc
+	// 权限中间件（可选）
+	PermMiddleware PermissionChecker
+}
+
+// ModuleRouter 模块路由注册器
+type ModuleRouter struct {
+	config RouterConfig
 }
 
 // NewModuleRouter 创建模块路由注册器
@@ -168,10 +202,38 @@ func NewModuleRouter(
 	userStatusMiddleware gin.HandlerFunc,
 ) *ModuleRouter {
 	return &ModuleRouter{
-		jwtAuth:              jwtAuth,
-		permMiddleware:       permMiddleware,
-		userStatusMiddleware: userStatusMiddleware,
+		config: RouterConfig{
+			AuthMiddleware:       jwtAuth,
+			PermMiddleware:       permMiddleware,
+			UserStatusMiddleware: userStatusMiddleware,
+		},
 	}
+}
+
+// NewModuleRouterWithConfig 使用配置创建模块路由注册器
+func NewModuleRouterWithConfig(config RouterConfig) *ModuleRouter {
+	return &ModuleRouter{config: config}
+}
+
+// RegisterAllModules 注册指定分组的所有模块路由
+func (r *ModuleRouter) RegisterAllModules(engine *gin.RouterGroup, group string) {
+	for _, reg := range GetModulesByGroup(group) {
+		if reg.Module != nil {
+			r.RegisterModule(engine, reg.Module)
+		}
+	}
+}
+
+// AutoRegister 自动注册分组的所有模块到 DI 容器并返回路由注册函数
+// 用法: crud.AutoRegister(container, "admin", routerConfig)
+func AutoRegister(container *dig.Container, group string, config RouterConfig) error {
+	// 注册所有模块构造函数到 DI
+	for _, reg := range GetModulesByGroup(group) {
+		if err := container.Provide(reg.Constructor); err != nil {
+			return fmt.Errorf("provide module [%s] failed: %w", group, err)
+		}
+	}
+	return nil
 }
 
 // RegisterModule 注册单个模块的路由
@@ -212,7 +274,16 @@ func (r *ModuleRouter) RegisterModule(engine *gin.RouterGroup, module Module) {
 
 	// 注册需要认证的路由
 	if hasPrivate {
-		authGroup := group.Group("", r.jwtAuth, r.userStatusMiddleware)
+		// 构建认证中间件链
+		var authMiddlewares []gin.HandlerFunc
+		if r.config.AuthMiddleware != nil {
+			authMiddlewares = append(authMiddlewares, r.config.AuthMiddleware)
+		}
+		if r.config.UserStatusMiddleware != nil {
+			authMiddlewares = append(authMiddlewares, r.config.UserStatusMiddleware)
+		}
+
+		authGroup := group.Group("", authMiddlewares...)
 		for _, route := range config.Routes {
 			if route.Public {
 				continue
@@ -236,8 +307,8 @@ func (r *ModuleRouter) registerRoute(group *gin.RouterGroup, handlerVal reflect.
 
 	// 构建中间件链
 	handlers := make([]gin.HandlerFunc, 0)
-	if route.Permission != "" {
-		handlers = append(handlers, r.permMiddleware.RequirePermission(route.Permission))
+	if route.Permission != "" && r.config.PermMiddleware != nil {
+		handlers = append(handlers, r.config.PermMiddleware.RequirePermission(route.Permission))
 	}
 	handlers = append(handlers, handlerFunc)
 

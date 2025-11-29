@@ -36,10 +36,9 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 		provider interface{}
 		name     string
 	}{
-		// 基础设施层 - 先加载初始配置用于创建 logger
+		// 基础设施层
 		{provideConfig(configPath), "Config"},
 		{provideLogger, "Logger"},
-		// 创建 ConfigManager 用于热更新
 		{provideConfigManager(configPath), "ConfigManager"},
 		{provideDatabase, "Database"},
 		{provideCache, "Cache"},
@@ -50,11 +49,11 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 		{provideScheduler, "Scheduler"},
 		{provideCaptcha, "Captcha"},
 
-		// 服务层
+		// 服务层（核心服务）
 		{provideAuthService, "AuthService"},
 		{provideConfigService, "ConfigService"},
 
-		// 处理层 (AuthHandler/CommonHandler 需要手动注册，其他通过 crud.RegisterModule 自动注册)
+		// 非 CRUD 处理器（需手动注册）
 		{adminHandler.NewAuthHandler, "AuthHandler"},
 		{adminHandler.NewCommonHandler, "CommonHandler"},
 
@@ -73,6 +72,11 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 		if err := container.Provide(p.provider); err != nil {
 			return nil, fmt.Errorf("provide %s failed: %w", p.name, err)
 		}
+	}
+
+	// 自动注册 CRUD 模块（admin 分组）
+	if err := crud.ProvideModules(container); err != nil {
+		return nil, fmt.Errorf("provide crud modules failed: %w", err)
 	}
 
 	return container, nil
