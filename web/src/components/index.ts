@@ -10,4 +10,19 @@ import { Question, SelectLang } from './RightContent';
 import { AvatarDropdown, AvatarName } from './RightContent/AvatarDropdown';
 import PageContainer from './PageContainer';
 
-export { AvatarDropdown, AvatarName, Footer, PageContainer, Question, SelectLang };
+/**
+ * CRUD 组件
+ */
+import CrudModal from './CrudModal';
+import CrudTable from './CrudTable';
+
+export {
+  AvatarDropdown,
+  AvatarName,
+  Footer,
+  PageContainer,
+  Question,
+  SelectLang,
+  CrudModal,
+  CrudTable,
+};

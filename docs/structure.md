@@ -51,18 +51,15 @@ bico-admin/
 │   │       └── pagination.go
 │   │
 │   ├── admin/               # 后台管理模块
-│   │   ├── consts/         # 常量定义
-│   │   │   └── permissions.go # 权限树定义
-│   │   ├── handler/        # HTTP 处理器
+│   │   ├── handler/        # HTTP 处理器（声明式 CRUD）
+│   │   │   ├── permissions.go       # 基础权限常量
 │   │   │   ├── auth_handler.go      # 认证处理器
 │   │   │   ├── common_handler.go    # 通用处理器
-│   │   │   ├── admin_user_handler.go # 用户管理
-│   │   │   └── admin_role_handler.go # 角色管理
-│   │   ├── service/        # 业务逻辑
+│   │   │   ├── admin_user_handler.go # 用户管理（含权限/路由/业务）
+│   │   │   └── admin_role_handler.go # 角色管理（含权限/路由/业务）
+│   │   ├── service/        # 核心服务（仅保留复杂业务）
 │   │   │   ├── auth_service.go       # 认证服务
-│   │   │   ├── config_service.go     # 配置服务
-│   │   │   ├── admin_user_service.go # 用户服务
-│   │   │   └── admin_role_service.go # 角色服务
+│   │   │   └── config_service.go     # 配置服务
 │   │   ├── middleware/     # 业务中间件
 │   │   │   ├── permission.go    # 权限验证中间件
 │   │   │   └── user_status.go   # 用户状态检查中间件
@@ -70,7 +67,7 @@ bico-admin/
 │   │   │   ├── admin_user.go   # 后台用户模型
 │   │   │   ├── admin_role.go   # 后台角色模型
 │   │   │   └── menu.go         # 菜单模型
-│   │   └── router.go       # 路由注册
+│   │   └── router.go       # 路由注册（自动注册 CRUD 模块）
 │   │
 │   ├── api/                 # 前台 API 模块
 │   │   ├── handler/        # HTTP 处理器
@@ -286,7 +283,18 @@ bico-admin migrate  # 执行数据库迁移
 
 ## 扩展指南
 
-### 添加新模块
+### 添加新模块（推荐：声明式 CRUD）
+
+使用 `internal/pkg/crud` 包，只需创建一个 Handler 文件：
+
+1. 在 `internal/admin/handler/` 创建 `xxx_handler.go`
+2. 嵌入 `crud.BaseHandler`，实现 `ModuleConfig()` 方法
+3. 在 `init()` 中调用 `crud.RegisterModule(NewXxxHandler)`
+4. 在 `migrate.go` 中添加模型迁移
+
+详见 [CRUD 包文档](./crud-pkg.md)
+
+### 添加新模块（传统方式）
 
 1. 在 `internal/` 下创建模块目录
 2. 按照 `handler/service/model` 组织代码

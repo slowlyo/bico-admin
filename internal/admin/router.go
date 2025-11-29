@@ -1,43 +1,58 @@
 package admin
 
 import (
-	"bico-admin/internal/admin/consts"
+	"reflect"
+
 	"bico-admin/internal/admin/handler"
 	"bico-admin/internal/admin/middleware"
+	"bico-admin/internal/pkg/crud"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // Router 实现路由注册
 type Router struct {
-	authHandler        *handler.AuthHandler
-	commonHandler      *handler.CommonHandler
-	adminUserHandler   *handler.AdminUserHandler
-	adminRoleHandler   *handler.AdminRoleHandler
-	jwtAuth            gin.HandlerFunc
-	permMiddleware     *middleware.PermissionMiddleware
+	authHandler          *handler.AuthHandler
+	commonHandler        *handler.CommonHandler
+	jwtAuth              gin.HandlerFunc
+	permMiddleware       *middleware.PermissionMiddleware
 	userStatusMiddleware *middleware.UserStatusMiddleware
+	db                   *gorm.DB
 }
 
 // NewRouter 创建路由实例
 func NewRouter(
 	authHandler *handler.AuthHandler,
 	commonHandler *handler.CommonHandler,
-	adminUserHandler *handler.AdminUserHandler,
-	adminRoleHandler *handler.AdminRoleHandler,
 	jwtAuth gin.HandlerFunc,
 	permMiddleware *middleware.PermissionMiddleware,
 	userStatusMiddleware *middleware.UserStatusMiddleware,
+	db *gorm.DB,
 ) *Router {
+	// 初始化基础权限树
+	initBasePermissions()
+
 	return &Router{
-		authHandler:        authHandler,
-		commonHandler:      commonHandler,
-		adminUserHandler:   adminUserHandler,
-		adminRoleHandler:   adminRoleHandler,
-		jwtAuth:            jwtAuth,
-		permMiddleware:     permMiddleware,
+		authHandler:          authHandler,
+		commonHandler:        commonHandler,
+		jwtAuth:              jwtAuth,
+		permMiddleware:       permMiddleware,
 		userStatusMiddleware: userStatusMiddleware,
+		db:                   db,
 	}
+}
+
+// initBasePermissions 初始化基础权限树
+func initBasePermissions() {
+	crud.SetBasePermissions([]crud.Permission{
+		{Key: handler.PermDashboardMenu, Label: "工作台"},
+		{
+			Key:      handler.PermSystemManage,
+			Label:    "系统管理",
+			Children: []crud.Permission{},
+		},
+	})
 }
 
 // Register 注册路由
@@ -46,18 +61,15 @@ func (r *Router) Register(engine *gin.Engine) {
 
 	// 公开路由
 	{
-		// 登录
 		admin.POST("/auth/login", r.authHandler.Login)
-		// 验证码
 		admin.GET("/captcha", r.authHandler.GetCaptcha)
-		// 应用配置
 		admin.GET("/app-config", r.commonHandler.GetAppConfig)
 	}
 
 	// 需要认证的路由
 	authorized := admin.Group("", r.jwtAuth, r.userStatusMiddleware.Check())
 	{
-		// 认证相关
+		// 认证相关（特殊路由，不走 CRUD 模块）
 		auth := authorized.Group("/auth")
 		{
 			auth.POST("/logout", r.authHandler.Logout)
@@ -67,27 +79,53 @@ func (r *Router) Register(engine *gin.Engine) {
 			auth.POST("/avatar", r.authHandler.UploadAvatar)
 		}
 
-		// 系统管理 - 用户管理
-		adminUsers := authorized.Group("/admin-users")
-		{
-			adminUsers.GET("", r.permMiddleware.RequirePermission(consts.PermAdminUserList), r.adminUserHandler.List)
-			adminUsers.GET("/:id", r.permMiddleware.RequirePermission(consts.PermAdminUserList), r.adminUserHandler.Get)
-			adminUsers.POST("", r.permMiddleware.RequirePermission(consts.PermAdminUserCreate), r.adminUserHandler.Create)
-			adminUsers.PUT("/:id", r.permMiddleware.RequirePermission(consts.PermAdminUserEdit), r.adminUserHandler.Update)
-			adminUsers.DELETE("/:id", r.permMiddleware.RequirePermission(consts.PermAdminUserDelete), r.adminUserHandler.Delete)
-		}
+		// 自动注册所有 CRUD 模块路由
+		r.registerModules(authorized)
+	}
+}
 
-		// 系统管理 - 角色管理
-		adminRoles := authorized.Group("/admin-roles")
-		{
-			adminRoles.GET("", r.permMiddleware.RequirePermission(consts.PermAdminRoleList), r.adminRoleHandler.List)
-			adminRoles.GET("/all", r.permMiddleware.RequirePermission(consts.PermAdminRoleList), r.adminRoleHandler.GetAll)
-			adminRoles.GET("/permissions", r.permMiddleware.RequirePermission(consts.PermAdminRoleList), r.adminRoleHandler.GetAllPermissions)
-			adminRoles.GET("/:id", r.permMiddleware.RequirePermission(consts.PermAdminRoleList), r.adminRoleHandler.Get)
-			adminRoles.POST("", r.permMiddleware.RequirePermission(consts.PermAdminRoleCreate), r.adminRoleHandler.Create)
-			adminRoles.PUT("/:id", r.permMiddleware.RequirePermission(consts.PermAdminRoleEdit), r.adminRoleHandler.Update)
-			adminRoles.DELETE("/:id", r.permMiddleware.RequirePermission(consts.PermAdminRoleDelete), r.adminRoleHandler.Delete)
-			adminRoles.PUT("/:id/permissions", r.permMiddleware.RequirePermission(consts.PermAdminRolePermission), r.adminRoleHandler.UpdatePermissions)
+// registerModules 注册所有通过 crud.RegisterModule 注册的模块
+func (r *Router) registerModules(group *gin.RouterGroup) {
+	moduleRouter := crud.NewModuleRouter(
+		r.jwtAuth,
+		r.permMiddleware,
+		r.userStatusMiddleware.Check(),
+	)
+
+	for _, reg := range crud.GetRegisteredModules() {
+		module := r.instantiateModule(reg.Constructor)
+		if module != nil {
+			moduleRouter.RegisterModule(group, module)
 		}
 	}
+}
+
+// instantiateModule 实例化模块
+func (r *Router) instantiateModule(constructor interface{}) crud.Module {
+	constructorVal := reflect.ValueOf(constructor)
+	constructorType := constructorVal.Type()
+
+	numIn := constructorType.NumIn()
+	args := make([]reflect.Value, numIn)
+
+	for i := 0; i < numIn; i++ {
+		argType := constructorType.In(i)
+		switch argType.String() {
+		case "*gorm.DB":
+			args[i] = reflect.ValueOf(r.db)
+		default:
+			return nil
+		}
+	}
+
+	results := constructorVal.Call(args)
+	if len(results) == 0 {
+		return nil
+	}
+
+	if module, ok := results[0].Interface().(crud.Module); ok {
+		return module
+	}
+
+	return nil
 }

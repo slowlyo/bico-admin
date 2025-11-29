@@ -254,41 +254,92 @@ type BaseModel struct {
 
 ## 开发流程
 
-### 新增后台功能（完整示例）
+### 新增后台功能（声明式 CRUD 框架）
+
+使用 `internal/pkg/crud` 包，**只需一个文件** 即可完成后端功能开发。
 
 假设要添加"文章管理"功能：
 
-#### 1. 定义权限 (`internal/admin/consts/permissions.go`)
+#### 1. 创建 Handler (`internal/admin/handler/article_handler.go`)
 
 ```go
-const (
-    PermArticleMenu   = "content:article:menu"
-    PermArticleList   = "content:article:list"
-    PermArticleCreate = "content:article:create"
-    PermArticleEdit   = "content:article:edit"
-    PermArticleDelete = "content:article:delete"
+package handler
+
+import (
+    "bico-admin/internal/admin/model"
+    "bico-admin/internal/pkg/crud"
+    "github.com/gin-gonic/gin"
+    "gorm.io/gorm"
 )
 
-// 添加到 AllPermissions
-var AllPermissions = []Permission{
-    // ...
-    {
-        Key: "content:manage",
-        Label: "内容管理",
-        Children: []Permission{
-            {
-                Key: PermArticleMenu,
-                Label: "文章管理",
-                Children: []Permission{
-                    {Key: PermArticleList, Label: "查看列表"},
-                    {Key: PermArticleCreate, Label: "创建文章"},
-                    {Key: PermArticleEdit, Label: "编辑文章"},
-                    {Key: PermArticleDelete, Label: "删除文章"},
-                },
-            },
-        },
-    },
+// 定义权限（自动生成 menu/list/create/edit/delete）
+var articlePerms = crud.NewCRUDPerms("article", "文章管理")
+
+type ArticleHandler struct {
+    crud.BaseHandler
+    db *gorm.DB
 }
+
+func NewArticleHandler(db *gorm.DB) *ArticleHandler {
+    return &ArticleHandler{db: db}
+}
+
+// 声明模块配置（路由 + 权限 自动注册）
+func (h *ArticleHandler) ModuleConfig() crud.ModuleConfig {
+    return crud.ModuleConfig{
+        Name:             "article",
+        Group:            "/articles",
+        ParentPermission: PermSystemManage,
+        Permissions:      articlePerms.Tree,
+        Routes:           articlePerms.Routes(),
+    }
+}
+
+// 实现业务方法
+func (h *ArticleHandler) List(c *gin.Context) {
+    var req struct{ Title string }
+    h.BindQuery(c, &req)
+    
+    query := h.db.Model(&model.Article{})
+    if req.Title != "" {
+        query = query.Where("title LIKE ?", "%"+req.Title+"%")
+    }
+    
+    var articles []model.Article
+    h.QueryList(c, query, &articles)  // 自动处理分页和响应
+}
+
+func (h *ArticleHandler) Get(c *gin.Context) {
+    id, err := h.ParseID(c)
+    if err != nil {
+        return
+    }
+    var article model.Article
+    if h.QueryOne(c, h.db.Where("id = ?", id), &article, "文章不存在") {
+        h.Success(c, article)
+    }
+}
+
+func (h *ArticleHandler) Create(c *gin.Context) {
+    var req struct{ Title, Content string }
+    if err := h.BindJSON(c, &req); err != nil {
+        return
+    }
+    article := &model.Article{Title: req.Title, Content: req.Content}
+    h.ExecTx(c, h.db, func(tx *gorm.DB) error {
+        return tx.Create(article).Error
+    }, "创建成功", article)
+}
+
+func (h *ArticleHandler) Update(c *gin.Context) { /* 类似逻辑 */ }
+func (h *ArticleHandler) Delete(c *gin.Context) { /* 类似逻辑 */ }
+
+// 自动注册（无需修改 router.go / container.go）
+func init() {
+    crud.RegisterModule(NewArticleHandler)
+}
+
+var _ crud.Module = (*ArticleHandler)(nil)
 ```
 
 #### 2. 创建模型 (`internal/admin/model/article.go`)
@@ -296,176 +347,19 @@ var AllPermissions = []Permission{
 ```go
 package model
 
-import "bico-admin/internal/shared/model"
+import "bico-admin/internal/core/model"
 
 type Article struct {
     model.BaseModel
     Title   string `gorm:"size:200;not null" json:"title"`
     Content string `gorm:"type:text" json:"content"`
-    Status  int    `gorm:"default:1" json:"status"` // 1:草稿 2:已发布
-}
-
-func (Article) TableName() string {
-    return "articles"
+    Status  int    `gorm:"default:1" json:"status"`
 }
 ```
 
-#### 3. 编写 Service (`internal/admin/service/article_service.go`)
+#### 3. 数据库迁移 (`internal/migrate/migrate.go`)
 
 ```go
-package service
-
-import (
-    "bico-admin/internal/admin/model"
-    "bico-admin/internal/shared/pagination"
-    "gorm.io/gorm"
-)
-
-type ArticleService struct {
-    db *gorm.DB
-}
-
-func NewArticleService(db *gorm.DB) *ArticleService {
-    return &ArticleService{db: db}
-}
-
-func (s *ArticleService) List(page, pageSize int) ([]*model.Article, int64, error) {
-    var articles []*model.Article
-    var total int64
-    
-    offset := (page - 1) * pageSize
-    
-    if err := s.db.Model(&model.Article{}).Count(&total).Error; err != nil {
-        return nil, 0, err
-    }
-    
-    if err := s.db.Offset(offset).Limit(pageSize).Find(&articles).Error; err != nil {
-        return nil, 0, err
-    }
-    
-    return articles, total, nil
-}
-
-func (s *ArticleService) Create(article *model.Article) error {
-    return s.db.Create(article).Error
-}
-
-// ... 其他方法
-```
-
-#### 4. 编写 Handler (`internal/admin/handler/article_handler.go`)
-
-```go
-package handler
-
-import (
-    "bico-admin/internal/admin/service"
-    "bico-admin/internal/shared/response"
-    "github.com/gin-gonic/gin"
-    "strconv"
-)
-
-type ArticleHandler struct {
-    articleService *service.ArticleService
-}
-
-func NewArticleHandler(articleService *service.ArticleService) *ArticleHandler {
-    return &ArticleHandler{articleService: articleService}
-}
-
-func (h *ArticleHandler) List(c *gin.Context) {
-    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-    pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-    
-    articles, total, err := h.articleService.List(page, pageSize)
-    if err != nil {
-        response.Error(c, 500, err.Error())
-        return
-    }
-    
-    response.SuccessWithData(c, gin.H{
-        "list":      articles,
-        "total":     total,
-        "page":      page,
-        "page_size": pageSize,
-    })
-}
-
-// ... 其他方法
-```
-
-#### 5. 注册 DI (`internal/core/app/container.go`)
-
-```go
-providers := []interface{}{
-    // ...
-    
-    // 服务层
-    adminService.NewArticleService,
-    
-    // 处理层
-    adminHandler.NewArticleHandler,
-    
-    // ...
-}
-
-// 修改 AdminRouterParams
-type AdminRouterParams struct {
-    dig.In
-    // ...
-    ArticleHandler *adminHandler.ArticleHandler
-}
-
-// 修改 provideAdminRouter
-func provideAdminRouter(params AdminRouterParams) *admin.Router {
-    return admin.NewRouter(
-        // ...
-        params.ArticleHandler,
-        // ...
-    )
-}
-```
-
-#### 6. 配置后端路由 (`internal/admin/router.go`)
-
-```go
-// 修改 Router 结构体
-type Router struct {
-    // ...
-    articleHandler *handler.ArticleHandler
-}
-
-// 修改 NewRouter
-func NewRouter(
-    // ...
-    articleHandler *handler.ArticleHandler,
-    // ...
-) *Router {
-    return &Router{
-        // ...
-        articleHandler: articleHandler,
-    }
-}
-
-// 在 Register 方法中添加路由
-func (r *Router) Register(engine *gin.Engine) {
-    // ...
-    
-    articles := authorized.Group("/articles")
-    {
-        articles.GET("", r.permMiddleware.RequirePermission(consts.PermArticleList), r.articleHandler.List)
-        articles.POST("", r.permMiddleware.RequirePermission(consts.PermArticleCreate), r.articleHandler.Create)
-        articles.PUT("/:id", r.permMiddleware.RequirePermission(consts.PermArticleEdit), r.articleHandler.Update)
-        articles.DELETE("/:id", r.permMiddleware.RequirePermission(consts.PermArticleDelete), r.articleHandler.Delete)
-    }
-}
-```
-
-#### 7. 数据库迁移 (`internal/migrate/migrate.go`)
-
-```go
-import adminModel "bico-admin/internal/admin/model"
-
 func Migrate(db *gorm.DB) error {
     return db.AutoMigrate(
         // ...
@@ -474,7 +368,7 @@ func Migrate(db *gorm.DB) error {
 }
 ```
 
-#### 8. 前端路由 (`web/config/routes.ts`)
+#### 4. 前端路由 (`web/config/routes.ts`)
 
 ```ts
 {

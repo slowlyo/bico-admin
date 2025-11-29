@@ -1,6 +1,9 @@
 package app
 
 import (
+	"fmt"
+	"math"
+
 	"bico-admin/internal/admin"
 	adminHandler "bico-admin/internal/admin/handler"
 	adminMiddleware "bico-admin/internal/admin/middleware"
@@ -15,9 +18,8 @@ import (
 	"bico-admin/internal/core/upload"
 	"bico-admin/internal/job"
 	"bico-admin/internal/pkg/captcha"
+	"bico-admin/internal/pkg/crud"
 	"bico-admin/internal/pkg/jwt"
-	"fmt"
-	"math"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/dig"
@@ -51,18 +53,17 @@ func BuildContainer(configPath string) (*dig.Container, error) {
 		// 服务层
 		{provideAuthService, "AuthService"},
 		{provideConfigService, "ConfigService"},
-		{adminService.NewAdminUserService, "AdminUserService"},
-		{adminService.NewAdminRoleService, "AdminRoleService"},
 
-		// 处理层
+		// 处理层 (AuthHandler/CommonHandler 需要手动注册，其他通过 crud.RegisterModule 自动注册)
 		{adminHandler.NewAuthHandler, "AuthHandler"},
 		{adminHandler.NewCommonHandler, "CommonHandler"},
-		{adminHandler.NewAdminUserHandler, "AdminUserHandler"},
-		{adminHandler.NewAdminRoleHandler, "AdminRoleHandler"},
 
 		// 路由层
 		{provideAdminRouter, "AdminRouter"},
 		{api.NewRouter, "ApiRouter"},
+
+		// 模块路由注册器
+		{provideModuleRouter, "ModuleRouter"},
 
 		// 应用实例
 		{NewApp, "App"},
@@ -158,13 +159,11 @@ func provideRateLimiter(cm *config.ConfigManager) *middleware.RateLimiter {
 // AdminRouterParams 使用 dig.In 简化依赖注入
 type AdminRouterParams struct {
 	dig.In
-	AuthHandler      *adminHandler.AuthHandler
-	CommonHandler    *adminHandler.CommonHandler
-	AdminUserHandler *adminHandler.AdminUserHandler
-	AdminRoleHandler *adminHandler.AdminRoleHandler
-	JWTManager       *jwt.JWTManager
-	AuthService      adminService.IAuthService
-	DB               *gorm.DB
+	AuthHandler   *adminHandler.AuthHandler
+	CommonHandler *adminHandler.CommonHandler
+	JWTManager    *jwt.JWTManager
+	AuthService   adminService.IAuthService
+	DB            *gorm.DB
 }
 
 // provideAdminRouter 提供 Admin 路由（使用 dig.In 简化参数）
@@ -177,10 +176,29 @@ func provideAdminRouter(params AdminRouterParams) *admin.Router {
 	return admin.NewRouter(
 		params.AuthHandler,
 		params.CommonHandler,
-		params.AdminUserHandler,
-		params.AdminRoleHandler,
 		middleware.JWTAuth(params.JWTManager, params.AuthService),
 		permMiddleware,
 		userStatusMiddleware,
+		params.DB,
+	)
+}
+
+// ModuleRouterParams 模块路由参数
+type ModuleRouterParams struct {
+	dig.In
+	JWTManager  *jwt.JWTManager
+	AuthService adminService.IAuthService
+	DB          *gorm.DB
+}
+
+// provideModuleRouter 提供模块路由注册器
+func provideModuleRouter(params ModuleRouterParams) *crud.ModuleRouter {
+	permMiddleware := adminMiddleware.NewPermissionMiddleware(params.AuthService)
+	userStatusMiddleware := adminMiddleware.NewUserStatusMiddleware(params.DB)
+
+	return crud.NewModuleRouter(
+		middleware.JWTAuth(params.JWTManager, params.AuthService),
+		permMiddleware,
+		userStatusMiddleware.Check(),
 	)
 }

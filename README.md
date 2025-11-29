@@ -54,68 +54,71 @@ pnpm build
 
 ### 新增后台功能流程
 
-1. **定义权限常量** - 在 `internal/admin/consts/permissions.go` 添加权限定义
-2. **编写 Service** - 在 `internal/admin/service/` 创建业务逻辑
-3. **编写 Handler** - 在 `internal/admin/handler/` 创建处理器
-4. **注册 DI** - 在 `internal/core/app/container.go` 注册到容器
-5. **配置路由** - 在 `internal/admin/router.go` 添加路由和权限中间件
-6. **前端路由** - 在 `web/config/routes.ts` 配置前端路由和 access 权限
-7. **实现页面** - 在 `web/src/pages/` 编写页面组件
+使用声明式 CRUD 框架，**只需一个文件**：
 
-### 路由配置
-
-**后端路由** (`internal/admin/router.go`)
 ```go
-// 需要权限的路由
-users.GET("", r.permMiddleware.RequirePermission(consts.PermUserList), r.userHandler.List)
+// internal/admin/handler/article_handler.go
+package handler
+
+import (
+    "your-project/internal/admin/model"
+    "your-project/internal/pkg/crud"
+    "github.com/gin-gonic/gin"
+    "gorm.io/gorm"
+)
+
+// 1. 定义权限
+var articlePerms = crud.NewCRUDPerms("article", "文章管理")
+
+// 2. 定义 Handler
+type ArticleHandler struct {
+    crud.BaseHandler
+    db *gorm.DB
+}
+
+func NewArticleHandler(db *gorm.DB) *ArticleHandler {
+    return &ArticleHandler{db: db}
+}
+
+// 3. 声明模块配置（路由 + 权限）
+func (h *ArticleHandler) ModuleConfig() crud.ModuleConfig {
+    return crud.ModuleConfig{
+        Name:             "article",
+        Group:            "/articles",
+        ParentPermission: PermSystemManage,
+        Permissions:      articlePerms.Tree,
+        Routes:           articlePerms.Routes(),
+    }
+}
+
+// 4. 实现业务方法
+func (h *ArticleHandler) List(c *gin.Context)   { /* ... */ }
+func (h *ArticleHandler) Get(c *gin.Context)    { /* ... */ }
+func (h *ArticleHandler) Create(c *gin.Context) { /* ... */ }
+func (h *ArticleHandler) Update(c *gin.Context) { /* ... */ }
+func (h *ArticleHandler) Delete(c *gin.Context) { /* ... */ }
+
+// 5. 自动注册
+func init() {
+    crud.RegisterModule(NewArticleHandler)
+}
+
+var _ crud.Module = (*ArticleHandler)(nil)
 ```
 
-**前端路由** (`web/config/routes.ts`)
+**完成！** 无需修改 `router.go`、`container.go` 或其他文件。
+
+详细文档见 [CRUD 包文档](./docs/crud-pkg.md)
+
+### 前端路由
+
+在 `web/config/routes.ts` 配置：
 ```ts
 {
-  path: "/system/users",
-  name: "users",
-  component: "./system/users",
-  access: "system:user:menu"  // 对应后端权限 key
-}
-```
-
-### 权限定义
-
-权限采用树形结构，定义在 `internal/admin/consts/permissions.go`：
-
-```go
-const (
-    PermModuleManage = "module:manage"        // 模块菜单
-    PermModuleList   = "module:list"          // 查看列表
-    PermModuleCreate = "module:create"        // 创建
-    PermModuleEdit   = "module:edit"          // 编辑
-    PermModuleDelete = "module:delete"        // 删除
-)
-```
-
-### 依赖注入 (DI)
-
-使用 Uber Dig 管理依赖，在 `internal/core/app/container.go` 注册：
-
-```go
-providers := []interface{}{
-    // 基础设施层
-    provideDatabase,
-    provideCache,
-    
-    // 服务层
-    service.NewUserService,
-    
-    // 处理层
-    handler.NewUserHandler,
-}
-```
-
-Handler 会自动注入所需依赖：
-```go
-func NewUserHandler(userService *service.UserService) *UserHandler {
-    return &UserHandler{userService: userService}
+  path: "/system/articles",
+  name: "articles",
+  component: "./system/articles",
+  access: "system:article:menu"  // 对应后端权限 key
 }
 ```
 
@@ -134,6 +137,8 @@ make tidy      # 整理依赖
 
 详细文档位于 `docs/` 目录：
 
+- [后端 CRUD 框架](./docs/crud-pkg.md) - 声明式后端开发指南
+- [前端 CRUD 组件](./docs/frontend-crud.md) - CrudTable 使用指南
 - [项目结构说明](./docs/structure.md)
 - [认证 API](./docs/auth-api.md)
 - [缓存机制](./docs/cache.md)

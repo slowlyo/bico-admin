@@ -3,18 +3,19 @@ package service
 import (
 	"errors"
 	"time"
-	
-	"bico-admin/internal/admin/consts"
+
 	"bico-admin/internal/admin/model"
+	"bico-admin/internal/pkg/crud"
 	"bico-admin/internal/pkg/password"
+
 	"gorm.io/gorm"
 )
 
 var (
-	ErrUserNotFound      = errors.New("用户不存在")
-	ErrInvalidPassword   = errors.New("密码错误")
-	ErrUserDisabled      = errors.New("用户已被禁用")
-	ErrOldPasswordWrong  = errors.New("原密码错误")
+	ErrUserNotFound     = errors.New("用户不存在")
+	ErrInvalidPassword  = errors.New("密码错误")
+	ErrUserDisabled     = errors.New("用户已被禁用")
+	ErrOldPasswordWrong = errors.New("原密码错误")
 )
 
 // LoginRequest 登录请求
@@ -85,22 +86,22 @@ func (s *AuthService) Login(req interface{}) (interface{}, error) {
 		CaptchaID   string `json:"captchaId" binding:"required"`
 		CaptchaCode string `json:"captchaCode" binding:"required"`
 	})
-	
+
 	var user model.AdminUser
-	
+
 	err := s.db.Where("username = ?", loginReq.Username).First(&user).Error
 	if err != nil {
 		return nil, ErrUserNotFound
 	}
-	
+
 	if !user.Enabled {
 		return nil, ErrUserDisabled
 	}
-	
+
 	if !password.Verify(user.Password, loginReq.Password) {
 		return nil, ErrInvalidPassword
 	}
-	
+
 	jwtMgr := s.jwtManager.(interface {
 		GenerateToken(userID uint, username string) (string, error)
 	})
@@ -108,7 +109,7 @@ func (s *AuthService) Login(req interface{}) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &LoginResponse{
 		Token: token,
 	}, nil
@@ -119,7 +120,7 @@ func (s *AuthService) Logout(token string) error {
 	if token == "" {
 		return nil
 	}
-	
+
 	blacklistKey := "token:blacklist:" + token
 	// 设置 token 黑名单，过期时间 7 天
 	return s.cache.(interface {
@@ -138,18 +139,18 @@ func (s *AuthService) IsTokenBlacklisted(token string) bool {
 // GetUserByID 根据用户ID获取用户信息
 func (s *AuthService) GetUserByID(userID uint) (*UserInfo, error) {
 	var user model.AdminUser
-	
+
 	err := s.db.Where("id = ?", userID).First(&user).Error
 	if err != nil {
 		return nil, ErrUserNotFound
 	}
-	
+
 	if !user.Enabled {
 		return nil, ErrUserDisabled
 	}
-	
+
 	permissions, _ := s.GetUserPermissions(userID)
-	
+
 	return &UserInfo{
 		ID:          user.ID,
 		Username:    user.Username,
@@ -163,16 +164,16 @@ func (s *AuthService) GetUserByID(userID uint) (*UserInfo, error) {
 // UpdateProfile 更新用户资料
 func (s *AuthService) UpdateProfile(userID uint, req *UpdateProfileRequest) (*UserInfo, error) {
 	var user model.AdminUser
-	
+
 	err := s.db.Where("id = ?", userID).First(&user).Error
 	if err != nil {
 		return nil, ErrUserNotFound
 	}
-	
+
 	if !user.Enabled {
 		return nil, ErrUserDisabled
 	}
-	
+
 	updates := make(map[string]interface{})
 	if req.Name != "" {
 		updates["name"] = req.Name
@@ -180,16 +181,16 @@ func (s *AuthService) UpdateProfile(userID uint, req *UpdateProfileRequest) (*Us
 	if req.Avatar != "" {
 		updates["avatar"] = req.Avatar
 	}
-	
+
 	if len(updates) > 0 {
 		err = s.db.Model(&user).Updates(updates).Error
 		if err != nil {
 			return nil, err
 		}
 	}
-	
+
 	permissions, _ := s.GetUserPermissions(userID)
-	
+
 	return &UserInfo{
 		ID:          user.ID,
 		Username:    user.Username,
@@ -203,30 +204,30 @@ func (s *AuthService) UpdateProfile(userID uint, req *UpdateProfileRequest) (*Us
 // ChangePassword 修改密码
 func (s *AuthService) ChangePassword(userID uint, req *ChangePasswordRequest) error {
 	var user model.AdminUser
-	
+
 	err := s.db.Where("id = ?", userID).First(&user).Error
 	if err != nil {
 		return ErrUserNotFound
 	}
-	
+
 	if !user.Enabled {
 		return ErrUserDisabled
 	}
-	
+
 	if !password.Verify(user.Password, req.OldPassword) {
 		return ErrOldPasswordWrong
 	}
-	
+
 	hashedPassword, err := password.Hash(req.NewPassword)
 	if err != nil {
 		return err
 	}
-	
+
 	err = s.db.Model(&user).Update("password", hashedPassword).Error
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -237,12 +238,12 @@ func (s *AuthService) GetUserPermissions(userID uint) ([]string, error) {
 	if err := s.db.Select("username").First(&user, userID).Error; err != nil {
 		return nil, err
 	}
-	
+
 	// 如果是默认管理员账户，返回所有权限
 	if user.Username == "admin" {
-		return consts.GetAllPermissionKeys(), nil
+		return crud.GetAllPermissionKeys(), nil
 	}
-	
+
 	// 从数据库查询普通用户权限
 	var permissions []string
 	err := s.db.Table("admin_user_roles").
@@ -251,6 +252,6 @@ func (s *AuthService) GetUserPermissions(userID uint) ([]string, error) {
 		Joins("JOIN admin_roles ON admin_role_permissions.role_id = admin_roles.id").
 		Where("admin_user_roles.user_id = ? AND admin_roles.enabled = ?", userID, true).
 		Pluck("permission", &permissions).Error
-	
+
 	return permissions, err
 }

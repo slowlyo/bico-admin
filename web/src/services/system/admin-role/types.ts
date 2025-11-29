@@ -1,48 +1,22 @@
 /**
- * 角色管理类型定义
+ * 角色管理 - 特殊接口类型
  */
 
+/** 权限树节点 */
 export interface Permission {
   key: string;
   label: string;
   children?: Permission[];
 }
 
+/** 角色（用于下拉选择） */
 export interface AdminRole {
   id: number;
   name: string;
   code: string;
-  description: string;
-  enabled: boolean;
-  permissions?: string[];
-  created_at: string;
-  updated_at: string;
 }
 
-export interface AdminRoleListParams {
-  page?: number;
-  pageSize?: number;
-  name?: string;
-  code?: string;
-  enabled?: boolean;
-  sortField?: string;
-  sortOrder?: string;
-}
-
-export interface AdminRoleCreateParams {
-  name: string;
-  code: string;
-  description?: string;
-  enabled?: boolean;
-  permissions?: string[];
-}
-
-export interface AdminRoleUpdateParams {
-  name?: string;
-  description?: string;
-  enabled?: boolean;
-}
-
+/** 更新权限参数 */
 export interface UpdatePermissionsParams {
   permissions: string[];
 }
