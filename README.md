@@ -68,7 +68,7 @@ import (
 )
 
 // 1. 定义权限
-var articlePerms = crud.NewCRUDPerms("article", "文章管理")
+var articlePerms = crud.NewCRUDPerms("system", "article", "文章管理")
 
 // 2. 定义 Handler
 type ArticleHandler struct {

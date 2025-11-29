@@ -273,7 +273,7 @@ import (
 )
 
 // 定义权限（自动生成 menu/list/create/edit/delete）
-var articlePerms = crud.NewCRUDPerms("article", "文章管理")
+var articlePerms = crud.NewCRUDPerms("system", "article", "文章管理")
 
 type ArticleHandler struct {
     crud.BaseHandler

@@ -9,7 +9,7 @@ import (
 )
 
 // 权限定义
-var rolePerms = crud.NewCRUDPerms("admin_role", "角色管理").WithExtra(
+var rolePerms = crud.NewCRUDPerms("system", "admin_role", "角色管理").WithExtra(
 	crud.Permission{Key: "system:admin_role:permission", Label: "配置权限"},
 )
 

@@ -10,7 +10,7 @@ import (
 )
 
 // 权限定义
-var userPerms = crud.NewCRUDPerms("admin_user", "用户管理")
+var userPerms = crud.NewCRUDPerms("system", "admin_user", "用户管理")
 
 // AdminUserHandler 用户管理处理器
 type AdminUserHandler struct {

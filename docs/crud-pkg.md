@@ -31,7 +31,7 @@ import (
 )
 
 // 1. 定义权限
-var articlePerms = crud.NewCRUDPerms("article", "文章管理")
+var articlePerms = crud.NewCRUDPerms("system", "article", "文章管理")
 
 // 2. 定义 Handler
 type ArticleHandler struct {
@@ -253,7 +253,7 @@ func (h *ArticleHandler) Create(c *gin.Context) {
 
 ```go
 // 基本用法
-var perms = crud.NewCRUDPerms("article", "文章管理")
+var perms = crud.NewCRUDPerms("system", "article", "文章管理")
 
 // 生成的权限 key:
 // - perms.Menu   = "system:article:menu"
@@ -272,7 +272,7 @@ perms.Routes()  // GET /, GET /:id, POST /, PUT /:id, DELETE /:id
 ### 添加额外权限
 
 ```go
-var perms = crud.NewCRUDPerms("article", "文章管理").WithExtra(
+var perms = crud.NewCRUDPerms("system", "article", "文章管理").WithExtra(
     crud.Permission{Key: "system:article:publish", Label: "发布文章"},
     crud.Permission{Key: "system:article:export", Label: "导出文章"},
 )
@@ -332,7 +332,7 @@ import (
     "gorm.io/gorm"
 )
 
-var userPerms = crud.NewCRUDPerms("admin_user", "用户管理")
+var userPerms = crud.NewCRUDPerms("system", "admin_user", "用户管理")
 
 type AdminUserHandler struct {
     crud.BaseHandler

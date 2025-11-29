@@ -13,8 +13,11 @@ type CRUDPerms struct {
 }
 
 // NewCRUDPerms 生成标准 CRUD 权限
-func NewCRUDPerms(module, label string) CRUDPerms {
-	prefix := fmt.Sprintf("system:%s", module)
+// namespace: 命名空间，如 "system"
+// module: 模块名，如 "admin_user"
+// label: 显示名称，如 "用户管理"
+func NewCRUDPerms(namespace, module, label string) CRUDPerms {
+	prefix := fmt.Sprintf("%s:%s", namespace, module)
 	p := CRUDPerms{
 		Menu:   prefix + ":menu",
 		List:   prefix + ":list",
