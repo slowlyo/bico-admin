@@ -294,6 +294,7 @@ const Login: React.FC = () => {
                                 cursor: 'pointer',
                                 borderRadius: 8,
                                 border: '1px solid #d9d9d9',
+                                backgroundColor: '#fff',
                             }}
                             title="点击刷新验证码"
                         />
