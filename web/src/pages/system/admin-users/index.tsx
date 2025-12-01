@@ -42,7 +42,7 @@ const columns: ProColumns<AdminUser>[] = [
     dataIndex: 'roles',
     search: false,
     width: 200,
-    render: (_, r) => r.roles?.map((role) => <Tag key={role.id} color="blue">{role.name}</Tag>),
+    render: (_, r) => <Space size={4}>{r.roles?.map((role) => <Tag key={role.id} color="blue">{role.name}</Tag>)}</Space>,
   },
   {
     title: '状态',

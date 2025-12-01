@@ -8,8 +8,6 @@ import { getCurrentUser as fetchCurrentUser } from "@/services/auth";
 import { getAppConfig } from "@/services/common";
 import defaultSettings from "../config/defaultSettings";
 import { errorConfig } from "./requestErrorConfig";
-import "@ant-design/v5-patch-for-react-19";
-
 const isDev = process.env.NODE_ENV === "development";
 const loginPath = "/auth/login";
 

@@ -24,10 +24,9 @@
     "defaults"
   ],
   "dependencies": {
-    "@ant-design/icons": "^5.6.1",
+    "@ant-design/icons": "^6.0.0",
     "@ant-design/pro-components": "^2.8.10",
-    "@ant-design/v5-patch-for-react-19": "^1.0.3",
-    "antd": "^5.27.5",
+    "antd": "^6.0.0",
     "antd-style": "^3.7.1",
     "classnames": "^2.5.1",
     "dayjs": "^1.11.13",
@@ -44,7 +43,7 @@
     "@types/react": "^19.1.5",
     "@types/react-dom": "^19.1.5",
     "@types/react-helmet": "^6.1.11",
-    "@umijs/max": "^4.3.24",
+    "@umijs/max": "^4.6.0",
     "cross-env": "^7.0.3",
     "express": "^4.21.1",
     "ts-node": "^10.9.2",

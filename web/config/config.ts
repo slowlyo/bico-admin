@@ -27,6 +27,15 @@ const config: ReturnType<typeof defineConfig> = defineConfig({
     publicPath: PUBLIC_PATH,
 
     /**
+     * @name 别名配置
+     * @description antd v6 使用 CSS-in-JS，不再提供 less 文件，用空文件兼容
+     */
+    alias: {
+        "antd/dist/antd.less": join(__dirname, "../src/antd-compat.less"),
+        "antd/es/style/themes/default.less": join(__dirname, "../src/antd-compat.less"),
+    },
+
+    /**
      * @name history 模式配置
      * @description 配置 history 类型和其他相关配置
      * @doc https://umijs.org/docs/api/config#history
@@ -123,6 +132,8 @@ const config: ReturnType<typeof defineConfig> = defineConfig({
      * @doc https://umijs.org/docs/max/antd#antd
      */
     antd: {
+        // antd v6 使用 CSS-in-JS，禁用样式文件导入
+        import: false,
         appConfig: {},
         configProvider: {
             theme: {
