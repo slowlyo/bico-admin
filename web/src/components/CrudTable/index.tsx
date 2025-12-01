@@ -1,8 +1,8 @@
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
-import { Button, Grid, message, Popconfirm, Space } from 'antd';
-import React, { useRef, useState, useMemo, useCallback } from 'react';
+import { Button, message, Popconfirm, Space } from 'antd';
+import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import { useAccess } from '@umijs/max';
 import { PageContainer } from '@/components';
 import { DEFAULT_PAGINATION } from '@/constants';
@@ -68,8 +68,17 @@ function CrudTable<T extends { id: number }>({
   const [modalOpen, setModalOpen] = useState(false);
   const [currentRow, setCurrentRow] = useState<T>();
   const access = useAccess() as Record<string, boolean>;
-  const screens = Grid.useBreakpoint();
-  const isMobile = !screens.md;
+  const [isMobile, setIsMobile] = useState(() => 
+    typeof window !== 'undefined' && window.innerWidth < 768
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(e.matches);
+    handler(mql);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
 
   // 权限 keys
   const perms = useMemo(
