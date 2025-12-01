@@ -1,7 +1,7 @@
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
-import { Button, message, Popconfirm, Space } from 'antd';
+import { Button, Grid, message, Popconfirm, Space } from 'antd';
 import React, { useRef, useState, useMemo, useCallback } from 'react';
 import { useAccess } from '@umijs/max';
 import { PageContainer } from '@/components';
@@ -68,6 +68,8 @@ function CrudTable<T extends { id: number }>({
   const [modalOpen, setModalOpen] = useState(false);
   const [currentRow, setCurrentRow] = useState<T>();
   const access = useAccess() as Record<string, boolean>;
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
 
   // 权限 keys
   const perms = useMemo(
@@ -149,12 +151,12 @@ function CrudTable<T extends { id: number }>({
         title: '操作',
         valueType: 'option' as const,
         width: 150,
-        fixed: 'right' as const,
+        fixed: isMobile ? false : ('right' as const),
         render: (_: any, record: T) =>
           renderActions ? renderActions(record, defaultActions(record)) : defaultActions(record),
       },
     ],
-    [columns, renderActions, defaultActions]
+    [columns, renderActions, defaultActions, isMobile]
   );
 
   return (

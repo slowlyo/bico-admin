@@ -15,7 +15,7 @@ const useStyles = createStyles(({ token }) => {
 });
 
 export type HeaderDropdownProps = {
-  overlayClassName?: string;
+  popupClassName?: string;
   placement?:
     | 'bottomLeft'
     | 'bottomRight'
@@ -26,13 +26,13 @@ export type HeaderDropdownProps = {
 } & Omit<DropDownProps, 'overlay'>;
 
 const HeaderDropdown: React.FC<HeaderDropdownProps> = ({
-  overlayClassName: cls,
+  popupClassName: cls,
   ...restProps
 }) => {
   const { styles } = useStyles();
   return (
     <Dropdown
-      overlayClassName={classNames(styles.dropdown, cls)}
+      classNames={{ root: classNames(styles.dropdown, cls) }}
       {...restProps}
     />
   );

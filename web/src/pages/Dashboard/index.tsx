@@ -22,7 +22,7 @@ const Dashboard: React.FC = () => {
               title="用户总数"
               value={0}
               prefix={<UserOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              styles={{ content: { color: '#3f8600' } }}
             />
           </Card>
         </Col>
@@ -32,7 +32,7 @@ const Dashboard: React.FC = () => {
               title="角色总数"
               value={0}
               prefix={<TeamOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              styles={{ content: { color: '#1890ff' } }}
             />
           </Card>
         </Col>
@@ -42,7 +42,7 @@ const Dashboard: React.FC = () => {
               title="权限总数"
               value={0}
               prefix={<SafetyOutlined />}
-              valueStyle={{ color: '#cf1322' }}
+              styles={{ content: { color: '#cf1322' } }}
             />
           </Card>
         </Col>
