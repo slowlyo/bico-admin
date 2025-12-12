@@ -48,10 +48,11 @@ type (
 		RoleIDs  []uint `json:"roleIds"`
 	}
 	updateUserReq struct {
-		Name    string `json:"name"`
-		Avatar  string `json:"avatar"`
-		Enabled *bool  `json:"enabled"`
-		RoleIDs []uint `json:"roleIds"`
+		Name     string `json:"name"`
+		Avatar   string `json:"avatar"`
+		Enabled  *bool  `json:"enabled"`
+		RoleIDs  []uint `json:"roleIds"`
+		Password string `json:"password"`
 	}
 )
 
@@ -145,6 +146,13 @@ func (h *AdminUserHandler) Update(c *gin.Context) {
 		}
 		if req.Avatar != "" {
 			updates["avatar"] = req.Avatar
+		}
+		if req.Password != "" {
+			hashed, err := password.Hash(req.Password)
+			if err != nil {
+				return err
+			}
+			updates["password"] = hashed
 		}
 		if req.Enabled != nil {
 			updates["enabled"] = *req.Enabled

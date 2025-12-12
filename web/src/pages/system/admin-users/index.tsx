@@ -3,7 +3,7 @@
  */
 import type { ProColumns } from '@ant-design/pro-components';
 import { ProFormText, ProFormSwitch, ProFormSelect } from '@ant-design/pro-components';
-import { Avatar, Tag, Space, Upload, Button, message } from 'antd';
+import { Avatar, Tag, Space, Upload, Button, message, Form } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import React, { useState, useEffect } from 'react';
 import { CrudTable } from '@/components';
@@ -59,6 +59,7 @@ const columns: ProColumns<AdminUser>[] = [
 const FormContent: React.FC<{ record?: AdminUser }> = ({ record }) => {
   const isEdit = !!record;
   const [avatarUrl, setAvatarUrl] = useState('');
+  const form = Form.useFormInstance();
 
   useEffect(() => {
     setAvatarUrl(record?.avatar || `https://api.dicebear.com/9.x/thumbs/png?seed=${Math.random()}`);
@@ -73,8 +74,9 @@ const FormContent: React.FC<{ record?: AdminUser }> = ({ record }) => {
         </>
       )}
       <ProFormText name="name" label="姓名" placeholder="请输入姓名" />
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ marginBottom: 8, fontWeight: 500 }}>头像</div>
+      <ProFormText name="avatar" hidden />
+      <Space direction="vertical" size={8} style={{ marginBottom: 24 }}>
+        <div style={{ fontWeight: 500 }}>头像</div>
         <Space size={16}>
           <Avatar src={avatarUrl} size={64} />
           <Upload
@@ -87,6 +89,8 @@ const FormContent: React.FC<{ record?: AdminUser }> = ({ record }) => {
                 const url = info.file.response?.data?.url;
                 if (url) {
                   setAvatarUrl(url);
+                  // 头像上传成功后，同步写入表单字段，确保提交时能更新
+                  form?.setFieldValue('avatar', url);
                   message.success('上传成功');
                 }
               } else if (info.file.status === 'error') {
@@ -97,7 +101,7 @@ const FormContent: React.FC<{ record?: AdminUser }> = ({ record }) => {
             <Button icon={<UploadOutlined />}>上传头像</Button>
           </Upload>
         </Space>
-      </div>
+      </Space>
       <ProFormSelect
         name="roleIds"
         label="角色"
@@ -108,6 +112,7 @@ const FormContent: React.FC<{ record?: AdminUser }> = ({ record }) => {
         }}
       />
       <ProFormSwitch name="enabled" label="状态" initialValue={true} />
+      {isEdit && <ProFormText.Password name="password" label="新密码" placeholder="不修改请留空" />}
     </>
   );
 };
