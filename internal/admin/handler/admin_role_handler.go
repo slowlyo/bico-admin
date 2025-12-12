@@ -40,8 +40,9 @@ func (h *AdminRoleHandler) ModuleConfig() crud.ModuleConfig {
 // 请求结构
 type (
 	roleListReq struct {
-		Name, Code string
-		Enabled    *bool
+		Name    string `form:"name"`
+		Code    string `form:"code"`
+		Enabled *bool  `form:"enabled"`
 	}
 	createRoleReq struct {
 		Name, Code, Description string
@@ -72,13 +73,40 @@ func (h *AdminRoleHandler) List(c *gin.Context) {
 		query = query.Where("enabled = ?", *req.Enabled)
 	}
 
-	var roles []model.AdminRole
-	h.QueryList(c, query, &roles)
+	pg := h.GetPagination(c)
 
-	// 补充权限信息
-	for i := range roles {
-		roles[i].Permissions, _ = h.getPerms(roles[i].ID)
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		h.Error(c, err.Error())
+		return
 	}
+
+	if orderBy := pg.GetOrderBy(); orderBy != "" {
+		query = query.Order(orderBy)
+	} else {
+		query = query.Order("created_at DESC")
+	}
+
+	var roles []model.AdminRole
+	if err := query.Offset(pg.GetOffset()).Limit(pg.GetPageSize()).Find(&roles).Error; err != nil {
+		h.Error(c, err.Error())
+		return
+	}
+
+	roleIDs := make([]uint, 0, len(roles))
+	for i := range roles {
+		roleIDs = append(roleIDs, roles[i].ID)
+	}
+	permsMap, err := h.getPermsMap(roleIDs)
+	if err != nil {
+		h.Error(c, err.Error())
+		return
+	}
+	for i := range roles {
+		roles[i].Permissions = permsMap[roles[i].ID]
+	}
+
+	h.SuccessWithPagination(c, roles, total)
 }
 
 func (h *AdminRoleHandler) Get(c *gin.Context) {
@@ -222,6 +250,30 @@ func (h *AdminRoleHandler) getPerms(roleID uint) ([]string, error) {
 	var perms []string
 	err := h.db.Model(&model.AdminRolePermission{}).Where("role_id = ?", roleID).Pluck("permission", &perms).Error
 	return perms, err
+}
+
+func (h *AdminRoleHandler) getPermsMap(roleIDs []uint) (map[uint][]string, error) {
+	permsMap := make(map[uint][]string)
+	if len(roleIDs) == 0 {
+		return permsMap, nil
+	}
+
+	type row struct {
+		RoleID     uint
+		Permission string
+	}
+	var rows []row
+	err := h.db.Model(&model.AdminRolePermission{}).
+		Select("role_id, permission").
+		Where("role_id IN ?", roleIDs).
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		permsMap[r.RoleID] = append(permsMap[r.RoleID], r.Permission)
+	}
+	return permsMap, nil
 }
 
 func (h *AdminRoleHandler) savePerms(tx *gorm.DB, roleID uint, perms []string) error {
