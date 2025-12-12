@@ -108,8 +108,8 @@ func provideDatabase(cfg *config.Config, zapLogger *zap.Logger) (*gorm.DB, error
 }
 
 // provideGinEngine 提供 Gin 引擎
-func provideGinEngine(cfg *config.Config, rateLimiter *middleware.RateLimiter) *gin.Engine {
-	return server.NewServer(&cfg.Server, rateLimiter)
+func provideGinEngine(cfg *config.Config, rateLimiter *middleware.RateLimiter, zapLogger *zap.Logger) *gin.Engine {
+	return server.NewServer(&cfg.Server, rateLimiter, zapLogger)
 }
 
 // provideCache 提供缓存实例
