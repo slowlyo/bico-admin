@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"bico-admin/internal/pkg/jwt"
 	"bico-admin/internal/pkg/response"
 	"strings"
 
@@ -8,7 +9,7 @@ import (
 )
 
 // JWTAuth JWT认证中间件
-func JWTAuth(jwtManager interface{}, authService interface{}) gin.HandlerFunc {
+func JWTAuth(jwtManager *jwt.JWTManager, authService interface{ IsTokenBlacklisted(token string) bool }) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 获取 Authorization header
 		authHeader := c.GetHeader("Authorization")
@@ -29,30 +30,29 @@ func JWTAuth(jwtManager interface{}, authService interface{}) gin.HandlerFunc {
 		token := parts[1]
 
 		// 检查 token 是否在黑名单中
-		if authService.(interface {
-			IsTokenBlacklisted(token string) bool
-		}).IsTokenBlacklisted(token) {
+		if authService.IsTokenBlacklisted(token) {
 			response.ErrorWithCode(c, 401, "token 已失效")
 			c.Abort()
 			return
 		}
 
 		// 验证 token
-		claims, err := jwtManager.(interface {
-			ValidateToken(token string) (map[string]interface{}, error)
-		}).ValidateToken(token)
+		claims, err := jwtManager.ParseToken(token)
 
 		if err != nil {
 			response.ErrorWithCode(c, 401, "token 无效或已过期")
 			c.Abort()
 			return
 		}
-
-		userID := uint(claims["user_id"].(float64))
+		if claims == nil || claims.UserID == 0 || claims.Username == "" {
+			response.ErrorWithCode(c, 401, "token 无效")
+			c.Abort()
+			return
+		}
 
 		// 将用户信息存入上下文
-		c.Set("user_id", userID)
-		c.Set("username", claims["username"].(string))
+		c.Set("user_id", claims.UserID)
+		c.Set("username", claims.Username)
 
 		c.Next()
 	}

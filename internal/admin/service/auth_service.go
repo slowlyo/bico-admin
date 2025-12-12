@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"bico-admin/internal/admin/model"
+	"bico-admin/internal/core/cache"
 	"bico-admin/internal/pkg/crud"
+	"bico-admin/internal/pkg/jwt"
 	"bico-admin/internal/pkg/password"
 
 	"gorm.io/gorm"
@@ -65,12 +67,12 @@ type IAuthService interface {
 // AuthService 认证服务
 type AuthService struct {
 	db         *gorm.DB
-	jwtManager interface{}
-	cache      interface{}
+	jwtManager *jwt.JWTManager
+	cache      cache.Cache
 }
 
 // NewAuthService 创建认证服务
-func NewAuthService(db *gorm.DB, jwtManager interface{}, cache interface{}) *AuthService {
+func NewAuthService(db *gorm.DB, jwtManager *jwt.JWTManager, cache cache.Cache) *AuthService {
 	return &AuthService{
 		db:         db,
 		jwtManager: jwtManager,
@@ -102,10 +104,7 @@ func (s *AuthService) Login(req interface{}) (interface{}, error) {
 		return nil, ErrInvalidPassword
 	}
 
-	jwtMgr := s.jwtManager.(interface {
-		GenerateToken(userID uint, username string) (string, error)
-	})
-	token, err := jwtMgr.GenerateToken(user.ID, user.Username)
+	token, err := s.jwtManager.GenerateToken(user.ID, user.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -123,17 +122,13 @@ func (s *AuthService) Logout(token string) error {
 
 	blacklistKey := "token:blacklist:" + token
 	// 设置 token 黑名单，过期时间 7 天
-	return s.cache.(interface {
-		Set(key string, value interface{}, expiration time.Duration) error
-	}).Set(blacklistKey, true, 7*24*time.Hour)
+	return s.cache.Set(blacklistKey, true, 7*24*time.Hour)
 }
 
 // IsTokenBlacklisted 检查 token 是否在黑名单中
 func (s *AuthService) IsTokenBlacklisted(token string) bool {
 	blacklistKey := "token:blacklist:" + token
-	return s.cache.(interface {
-		Exists(key string) bool
-	}).Exists(blacklistKey)
+	return s.cache.Exists(blacklistKey)
 }
 
 // GetUserByID 根据用户ID获取用户信息
