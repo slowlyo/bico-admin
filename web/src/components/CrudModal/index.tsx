@@ -82,7 +82,7 @@ function CrudModal<T extends { id: number } = any>({
       }}
       {...rest}
     >
-      {children}
+      {React.isValidElement(children) ? React.cloneElement(children as any, { record }) : children}
     </ModalForm>
   );
 }
