@@ -29,7 +29,7 @@ tidy:
 
 install:
 	@echo "📦 安装前端依赖..."
-	@cd web && npm install
+	@cd web && pnpm install
 	@echo "✅ 前端依赖安装完成"
 
 migrate:
