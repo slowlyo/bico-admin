@@ -24,7 +24,7 @@ func InitDB(cfg *config.DatabaseConfig, zapLogger *zap.Logger, isDebug bool) (*g
 
 	switch cfg.Driver {
 	case "sqlite":
-		dialector = buildSQLiteDialector(cfg)
+		dialector = buildSQLiteDialector(cfg, zapLogger)
 	case "mysql":
 		dialector = buildMySQLDialector(cfg)
 	case "postgres":
@@ -68,7 +68,7 @@ func InitDB(cfg *config.DatabaseConfig, zapLogger *zap.Logger, isDebug bool) (*g
 }
 
 // buildSQLiteDialector 构建 SQLite 驱动配置
-func buildSQLiteDialector(cfg *config.DatabaseConfig) gorm.Dialector {
+func buildSQLiteDialector(cfg *config.DatabaseConfig, zapLogger *zap.Logger) gorm.Dialector {
 	dbPath := cfg.SQLite.Path
 	if dbPath == "" {
 		dbPath = "data.db"
@@ -78,7 +78,9 @@ func buildSQLiteDialector(cfg *config.DatabaseConfig) gorm.Dialector {
 	dir := filepath.Dir(dbPath)
 	if dir != "" && dir != "." {
 		if err := os.MkdirAll(dir, 0755); err != nil {
-			fmt.Printf("创建数据库目录失败: %v\n", err)
+			if zapLogger != nil {
+				zapLogger.Warn("创建数据库目录失败", zap.String("dir", dir), zap.Error(err))
+			}
 		}
 	}
 

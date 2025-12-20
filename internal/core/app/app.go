@@ -70,9 +70,9 @@ func (a *App) Run() error {
 
 	// 启动服务器
 	go func() {
-		fmt.Printf("🚀 服务启动成功，监听端口: %s\n", addr)
+		a.logger.Info("服务启动成功", zap.String("addr", addr))
 		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("❌ 服务启动失败: %v\n", err)
+			a.logger.Error("服务启动失败", zap.Error(err))
 			os.Exit(1)
 		}
 	}()
@@ -89,7 +89,7 @@ func (a *App) gracefulShutdown() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	fmt.Println("🛑 正在关闭服务...")
+	a.logger.Info("正在关闭服务")
 
 	// 停止定时任务调度器
 	a.scheduler.Stop()
@@ -115,7 +115,7 @@ func (a *App) gracefulShutdown() {
 	defer cancel()
 
 	if err := a.server.Shutdown(ctx); err != nil {
-		fmt.Printf("❌ 服务关闭异常: %v\n", err)
+		a.logger.Error("服务关闭异常", zap.Error(err))
 	}
 
 	// 同步日志
@@ -123,5 +123,5 @@ func (a *App) gracefulShutdown() {
 		// 忽略 sync 错误（stdout/stderr 在某些系统上会报错）
 	}
 
-	fmt.Println("👋 服务已关闭")
+	a.logger.Info("服务已关闭")
 }

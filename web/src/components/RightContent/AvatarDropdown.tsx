@@ -9,6 +9,7 @@ import { createStyles } from 'antd-style';
 import React from 'react';
 import { flushSync } from 'react-dom';
 import { logout } from '@/services/auth';
+import { buildLoginUrl, getCurrentPathWithSearch, LOGIN_PATH } from '@/utils/redirect';
 import HeaderDropdown from '../HeaderDropdown';
 
 export type GlobalHeaderRightProps = {
@@ -58,17 +59,9 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
       localStorage.removeItem('token');
       localStorage.removeItem('currentUser');
       
-      const { search, pathname } = window.location;
-      const searchParams = new URLSearchParams({
-        redirect: pathname + search,
-      });
-      
       // 跳转到登录页
-      if (window.location.pathname !== '/auth/login') {
-        history.replace({
-          pathname: '/auth/login',
-          search: searchParams.toString(),
-        });
+      if (history.location.pathname !== LOGIN_PATH) {
+        history.replace(buildLoginUrl(getCurrentPathWithSearch()));
       }
     }
   };

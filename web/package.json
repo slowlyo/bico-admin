@@ -43,7 +43,7 @@
     "@types/react": "^19.1.5",
     "@types/react-dom": "^19.1.5",
     "@types/react-helmet": "^6.1.11",
-    "@umijs/max": "^4.6.0",
+    "@umijs/max": "^4.6.9",
     "cross-env": "^7.0.3",
     "express": "^4.21.1",
     "ts-node": "^10.9.2",

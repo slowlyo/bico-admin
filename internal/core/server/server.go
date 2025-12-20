@@ -23,7 +23,7 @@ func NewServer(cfg *config.ServerConfig, rateLimiter *middleware.RateLimiter, za
 
 	engine := gin.New()
 	engine.Use(zapRecovery(zapLogger))
-	engine.Use(zapAccessLogger(zapLogger))
+	engine.Use(zapAccessLogger(zapLogger, cfg.Mode == "debug"))
 
 	// 添加 CORS 中间件
 	engine.Use(middleware.CORS())
@@ -36,7 +36,7 @@ func NewServer(cfg *config.ServerConfig, rateLimiter *middleware.RateLimiter, za
 	return engine
 }
 
-func zapAccessLogger(logger *zap.Logger) gin.HandlerFunc {
+func zapAccessLogger(logger *zap.Logger, isDebug bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
@@ -73,6 +73,9 @@ func zapAccessLogger(logger *zap.Logger) gin.HandlerFunc {
 		}
 		if status >= 400 {
 			logger.Warn("http", fields...)
+			return
+		}
+		if !isDebug {
 			return
 		}
 		logger.Info("http", fields...)

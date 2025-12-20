@@ -2,8 +2,10 @@ package logger
 
 import (
 	"os"
+	"time"
 
 	"bico-admin/internal/core/config"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -15,7 +17,7 @@ var Logger *zap.Logger
 func InitLogger(cfg *config.LogConfig) (*zap.Logger, error) {
 	// 解析日志级别
 	level := parseLevel(cfg.Level)
-	
+
 	// 解析日志格式
 	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:        "time",
@@ -26,11 +28,11 @@ func InitLogger(cfg *config.LogConfig) (*zap.Logger, error) {
 		StacktraceKey:  "stacktrace",
 		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeLevel:    zapcore.LowercaseLevelEncoder,
-		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeTime:     humanTimeEncoder,
 		EncodeDuration: zapcore.SecondsDurationEncoder,
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
-	
+
 	var encoder zapcore.Encoder
 	if cfg.Format == "json" {
 		encoder = zapcore.NewJSONEncoder(encoderConfig)
@@ -39,19 +41,23 @@ func InitLogger(cfg *config.LogConfig) (*zap.Logger, error) {
 		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		encoder = zapcore.NewConsoleEncoder(encoderConfig)
 	}
-	
+
 	// 解析输出位置
 	writer := parseOutput(cfg.Output)
-	
+
 	core := zapcore.NewCore(encoder, writer, level)
-	
+
 	// 添加调用者信息
 	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
-	
+
 	// 设置全局实例
 	Logger = logger
-	
+
 	return logger, nil
+}
+
+func humanTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString(t.Format("06/01/02 15:04:05"))
 }
 
 // parseLevel 解析日志级别

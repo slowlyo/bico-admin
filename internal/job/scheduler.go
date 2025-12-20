@@ -21,7 +21,7 @@ type Scheduler struct {
 // NewScheduler 创建调度器
 func NewScheduler(logger *zap.Logger) *Scheduler {
 	return &Scheduler{
-		cron: cron.New(cron.WithSeconds()), // 支持秒级调度
+		cron:   cron.New(cron.WithSeconds()), // 支持秒级调度
 		logger: logger,
 	}
 }
@@ -30,7 +30,7 @@ func NewScheduler(logger *zap.Logger) *Scheduler {
 func (s *Scheduler) AddTask(spec string, task Task, name string) error {
 	_, err := s.cron.AddFunc(spec, func() {
 		s.logger.Info("定时任务开始执行", zap.String("task", name))
-		
+
 		if err := task.Run(); err != nil {
 			s.logger.Error("定时任务执行失败",
 				zap.String("task", name),
@@ -40,16 +40,16 @@ func (s *Scheduler) AddTask(spec string, task Task, name string) error {
 			s.logger.Info("定时任务执行成功", zap.String("task", name))
 		}
 	})
-	
+
 	if err != nil {
 		return fmt.Errorf("添加任务失败: %w", err)
 	}
-	
+
 	s.logger.Info("定时任务已注册",
 		zap.String("task", name),
 		zap.String("schedule", spec),
 	)
-	
+
 	return nil
 }
 

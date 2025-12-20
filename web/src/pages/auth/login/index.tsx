@@ -9,6 +9,7 @@ import {
     FormattedMessage,
     Helmet,
     // SelectLang,
+    history,
     useIntl,
     useModel,
 } from "@umijs/max";
@@ -19,6 +20,7 @@ import { flushSync } from "react-dom";
 import { Footer } from "@/components";
 import { login, getCaptcha } from '@/services/auth';
 import { saveCredentials, getCredentials, clearCredentials } from '@/utils/crypto';
+import { getSafeRedirectFromSearch } from '@/utils/redirect';
 
 const useStyles = createStyles(({ token }) => {
     return {
@@ -81,6 +83,8 @@ const Login: React.FC = () => {
     
     const appName = initialState?.appConfig?.name || 'Bico Admin';
     const appLogo = initialState?.appConfig?.logo || '/logo.png';
+
+    const getRedirectPath = () => getSafeRedirectFromSearch(history.location.search);
     
     // 检查是否已登录，已登录则自动跳转
     React.useEffect(() => {
@@ -88,11 +92,7 @@ const Login: React.FC = () => {
         
         if (token) {
             // 已登录，获取重定向地址或跳转首页
-            const urlParams = new URL(window.location.href).searchParams;
-            const redirect = urlParams.get('redirect') || '/';
-            
-            // 使用 history.push 而不是 window.location.href，避免整页刷新
-            window.location.href = redirect;
+            history.replace(getRedirectPath());
         }
     }, []);
     
@@ -170,8 +170,7 @@ const Login: React.FC = () => {
             message.success(defaultLoginSuccessMessage);
             
             // 跳转到重定向页面或首页
-            const urlParams = new URL(window.location.href).searchParams;
-            window.location.href = urlParams.get("redirect") || "/";
+            history.replace(getRedirectPath());
         } catch (error: any) {
             // 响应拦截器已将后端错误信息放到 error.message 中
             setUserLoginState({ 

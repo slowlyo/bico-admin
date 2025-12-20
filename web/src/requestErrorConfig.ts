@@ -1,6 +1,7 @@
 import type { RequestOptions } from '@@/plugin-request/request';
 import type { RequestConfig } from '@umijs/max';
-import { message, notification } from 'antd';
+import { message } from 'antd';
+import { buildLoginUrl, getCurrentPathWithSearch, LOGIN_PATH } from '@/utils/redirect';
 
 // 错误处理方案： 错误类型
 enum ErrorShowType {
@@ -93,12 +94,12 @@ export const errorConfig: RequestConfig = {
         // code !== 0 表示业务错误
         if (apiResponse.code !== 0) {
           // 401 未授权（包括 token 失效、账户被禁用等），清除 token 并跳转登录
-          if (apiResponse.code === 401 && window.location.pathname !== '/auth/login') {
+          if (apiResponse.code === 401 && window.location.pathname !== LOGIN_PATH) {
             message.error(apiResponse.msg || '未授权，请重新登录');
             localStorage.removeItem('token');
             localStorage.removeItem('currentUser');
             setTimeout(() => {
-              window.location.href = '/auth/login';
+              window.location.href = buildLoginUrl(getCurrentPathWithSearch());
             }, 1000);
             const error: any = new Error(apiResponse.msg || '未授权');
             error.name = 'BizError';

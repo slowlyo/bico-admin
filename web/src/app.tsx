@@ -3,13 +3,13 @@ import { SettingDrawer } from "@ant-design/pro-components";
 import type { RequestConfig, RunTimeLayoutConfig } from "@umijs/max";
 import { history } from "@umijs/max";
 import React from "react";
-import { AvatarDropdown, AvatarName, Footer, SelectLang } from "@/components";
+import { AvatarDropdown, AvatarName, Footer } from "@/components";
 import { getCurrentUser as fetchCurrentUser } from "@/services/auth";
 import { getAppConfig } from "@/services/common";
+import { buildLoginUrl, getCurrentPathWithSearch, LOGIN_PATH } from "@/utils/redirect";
 import defaultSettings from "../config/defaultSettings";
 import { errorConfig } from "./requestErrorConfig";
-const isDev = process.env.NODE_ENV === "development";
-const loginPath = "/auth/login";
+const loginPath = LOGIN_PATH;
 
 /**
  * @see https://umijs.org/docs/api/runtime-config#getinitialstate
@@ -63,8 +63,8 @@ export async function getInitialState(): Promise<{
     }
 
     // 如果不是登录页面，执行
-    const { location } = history;
-    if (location.pathname !== loginPath) {
+    const { pathname } = window.location;
+    if (pathname !== loginPath) {
         const currentUser = await fetchUserInfo();
         return {
             fetchUserInfo,
@@ -107,10 +107,10 @@ export const layout: RunTimeLayoutConfig = ({
         // },
         footerRender: () => <Footer />,
         onPageChange: () => {
-            const { location } = history;
+            const { pathname } = history.location;
             // 如果没有登录，重定向到 login
-            if (!initialState?.currentUser && location.pathname !== loginPath) {
-                history.push(loginPath);
+            if (!initialState?.currentUser && pathname !== loginPath) {
+                history.replace(buildLoginUrl(getCurrentPathWithSearch()));
             }
         },
         bgLayoutImgList: [
