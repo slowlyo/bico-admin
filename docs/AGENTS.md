@@ -441,7 +441,6 @@ curl http://localhost:8080/admin-api/articles \
 
 ### 核心文件
 - `internal/core/app/context.go` - AppContext 构建 + 模块注册
-- `internal/core/app/container.go` - 旧 DI 入口（已废弃）
 - `internal/admin/consts/permissions.go` - 权限定义
 - `internal/admin/router.go` - 后台路由
 - `internal/migrate/migrate.go` - 数据库迁移

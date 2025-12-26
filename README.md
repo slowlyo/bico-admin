@@ -111,7 +111,7 @@ return []crud.Module{
 }
 ```
 
-**完成！** 无需修改 `router.go`、`container.go` 或其他 core 文件。
+**完成！** 无需修改 `router.go` 或其他 core 文件。
 
 详细文档见 [CRUD 包文档](./docs/crud-pkg.md)
 
