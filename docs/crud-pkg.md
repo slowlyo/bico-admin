@@ -65,6 +65,69 @@ func (h *ArticleHandler) Delete(c *gin.Context) { /* ... */ }
 var _ crud.Module = (*ArticleHandler)(nil)
 ```
 
+### 最小示例（推荐：CRUDHandler）
+
+当业务是标准 CRUD 且差异点可通过 hook 表达时，推荐直接使用 `CRUDHandler`：
+
+```go
+package handler
+
+import (
+	"bico-admin/internal/admin/model"
+	"bico-admin/internal/pkg/crud"
+	"errors"
+
+	"gorm.io/gorm"
+)
+
+var articlePerms = crud.NewCRUDPerms("system", "article", "文章管理")
+
+type ArticleHandler struct {
+	crud.CRUDHandler[model.Article, articleListReq, articleCreateReq, articleUpdateReq]
+}
+
+func NewArticleHandler(db *gorm.DB) *ArticleHandler {
+	h := &ArticleHandler{}
+	h.DB = db
+	h.NotFoundMsg = "文章不存在"
+
+	h.BuildListQuery = func(db *gorm.DB, req *articleListReq) *gorm.DB {
+		return db.Model(&model.Article{})
+	}
+
+	h.NewModelFromCreate = func(req *articleCreateReq) (*model.Article, error) {
+		if req.Title == "" {
+			return nil, errors.New("标题不能为空")
+		}
+		return &model.Article{Title: req.Title}, nil
+	}
+
+	h.BuildUpdates = func(req *articleUpdateReq, existing *model.Article) (map[string]interface{}, error) {
+		updates := map[string]interface{}{}
+		if req.Title != "" {
+			updates["title"] = req.Title
+		}
+		return updates, nil
+	}
+
+	return h
+}
+
+func (h *ArticleHandler) ModuleConfig() crud.ModuleConfig {
+	return crud.ModuleConfig{
+		Name:             "article",
+		Group:            "/articles",
+		ParentPermission: PermSystemManage,
+		Permissions:      articlePerms.Tree,
+		Routes:           articlePerms.Routes(),
+	}
+}
+
+var _ crud.Module = (*ArticleHandler)(nil)
+```
+
+说明：示例为突出 `CRUDHandler` 的配置方式，省略了请求结构体定义与完整校验。
+
 完成！接下来在模块入口（例如 `internal/admin/module.go`）把该模块加入模块列表：
 
 ```go
@@ -311,6 +374,11 @@ crud.PermRoute("DELETE", "/:id", "Delete", "system:article:delete")
 // 数组去重
 ids := crud.UniqueUints([]uint{1, 2, 2, 3})  // [1, 2, 3]
 
+// 判断记录是否存在（常用于唯一性校验）
+exists, err := crud.Exists(db, &model.AdminUser{}, "username = ?", "admin")
+if err != nil { /* ... */ }
+if exists { /* ... */ }
+
 // 获取所有权限
 crud.GetAllPermissions()     // []Permission
 crud.GetAllPermissionKeys()  // []string
@@ -318,99 +386,165 @@ crud.GetAllPermissionKeys()  // []string
 
 ---
 
-## 完整示例
+## CRUDHandler 完整示例（推荐）
 
-参考 `internal/admin/handler/admin_user_handler.go` + `internal/admin/module.go`：
+参考 `internal/admin/handler/admin_user_handler.go` + `internal/admin/module.go`。
+
+`CRUDHandler` 是在 `BaseHandler` 之上进一步封装的“配置式 CRUD”。
+
+核心目标：
+
+- **单个 handler 文件尽量少代码**完成完整 CRUD
+- CRUD 的通用流程（参数绑定、ID 解析、事务、统一响应）下沉到框架
+- 业务差异通过一组 hook 注入（例如 preload、唯一性校验、关联表同步、回填字段）
+
+### 适用场景
+
+- 数据表具备标准 `List/Get/Create/Update/Delete`
+- 需要在 CRUD 内做少量业务差异（例如密码加密、关联表写入、二次回填）
+
+不适用场景：
+
+- 认证、上传等强业务流程（建议继续用普通 handler + service）
+
+### 常用配置字段
+
+| 字段 | 说明 |
+|------|------|
+| `DB` | 必填，GORM DB |
+| `NotFoundMsg` | 404 文案，如“用户不存在” |
+| `CreateSuccessMsg` / `UpdateSuccessMsg` / `DeleteSuccessMsg` | 成功提示文案（不配默认“创建成功/更新成功/删除成功”） |
+| `EnabledField` | 启用字段名（默认 `enabled`） |
+| `EnabledSuccessMsg` | 启用/禁用成功提示（默认“更新成功”） |
+
+### 常用 hook（按使用频率）
+
+| hook | 说明 |
+|------|------|
+| `BuildListQuery(db, req)` | 构建列表查询（必填） |
+| `BuildGetQuery(db)` | 构建详情查询（可选，常用于 `Preload`） |
+| `NewModelFromCreate(req)` | Create 请求转模型 + 业务校验（必填） |
+| `BuildUpdates(req, existing)` | Update 请求转 `updates map` + 业务校验（必填） |
+| `CreateInTx(tx, item, req)` | 创建事务内扩展逻辑（写关联表等） |
+| `UpdateInTx(tx, id, existing, req)` | 更新事务内扩展逻辑（同步关联表等） |
+| `DeleteInTx(tx, id)` | 删除事务内扩展逻辑（清理关联表） |
+| `AfterList(items)` | 列表返回前二次处理（回填权限、统计字段等） |
+| `AfterGet(item)` | 详情返回前二次处理 |
+| `ReloadAfterCreate(tx, id, item)` | 创建后重新加载（需要 preload 返回） |
+| `ReloadAfterUpdate(tx, id, existing)` | 更新后重新加载（需要 preload 返回） |
+| `DeleteBatchInTx(tx, ids)` | 批量删除事务内扩展逻辑（可选，避免循环 I/O） |
+
+### 扩展方法
+
+#### 1) UpdateEnabled（通用启用/禁用）
+
+方法：`UpdateEnabled(c)`
+
+- 请求体：`{"enabled": true}`
+- 默认更新字段：`enabled`
+- 可通过 `EnabledField` 修改字段名
+
+路由示例：
+
+```go
+crud.Route{Method: "PATCH", Path: "/:id/enabled", Handler: "UpdateEnabled", Permission: perms.Edit}
+```
+
+#### 2) DeleteBatch（批量删除）
+
+方法：`DeleteBatch(c)`
+
+- 请求体：`{"ids": [1,2,3]}`
+- 自动去重
+- 可通过 `DeleteBatchInTx` 统一清理关联表（避免循环中执行 I/O）
+
+路由示例：
+
+```go
+crud.Route{Method: "DELETE", Path: "/batch", Handler: "DeleteBatch", Permission: perms.Delete}
+```
+
+### Exists（通用存在性判断）
+
+用于唯一性校验：
+
+```go
+exists, err := crud.Exists(db, &model.AdminUser{}, "username = ?", req.Username)
+if err != nil { return nil, err }
+if exists { return nil, errors.New("用户名已存在") }
+```
 
 ```go
 package handler
 
 import (
-    "bico-admin/internal/admin/model"
-    "bico-admin/internal/pkg/crud"
-    "bico-admin/internal/pkg/password"
-    "github.com/gin-gonic/gin"
-    "gorm.io/gorm"
+	"bico-admin/internal/admin/model"
+	"bico-admin/internal/pkg/crud"
+	"bico-admin/internal/pkg/password"
+	"errors"
+
+	"gorm.io/gorm"
 )
 
 var userPerms = crud.NewCRUDPerms("system", "admin_user", "用户管理")
 
 type AdminUserHandler struct {
-    crud.BaseHandler
-    db *gorm.DB
+	crud.CRUDHandler[model.AdminUser, userListReq, createUserReq, updateUserReq]
 }
 
 func NewAdminUserHandler(db *gorm.DB) *AdminUserHandler {
-    return &AdminUserHandler{db: db}
+	h := &AdminUserHandler{}
+	h.DB = db
+	h.NotFoundMsg = "用户不存在"
+
+	h.BuildListQuery = func(db *gorm.DB, req *userListReq) *gorm.DB {
+		query := db.Model(&model.AdminUser{}).Preload("Roles")
+		if req.Username != "" {
+			query = query.Where("username LIKE ?", "%"+req.Username+"%")
+		}
+		if req.Name != "" {
+			query = query.Where("name LIKE ?", "%"+req.Name+"%")
+		}
+		if req.Enabled != nil {
+			query = query.Where("enabled = ?", *req.Enabled)
+		}
+		return query
+	}
+
+	h.BuildGetQuery = func(db *gorm.DB) *gorm.DB {
+		return db.Model(&model.AdminUser{}).Preload("Roles")
+	}
+
+	h.NewModelFromCreate = func(req *createUserReq) (*model.AdminUser, error) {
+		exists, err := crud.Exists(db, &model.AdminUser{}, "username = ?", req.Username)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			return nil, errors.New("用户名已存在")
+		}
+
+		hashed, err := password.Hash(req.Password)
+		if err != nil {
+			return nil, err
+		}
+		return &model.AdminUser{Username: req.Username, Password: hashed}, nil
+	}
+
+	return h
 }
+
+// 说明：示例为突出 CRUDHandler 的配置方式，省略了请求结构体、关联表同步等完整实现。
+// 真实项目请参考现有 AdminUser/AdminRole Handler。
 
 func (h *AdminUserHandler) ModuleConfig() crud.ModuleConfig {
-    return crud.ModuleConfig{
-        Name:             "admin_user",
-        Group:            "/admin-users",
-        ParentPermission: PermSystemManage,
-        Permissions:      userPerms.Tree,
-        Routes:           userPerms.Routes(),
-    }
-}
-
-type (
-    userListReq   struct { Username, Name string; Enabled *bool }
-    createUserReq struct { Username, Password, Name, Avatar string; Enabled *bool; RoleIDs []uint }
-    updateUserReq struct { Name, Avatar string; Enabled *bool; RoleIDs []uint }
-)
-
-func (h *AdminUserHandler) List(c *gin.Context) {
-    var req userListReq
-    h.BindQuery(c, &req)
-
-    query := h.db.Model(&model.AdminUser{}).Preload("Roles")
-    if req.Username != "" {
-        query = query.Where("username LIKE ?", "%"+req.Username+"%")
-    }
-    if req.Name != "" {
-        query = query.Where("name LIKE ?", "%"+req.Name+"%")
-    }
-    if req.Enabled != nil {
-        query = query.Where("enabled = ?", *req.Enabled)
-    }
-
-    var users []model.AdminUser
-    h.QueryList(c, query, &users)
-}
-
-func (h *AdminUserHandler) Get(c *gin.Context) {
-    id, err := h.ParseID(c)
-    if err != nil {
-        return
-    }
-    var user model.AdminUser
-    if h.QueryOne(c, h.db.Preload("Roles").Where("id = ?", id), &user, "用户不存在") {
-        h.Success(c, user)
-    }
-}
-
-func (h *AdminUserHandler) Create(c *gin.Context) {
-    var req createUserReq
-    if err := h.BindJSON(c, &req); err != nil {
-        return
-    }
-    // ... 业务逻辑
-    h.ExecTx(c, h.db, func(tx *gorm.DB) error {
-        // 创建用户
-        return nil
-    }, "创建成功", user)
-}
-
-func (h *AdminUserHandler) Update(c *gin.Context) {
-    // ... 类似逻辑
-}
-
-func (h *AdminUserHandler) Delete(c *gin.Context) {
-    id, _ := h.ParseID(c)
-    h.ExecTx(c, h.db, func(tx *gorm.DB) error {
-        return tx.Delete(&model.AdminUser{}, id).Error
-    }, "删除成功", nil)
+	return crud.ModuleConfig{
+		Name:             "admin_user",
+		Group:            "/admin-users",
+		ParentPermission: PermSystemManage,
+		Permissions:      userPerms.Tree,
+		Routes:           userPerms.Routes(),
+	}
 }
 
 var _ crud.Module = (*AdminUserHandler)(nil)
@@ -446,8 +580,8 @@ var _ crud.Module = (*AdminUserHandler)(nil)
 ## 最佳实践
 
 1. **一个功能一个文件** - Handler 包含权限、路由、业务逻辑
-2. **使用 CRUDPerms** - 标准 CRUD 操作一行搞定
-3. **嵌入 BaseHandler** - 减少重复代码
-4. **使用 QueryList/QueryOne** - 统一查询逻辑
-5. **使用 ExecTx** - 统一事务处理
+2. **优先使用 CRUDHandler** - 用配置式 hook 代替重复的 CRUD 方法体
+3. **使用 CRUDPerms** - 标准 CRUD 操作一行搞定
+4. **复杂业务保持显式** - 超出 CRUD 的接口放在具体 handler 内
+5. **批量操作避免循环 I/O** - 批量删除用 `DeleteBatchInTx`，批量写入用 `CreateInBatches`
 6. **模块显式装配** - 在模块入口维护 modules 列表，依赖清晰可控

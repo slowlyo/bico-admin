@@ -3,6 +3,7 @@ package handler
 import (
 	"bico-admin/internal/admin/model"
 	"bico-admin/internal/pkg/crud"
+	"errors"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -15,12 +16,123 @@ var rolePerms = crud.NewCRUDPerms("system", "admin_role", "角色管理").WithEx
 
 // AdminRoleHandler 角色管理处理器
 type AdminRoleHandler struct {
-	crud.BaseHandler
-	db *gorm.DB
+	crud.CRUDHandler[model.AdminRole, roleListReq, createRoleReq, updateRoleReq]
 }
 
 func NewAdminRoleHandler(db *gorm.DB) *AdminRoleHandler {
-	return &AdminRoleHandler{db: db}
+	h := &AdminRoleHandler{}
+	h.DB = db
+	h.NotFoundMsg = "角色不存在"
+
+	h.BuildListQuery = func(db *gorm.DB, req *roleListReq) *gorm.DB {
+		query := db.Model(&model.AdminRole{})
+		if req.Name != "" {
+			query = query.Where("name LIKE ?", "%"+req.Name+"%")
+		}
+		if req.Code != "" {
+			query = query.Where("code LIKE ?", "%"+req.Code+"%")
+		}
+		if req.Enabled != nil {
+			query = query.Where("enabled = ?", *req.Enabled)
+		}
+		return query
+	}
+
+	h.AfterList = func(items []model.AdminRole) error {
+		roleIDs := make([]uint, 0, len(items))
+		for i := range items {
+			roleIDs = append(roleIDs, items[i].ID)
+		}
+		permsMap, err := h.getPermsMap(db, roleIDs)
+		if err != nil {
+			return err
+		}
+		for i := range items {
+			items[i].Permissions = permsMap[items[i].ID]
+		}
+		return nil
+	}
+
+	h.AfterGet = func(item *model.AdminRole) error {
+		perms, err := h.getPerms(db, item.ID)
+		if err != nil {
+			return err
+		}
+		item.Permissions = perms
+		return nil
+	}
+
+	h.NewModelFromCreate = func(req *createRoleReq) (*model.AdminRole, error) {
+		exists, err := crud.Exists(db, &model.AdminRole{}, "code = ?", req.Code)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			return nil, errors.New("角色代码已存在")
+		}
+
+		exists, err = crud.Exists(db, &model.AdminRole{}, "name = ?", req.Name)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			return nil, errors.New("角色名称已存在")
+		}
+		return &model.AdminRole{
+			Name:        req.Name,
+			Code:        req.Code,
+			Description: req.Description,
+			Enabled:     req.Enabled == nil || *req.Enabled,
+			Permissions: req.Permissions,
+		}, nil
+	}
+
+	h.CreateInTx = func(tx *gorm.DB, item *model.AdminRole, req *createRoleReq) error {
+		item.Permissions = req.Permissions
+		return h.savePerms(tx, item.ID, req.Permissions)
+	}
+
+	h.BuildUpdates = func(req *updateRoleReq, existing *model.AdminRole) (map[string]interface{}, error) {
+		// 这里校验名称唯一性：只有在传入 name 且发生变更时才检查
+		if req.Name != "" && req.Name != existing.Name {
+			exists, err := crud.Exists(db, &model.AdminRole{}, "name = ? AND id != ?", req.Name, existing.ID)
+			if err != nil {
+				return nil, err
+			}
+			if exists {
+				return nil, errors.New("角色名称已存在")
+			}
+		}
+
+		updates := map[string]interface{}{}
+		if req.Name != "" {
+			updates["name"] = req.Name
+		}
+		if req.Description != "" {
+			updates["description"] = req.Description
+		}
+		if req.Enabled != nil {
+			updates["enabled"] = *req.Enabled
+		}
+		return updates, nil
+	}
+
+	h.ReloadAfterUpdate = func(tx *gorm.DB, id uint, existing *model.AdminRole) error {
+		perms, err := h.getPerms(tx, id)
+		if err != nil {
+			return err
+		}
+		existing.Permissions = perms
+		return nil
+	}
+
+	h.DeleteInTx = func(tx *gorm.DB, id uint) error {
+		tx.Where("role_id = ?", id).Delete(&model.AdminRolePermission{})
+		tx.Where("role_id = ?", id).Delete(&model.AdminUserRole{})
+		return nil
+	}
+
+	return h
 }
 
 func (h *AdminRoleHandler) ModuleConfig() crud.ModuleConfig {
@@ -58,134 +170,6 @@ type (
 	}
 )
 
-func (h *AdminRoleHandler) List(c *gin.Context) {
-	var req roleListReq
-	h.BindQuery(c, &req)
-
-	query := h.db.Model(&model.AdminRole{})
-	if req.Name != "" {
-		query = query.Where("name LIKE ?", "%"+req.Name+"%")
-	}
-	if req.Code != "" {
-		query = query.Where("code LIKE ?", "%"+req.Code+"%")
-	}
-	if req.Enabled != nil {
-		query = query.Where("enabled = ?", *req.Enabled)
-	}
-
-	var roles []model.AdminRole
-	crud.QueryListWithHook(&h.BaseHandler, c, query, &roles, func(items []model.AdminRole) error {
-		roleIDs := make([]uint, 0, len(items))
-		for i := range items {
-			roleIDs = append(roleIDs, items[i].ID)
-		}
-		permsMap, err := h.getPermsMap(roleIDs)
-		if err != nil {
-			return err
-		}
-		for i := range items {
-			items[i].Permissions = permsMap[items[i].ID]
-		}
-		return nil
-	})
-}
-
-func (h *AdminRoleHandler) Get(c *gin.Context) {
-	id, err := h.ParseID(c)
-	if err != nil {
-		return
-	}
-	if role := h.findRole(c, id); role != nil {
-		h.Success(c, role)
-	}
-}
-
-func (h *AdminRoleHandler) Create(c *gin.Context) {
-	var req createRoleReq
-	if err := h.BindJSON(c, &req); err != nil {
-		return
-	}
-
-	if h.exists("code = ?", req.Code) {
-		h.Error(c, "角色代码已存在")
-		return
-	}
-	if h.exists("name = ?", req.Name) {
-		h.Error(c, "角色名称已存在")
-		return
-	}
-
-	role := &model.AdminRole{
-		Name:        req.Name,
-		Code:        req.Code,
-		Description: req.Description,
-		Enabled:     req.Enabled == nil || *req.Enabled,
-	}
-
-	h.ExecTx(c, h.db, func(tx *gorm.DB) error {
-		if err := tx.Create(role).Error; err != nil {
-			return err
-		}
-		role.Permissions = req.Permissions
-		return h.savePerms(tx, role.ID, req.Permissions)
-	}, "创建成功", role)
-}
-
-func (h *AdminRoleHandler) Update(c *gin.Context) {
-	id, err := h.ParseID(c)
-	if err != nil {
-		return
-	}
-
-	var req updateRoleReq
-	if err := h.BindJSON(c, &req); err != nil {
-		return
-	}
-
-	role := h.findRole(c, id)
-	if role == nil {
-		return
-	}
-
-	if req.Name != "" && req.Name != role.Name && h.exists("name = ? AND id != ?", req.Name, id) {
-		h.Error(c, "角色名称已存在")
-		return
-	}
-
-	updates := map[string]interface{}{}
-	if req.Name != "" {
-		updates["name"] = req.Name
-	}
-	if req.Description != "" {
-		updates["description"] = req.Description
-	}
-	if req.Enabled != nil {
-		updates["enabled"] = *req.Enabled
-	}
-
-	if len(updates) > 0 {
-		if err := h.db.Model(role).Updates(updates).Error; err != nil {
-			h.Error(c, err.Error())
-			return
-		}
-	}
-
-	h.SuccessWithMessage(c, "更新成功", h.findRole(c, id))
-}
-
-func (h *AdminRoleHandler) Delete(c *gin.Context) {
-	id, err := h.ParseID(c)
-	if err != nil {
-		return
-	}
-
-	h.ExecTx(c, h.db, func(tx *gorm.DB) error {
-		tx.Where("role_id = ?", id).Delete(&model.AdminRolePermission{})
-		tx.Where("role_id = ?", id).Delete(&model.AdminUserRole{})
-		return tx.Delete(&model.AdminRole{}, id).Error
-	}, "删除成功", nil)
-}
-
 func (h *AdminRoleHandler) UpdatePermissions(c *gin.Context) {
 	id, err := h.ParseID(c)
 	if err != nil {
@@ -196,12 +180,13 @@ func (h *AdminRoleHandler) UpdatePermissions(c *gin.Context) {
 	if err := h.BindJSON(c, &req); err != nil {
 		return
 	}
-
-	if h.findRole(c, id) == nil {
+	// 只需要校验角色是否存在，不需要加载权限
+	var role model.AdminRole
+	if !h.QueryOne(c, h.DB.Where("id = ?", id), &role, "角色不存在") {
 		return
 	}
 
-	h.ExecTx(c, h.db, func(tx *gorm.DB) error {
+	h.ExecTx(c, h.DB, func(tx *gorm.DB) error {
 		tx.Where("role_id = ?", id).Delete(&model.AdminRolePermission{})
 		return h.savePerms(tx, id, req.Permissions)
 	}, "权限配置成功", nil)
@@ -213,27 +198,18 @@ func (h *AdminRoleHandler) GetAllPermissions(c *gin.Context) {
 
 func (h *AdminRoleHandler) GetAll(c *gin.Context) {
 	var roles []model.AdminRole
-	h.db.Where("enabled = ?", true).Find(&roles)
+	h.DB.Where("enabled = ?", true).Find(&roles)
 	h.Success(c, roles)
 }
 
 // 私有方法
-func (h *AdminRoleHandler) findRole(c *gin.Context, id uint) *model.AdminRole {
-	var role model.AdminRole
-	if !h.QueryOne(c, h.db.Where("id = ?", id), &role, "角色不存在") {
-		return nil
-	}
-	role.Permissions, _ = h.getPerms(id)
-	return &role
-}
-
-func (h *AdminRoleHandler) getPerms(roleID uint) ([]string, error) {
+func (h *AdminRoleHandler) getPerms(db *gorm.DB, roleID uint) ([]string, error) {
 	var perms []string
-	err := h.db.Model(&model.AdminRolePermission{}).Where("role_id = ?", roleID).Pluck("permission", &perms).Error
+	err := db.Model(&model.AdminRolePermission{}).Where("role_id = ?", roleID).Pluck("permission", &perms).Error
 	return perms, err
 }
 
-func (h *AdminRoleHandler) getPermsMap(roleIDs []uint) (map[uint][]string, error) {
+func (h *AdminRoleHandler) getPermsMap(db *gorm.DB, roleIDs []uint) (map[uint][]string, error) {
 	permsMap := make(map[uint][]string)
 	if len(roleIDs) == 0 {
 		return permsMap, nil
@@ -244,7 +220,7 @@ func (h *AdminRoleHandler) getPermsMap(roleIDs []uint) (map[uint][]string, error
 		Permission string
 	}
 	var rows []row
-	err := h.db.Model(&model.AdminRolePermission{}).
+	err := db.Model(&model.AdminRolePermission{}).
 		Select("role_id, permission").
 		Where("role_id IN ?", roleIDs).
 		Find(&rows).Error
@@ -258,18 +234,15 @@ func (h *AdminRoleHandler) getPermsMap(roleIDs []uint) (map[uint][]string, error
 }
 
 func (h *AdminRoleHandler) savePerms(tx *gorm.DB, roleID uint, perms []string) error {
-	for _, p := range perms {
-		if err := tx.Create(&model.AdminRolePermission{RoleID: roleID, Permission: p}).Error; err != nil {
-			return err
-		}
+	if len(perms) == 0 {
+		return nil
 	}
-	return nil
-}
 
-func (h *AdminRoleHandler) exists(query string, args ...interface{}) bool {
-	var count int64
-	h.db.Model(&model.AdminRole{}).Where(query, args...).Count(&count)
-	return count > 0
+	items := make([]model.AdminRolePermission, 0, len(perms))
+	for _, p := range perms {
+		items = append(items, model.AdminRolePermission{RoleID: roleID, Permission: p})
+	}
+	return tx.CreateInBatches(items, 100).Error
 }
 
 var _ crud.Module = (*AdminRoleHandler)(nil)

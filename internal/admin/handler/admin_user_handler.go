@@ -4,8 +4,8 @@ import (
 	"bico-admin/internal/admin/model"
 	"bico-admin/internal/pkg/crud"
 	"bico-admin/internal/pkg/password"
+	"errors"
 
-	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -14,12 +14,107 @@ var userPerms = crud.NewCRUDPerms("system", "admin_user", "用户管理")
 
 // AdminUserHandler 用户管理处理器
 type AdminUserHandler struct {
-	crud.BaseHandler
-	db *gorm.DB
+	crud.CRUDHandler[model.AdminUser, userListReq, createUserReq, updateUserReq]
 }
 
 func NewAdminUserHandler(db *gorm.DB) *AdminUserHandler {
-	return &AdminUserHandler{db: db}
+	h := &AdminUserHandler{}
+	h.DB = db
+	h.NotFoundMsg = "用户不存在"
+
+	h.BuildListQuery = func(db *gorm.DB, req *userListReq) *gorm.DB {
+		query := db.Model(&model.AdminUser{}).Preload("Roles")
+		if req.Username != "" {
+			query = query.Where("username LIKE ?", "%"+req.Username+"%")
+		}
+		if req.Name != "" {
+			query = query.Where("name LIKE ?", "%"+req.Name+"%")
+		}
+		if req.Enabled != nil {
+			query = query.Where("enabled = ?", *req.Enabled)
+		}
+		return query
+	}
+
+	h.BuildGetQuery = func(db *gorm.DB) *gorm.DB {
+		return db.Model(&model.AdminUser{}).Preload("Roles")
+	}
+
+	h.NewModelFromCreate = func(req *createUserReq) (*model.AdminUser, error) {
+		exists, err := crud.Exists(db, &model.AdminUser{}, "username = ?", req.Username)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			return nil, errors.New("用户名已存在")
+		}
+
+		hashed, err := password.Hash(req.Password)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.AdminUser{
+			Username: req.Username,
+			Password: hashed,
+			Name:     req.Name,
+			Avatar:   req.Avatar,
+			Enabled:  req.Enabled == nil || *req.Enabled,
+		}, nil
+	}
+
+	h.CreateInTx = func(tx *gorm.DB, item *model.AdminUser, req *createUserReq) error {
+		return h.syncRoles(tx, item, req.RoleIDs)
+	}
+	// 需要返回带 Roles 的用户数据
+	h.ReloadAfterCreate = func(tx *gorm.DB, id uint, item *model.AdminUser) error {
+		return tx.Preload("Roles").First(item, item.ID).Error
+	}
+
+	h.BuildUpdateQuery = func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&model.AdminUser{})
+	}
+	h.BuildUpdates = func(req *updateUserReq, existing *model.AdminUser) (map[string]interface{}, error) {
+		updates := map[string]interface{}{}
+		if req.Name != "" {
+			updates["name"] = req.Name
+		}
+		if req.Avatar != "" {
+			updates["avatar"] = req.Avatar
+		}
+		if req.Password != "" {
+			hashed, err := password.Hash(req.Password)
+			if err != nil {
+				return nil, err
+			}
+			updates["password"] = hashed
+		}
+		if req.Enabled != nil {
+			updates["enabled"] = *req.Enabled
+		}
+		return updates, nil
+	}
+
+	h.UpdateInTx = func(tx *gorm.DB, id uint, existing *model.AdminUser, req *updateUserReq) error {
+		if req.RoleIDs == nil {
+			return nil
+		}
+		return h.syncRoles(tx, existing, req.RoleIDs)
+	}
+	h.ReloadAfterUpdate = func(tx *gorm.DB, id uint, existing *model.AdminUser) error {
+		return tx.Preload("Roles").First(existing, id).Error
+	}
+
+	h.DeleteInTx = func(tx *gorm.DB, id uint) error {
+		var user model.AdminUser
+		if err := tx.First(&user, id).Error; err != nil {
+			return err
+		}
+		_ = tx.Model(&user).Association("Roles").Clear()
+		return nil
+	}
+
+	return h
 }
 
 func (h *AdminUserHandler) ModuleConfig() crud.ModuleConfig {
@@ -55,144 +150,6 @@ type (
 		Password string `json:"password"`
 	}
 )
-
-func (h *AdminUserHandler) List(c *gin.Context) {
-	var req userListReq
-	h.BindQuery(c, &req)
-
-	query := h.db.Model(&model.AdminUser{}).Preload("Roles")
-	if req.Username != "" {
-		query = query.Where("username LIKE ?", "%"+req.Username+"%")
-	}
-	if req.Name != "" {
-		query = query.Where("name LIKE ?", "%"+req.Name+"%")
-	}
-	if req.Enabled != nil {
-		query = query.Where("enabled = ?", *req.Enabled)
-	}
-
-	var users []model.AdminUser
-	crud.QueryListWithHook(&h.BaseHandler, c, query, &users, nil)
-}
-
-func (h *AdminUserHandler) Get(c *gin.Context) {
-	id, err := h.ParseID(c)
-	if err != nil {
-		return
-	}
-
-	var user model.AdminUser
-	if h.QueryOne(c, h.db.Preload("Roles").Where("id = ?", id), &user, "用户不存在") {
-		h.Success(c, user)
-	}
-}
-
-func (h *AdminUserHandler) Create(c *gin.Context) {
-	var req createUserReq
-	if err := h.BindJSON(c, &req); err != nil {
-		return
-	}
-
-	if h.exists("username = ?", req.Username) {
-		h.Error(c, "用户名已存在")
-		return
-	}
-
-	hashed, err := password.Hash(req.Password)
-	if err != nil {
-		h.Error(c, err.Error())
-		return
-	}
-
-	user := &model.AdminUser{
-		Username: req.Username,
-		Password: hashed,
-		Name:     req.Name,
-		Avatar:   req.Avatar,
-		Enabled:  req.Enabled == nil || *req.Enabled,
-	}
-
-	h.ExecTx(c, h.db, func(tx *gorm.DB) error {
-		if err := tx.Create(user).Error; err != nil {
-			return err
-		}
-		if err := h.syncRoles(tx, user, req.RoleIDs); err != nil {
-			return err
-		}
-		return tx.Preload("Roles").First(user, user.ID).Error
-	}, "创建成功", user)
-}
-
-func (h *AdminUserHandler) Update(c *gin.Context) {
-	id, err := h.ParseID(c)
-	if err != nil {
-		return
-	}
-
-	var req updateUserReq
-	if err := h.BindJSON(c, &req); err != nil {
-		return
-	}
-
-	var user model.AdminUser
-	if !h.QueryOne(c, h.db.Where("id = ?", id), &user, "用户不存在") {
-		return
-	}
-
-	h.ExecTx(c, h.db, func(tx *gorm.DB) error {
-		updates := map[string]interface{}{}
-		if req.Name != "" {
-			updates["name"] = req.Name
-		}
-		if req.Avatar != "" {
-			updates["avatar"] = req.Avatar
-		}
-		if req.Password != "" {
-			hashed, err := password.Hash(req.Password)
-			if err != nil {
-				return err
-			}
-			updates["password"] = hashed
-		}
-		if req.Enabled != nil {
-			updates["enabled"] = *req.Enabled
-		}
-		if len(updates) > 0 {
-			if err := tx.Model(&user).Updates(updates).Error; err != nil {
-				return err
-			}
-		}
-		if req.RoleIDs != nil {
-			if err := h.syncRoles(tx, &user, req.RoleIDs); err != nil {
-				return err
-			}
-		}
-		return tx.Preload("Roles").First(&user, id).Error
-	}, "更新成功", &user)
-}
-
-func (h *AdminUserHandler) Delete(c *gin.Context) {
-	id, err := h.ParseID(c)
-	if err != nil {
-		return
-	}
-
-	h.ExecTx(c, h.db, func(tx *gorm.DB) error {
-		var user model.AdminUser
-		if err := tx.First(&user, id).Error; err != nil {
-			return err
-		}
-		_ = tx.Model(&user).Association("Roles").Clear()
-		return tx.Delete(&user).Error
-	}, "删除成功", nil)
-}
-
-// 私有方法
-func (h *AdminUserHandler) exists(query string, args ...interface{}) bool {
-	var count int64
-	h.db.Model(&model.AdminUser{}).Where(query, args...).Count(&count)
-	return count > 0
-}
 
 func (h *AdminUserHandler) syncRoles(tx *gorm.DB, user *model.AdminUser, roleIDs []uint) error {
 	_ = tx.Model(user).Association("Roles").Clear()

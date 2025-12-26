@@ -1,6 +1,10 @@
 package crud
 
-import "fmt"
+import (
+	"fmt"
+
+	"gorm.io/gorm"
+)
 
 // CRUDPerms 标准 CRUD 权限集合
 type CRUDPerms struct {
@@ -73,6 +77,16 @@ func UniqueUints(ids []uint) []uint {
 		}
 	}
 	return result
+}
+
+// Exists 判断记录是否存在。
+// 说明：用于 handler 层做唯一性校验/存在性判断，避免每个 handler 重复写 Count。
+func Exists(db *gorm.DB, model interface{}, query string, args ...interface{}) (bool, error) {
+	var count int64
+	if err := db.Model(model).Where(query, args...).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 // CRUDPermissions 快速生成 CRUD 权限配置
