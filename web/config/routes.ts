@@ -67,7 +67,12 @@ export default [
         routes: [
             {
                 path: "/demo",
-                redirect: "/demo/editor",
+                redirect: "/demo/excel",
+            },
+            {
+                path: "/demo/excel",
+                name: "excel",
+                component: "./demo/excel",
             },
             {
                 path: "/demo/editor",

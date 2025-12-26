@@ -76,6 +76,15 @@ func (r *Router) Register(engine *gin.Engine) {
 		// 通用上传（富文本图片/视频等）
 		authorized.POST("/upload", r.uploadHandler.Upload)
 
+		// 示例接口
+		demoExcel := handler.NewDemoExcelHandler()
+		demo := authorized.Group("/demo/excel")
+		{
+			demo.GET("/template", demoExcel.DownloadTemplate)
+			demo.POST("/import", demoExcel.Import)
+			demo.GET("/export", demoExcel.Export)
+		}
+
 		// 认证相关（特殊路由，不走 CRUD 模块）
 		auth := authorized.Group("/auth")
 		{

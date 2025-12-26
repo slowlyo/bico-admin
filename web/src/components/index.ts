@@ -12,6 +12,8 @@ import PageContainer from './PageContainer';
 
 import RichEditor from './RichEditor';
 
+import ExcelImportExportActions from './ExcelImportExportActions';
+
 /**
  * CRUD 组件
  */
@@ -28,4 +30,5 @@ export {
   CrudModal,
   CrudTable,
   RichEditor,
+  ExcelImportExportActions,
 };
