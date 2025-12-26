@@ -4,8 +4,10 @@ import (
 	"fmt"
 
 	adminModel "bico-admin/internal/admin/model"
+	"bico-admin/internal/core/logger"
 	"bico-admin/internal/pkg/password"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -40,7 +42,8 @@ func initAdminUser(db *gorm.DB) error {
 	}
 
 	if count > 0 {
-		fmt.Println("⏭️  管理员账户已存在，跳过初始化")
+		// 已存在管理员账号时跳过初始化，避免覆盖线上/已有环境数据
+		logger.Warn("管理员账户已存在，跳过初始化")
 		return nil
 	}
 
@@ -61,7 +64,7 @@ func initAdminUser(db *gorm.DB) error {
 		return fmt.Errorf("创建管理员失败: %w", err)
 	}
 
-	fmt.Printf("✅ 初始化管理员账户成功 (用户名: admin, 密码: admin)\n")
-	fmt.Println("💡 admin 账户自动拥有所有权限，后续新增权限无需手动分配")
+	logger.Info("初始化管理员账户成功", zap.String("username", "admin"), zap.String("password", "admin"))
+	logger.Info("admin 账户自动拥有所有权限，后续新增权限无需手动分配")
 	return nil
 }

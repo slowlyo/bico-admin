@@ -63,22 +63,27 @@ func zapAccessLogger(logger *zap.Logger, isDebug bool) gin.HandlerFunc {
 		}
 
 		if len(c.Errors) > 0 {
-			logger.Warn("http", append(fields, zap.String("errors", c.Errors.String()))...)
+			// 有业务错误时，明确标记为失败，便于控制台快速区分
+			logger.Warn("http_fail", append(fields, zap.String("result", "fail"), zap.String("errors", c.Errors.String()))...)
 			return
 		}
 
 		if status >= 500 {
-			logger.Error("http", fields...)
+			// 5xx 认为是服务端失败
+			logger.Error("http_fail", append(fields, zap.String("result", "fail"))...)
 			return
 		}
 		if status >= 400 {
-			logger.Warn("http", fields...)
+			// 4xx 认为是请求失败
+			logger.Warn("http_fail", append(fields, zap.String("result", "fail"))...)
 			return
 		}
+
+		// 非 debug 环境默认不输出成功请求日志，避免刷屏
 		if !isDebug {
 			return
 		}
-		logger.Info("http", fields...)
+		logger.Info("http_success", append(fields, zap.String("result", "success"))...)
 	}
 }
 

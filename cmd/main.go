@@ -1,19 +1,20 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	_ "bico-admin/docs"
 	"bico-admin/internal/admin"
 	"bico-admin/internal/api"
 	"bico-admin/internal/core/app"
+	"bico-admin/internal/core/logger"
 	"bico-admin/internal/core/server"
 	"bico-admin/internal/job"
 	"bico-admin/internal/migrate"
 	"bico-admin/web"
 
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 // @title Bico Admin API
@@ -41,7 +42,7 @@ var (
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logger.Error("命令执行失败", zap.Error(err))
 		os.Exit(1)
 	}
 }
@@ -59,7 +60,7 @@ var serveCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx, err := app.BuildContext(configPath)
 		if err != nil {
-			fmt.Printf("构建上下文失败: %v\n", err)
+			logger.Error("构建上下文失败", zap.Error(err))
 			os.Exit(1)
 		}
 
@@ -71,12 +72,12 @@ var serveCmd = &cobra.Command{
 			api.NewModule(),
 			job.NewModule(),
 		); err != nil {
-			fmt.Printf("注册模块失败: %v\n", err)
+			ctx.Logger.Error("注册模块失败", zap.Error(err))
 			os.Exit(1)
 		}
 
 		if err := app.Run(ctx); err != nil {
-			fmt.Printf("启动失败: %v\n", err)
+			ctx.Logger.Error("启动失败", zap.Error(err))
 			os.Exit(1)
 		}
 	},
@@ -89,16 +90,16 @@ var migrateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx, err := app.BuildContext(configPath)
 		if err != nil {
-			fmt.Printf("构建上下文失败: %v\n", err)
+			logger.Error("构建上下文失败", zap.Error(err))
 			os.Exit(1)
 		}
 
-		fmt.Println("📦 开始数据库迁移...")
+		ctx.Logger.Info("开始数据库迁移")
 		if err := migrate.AutoMigrate(ctx.DB); err != nil {
-			fmt.Printf("迁移失败: %v\n", err)
+			ctx.Logger.Error("数据库迁移失败", zap.Error(err))
 			os.Exit(1)
 		}
-		fmt.Println("数据库迁移完成")
+		ctx.Logger.Info("数据库迁移完成")
 	},
 }
 
