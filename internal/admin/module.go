@@ -32,6 +32,7 @@ func (m *Module) Register(ctx *app.AppContext) error {
 	userStatusMiddleware := middleware.NewUserStatusMiddleware(ctx.DB)
 
 	authHandler := handler.NewAuthHandler(authSvc, ctx.Uploader, ctx.Captcha)
+	uploadHandler := handler.NewUploadHandler(ctx.Uploader)
 	commonHandler := handler.NewCommonHandler(cfgSvc)
 
 	modules := []crud.Module{
@@ -39,7 +40,7 @@ func (m *Module) Register(ctx *app.AppContext) error {
 		handler.NewAdminRoleHandler(ctx.DB),
 	}
 
-	r := NewRouter(authHandler, commonHandler, jwtAuth, permMiddleware, userStatusMiddleware, ctx.DB, modules)
+	r := NewRouter(authHandler, uploadHandler, commonHandler, jwtAuth, permMiddleware, userStatusMiddleware, ctx.DB, modules)
 	r.Register(ctx.Engine)
 
 	return nil

@@ -26,6 +26,8 @@
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
     "@ant-design/pro-components": "^2.8.10",
+    "@wangeditor/editor": "^5.1.23",
+    "@wangeditor/editor-for-react": "^1.0.6",
     "antd": "^6.0.0",
     "antd-style": "^3.7.1",
     "classnames": "^2.5.1",

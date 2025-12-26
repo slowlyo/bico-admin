@@ -1,4 +1,7 @@
-import type { Settings as LayoutSettings } from "@ant-design/pro-components";
+import type {
+    MenuDataItem,
+    Settings as LayoutSettings,
+} from "@ant-design/pro-components";
 import { SettingDrawer } from "@ant-design/pro-components";
 import type { RequestConfig, RunTimeLayoutConfig } from "@umijs/max";
 import { history } from "@umijs/max";
@@ -93,6 +96,31 @@ export const layout: RunTimeLayoutConfig = ({
     initialState,
     setInitialState,
 }) => {
+    /**
+     * 过滤菜单数据
+     */
+    const filterMenuData = (menuData: MenuDataItem[]): MenuDataItem[] => {
+        const removeDemo = !initialState?.appConfig?.debug;
+
+        return (menuData || [])
+            .filter((item) => {
+                // debug 关闭时隐藏示例菜单
+                if (removeDemo && item?.path === "/demo") {
+                    return false;
+                }
+                return true;
+            })
+            .map((item) => {
+                if (!item?.children || item.children.length === 0) {
+                    return item;
+                }
+                return {
+                    ...item,
+                    children: filterMenuData(item.children),
+                };
+            });
+    };
+
     return {
         // actionsRender: () => [<SelectLang key="SelectLang" />],
         avatarProps: {
@@ -166,6 +194,9 @@ export const layout: RunTimeLayoutConfig = ({
                     )}
                 </>
             );
+        },
+        menuDataRender: (menuData) => {
+            return filterMenuData(menuData);
         },
         ...initialState?.settings,
     };

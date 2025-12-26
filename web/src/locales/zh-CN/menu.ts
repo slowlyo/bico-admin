@@ -10,6 +10,8 @@ export default {
   'menu.system': '系统管理',
   'menu.system.admin-users': '用户管理',
   'menu.system.admin-roles': '角色管理',
+  'menu.demo': '示例',
+  'menu.demo.editor': '编辑器示例',
   'menu.dashboard.analysis': '分析页',
   'menu.dashboard.monitor': '监控页',
   'menu.dashboard.workplace': '工作台',

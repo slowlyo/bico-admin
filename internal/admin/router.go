@@ -12,6 +12,7 @@ import (
 // Router 实现路由注册
 type Router struct {
 	authHandler          *handler.AuthHandler
+	uploadHandler        *handler.UploadHandler
 	commonHandler        *handler.CommonHandler
 	jwtAuth              gin.HandlerFunc
 	permMiddleware       *middleware.PermissionMiddleware
@@ -23,6 +24,7 @@ type Router struct {
 // NewRouter 创建路由实例
 func NewRouter(
 	authHandler *handler.AuthHandler,
+	uploadHandler *handler.UploadHandler,
 	commonHandler *handler.CommonHandler,
 	jwtAuth gin.HandlerFunc,
 	permMiddleware *middleware.PermissionMiddleware,
@@ -35,6 +37,7 @@ func NewRouter(
 
 	return &Router{
 		authHandler:          authHandler,
+		uploadHandler:        uploadHandler,
 		commonHandler:        commonHandler,
 		jwtAuth:              jwtAuth,
 		permMiddleware:       permMiddleware,
@@ -70,6 +73,9 @@ func (r *Router) Register(engine *gin.Engine) {
 	// 需要认证的路由
 	authorized := admin.Group("", r.jwtAuth, r.userStatusMiddleware.Check())
 	{
+		// 通用上传（富文本图片/视频等）
+		authorized.POST("/upload", r.uploadHandler.Upload)
+
 		// 认证相关（特殊路由，不走 CRUD 模块）
 		auth := authorized.Group("/auth")
 		{

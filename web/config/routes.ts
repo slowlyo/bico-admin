@@ -61,6 +61,22 @@ export default [
         ],
     },
     {
+        path: "/demo",
+        name: "demo",
+        icon: "experiment",
+        routes: [
+            {
+                path: "/demo",
+                redirect: "/demo/editor",
+            },
+            {
+                path: "/demo/editor",
+                name: "editor",
+                component: "./demo/editor",
+            },
+        ],
+    },
+    {
         path: "/",
         redirect: "/dashboard",
     },

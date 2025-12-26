@@ -10,6 +10,8 @@ import { Question, SelectLang } from './RightContent';
 import { AvatarDropdown, AvatarName } from './RightContent/AvatarDropdown';
 import PageContainer from './PageContainer';
 
+import RichEditor from './RichEditor';
+
 /**
  * CRUD 组件
  */
@@ -25,4 +27,5 @@ export {
   SelectLang,
   CrudModal,
   CrudTable,
+  RichEditor,
 };
