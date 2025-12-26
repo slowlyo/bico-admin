@@ -477,8 +477,9 @@ curl http://localhost:8080/admin-api/articles \
 
 1. 使用 TypeScript，充分利用类型系统
 2. 组件拆分合理，单个文件不超过 500 行
-3. API 调用统一在 `services/` 目录
-4. 权限控制使用 `access` 对象
+3. 组件不应该太大：可复用的通用组件提取到 `src/components/`，仅页面内使用的组件提取到对应页面目录下的 `./components/`
+4. API 调用统一在 `services/` 目录
+5. 权限控制使用 `access` 对象
 
 ### 命名规范
 
