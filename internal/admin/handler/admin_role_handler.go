@@ -73,40 +73,21 @@ func (h *AdminRoleHandler) List(c *gin.Context) {
 		query = query.Where("enabled = ?", *req.Enabled)
 	}
 
-	pg := h.GetPagination(c)
-
-	var total int64
-	if err := query.Count(&total).Error; err != nil {
-		h.Error(c, err.Error())
-		return
-	}
-
-	if orderBy := pg.GetOrderBy(); orderBy != "" {
-		query = query.Order(orderBy)
-	} else {
-		query = query.Order("created_at DESC")
-	}
-
 	var roles []model.AdminRole
-	if err := query.Offset(pg.GetOffset()).Limit(pg.GetPageSize()).Find(&roles).Error; err != nil {
-		h.Error(c, err.Error())
-		return
-	}
-
-	roleIDs := make([]uint, 0, len(roles))
-	for i := range roles {
-		roleIDs = append(roleIDs, roles[i].ID)
-	}
-	permsMap, err := h.getPermsMap(roleIDs)
-	if err != nil {
-		h.Error(c, err.Error())
-		return
-	}
-	for i := range roles {
-		roles[i].Permissions = permsMap[roles[i].ID]
-	}
-
-	h.SuccessWithPagination(c, roles, total)
+	crud.QueryListWithHook(&h.BaseHandler, c, query, &roles, func(items []model.AdminRole) error {
+		roleIDs := make([]uint, 0, len(items))
+		for i := range items {
+			roleIDs = append(roleIDs, items[i].ID)
+		}
+		permsMap, err := h.getPermsMap(roleIDs)
+		if err != nil {
+			return err
+		}
+		for i := range items {
+			items[i].Permissions = permsMap[items[i].ID]
+		}
+		return nil
+	})
 }
 
 func (h *AdminRoleHandler) Get(c *gin.Context) {

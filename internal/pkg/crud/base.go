@@ -1,6 +1,7 @@
 package crud
 
 import (
+	"errors"
 	"strconv"
 
 	"bico-admin/internal/pkg/pagination"
@@ -43,6 +44,31 @@ func (s *BaseService[T]) List(query *gorm.DB, pg *pagination.Pagination) (*pagin
 		Total: total,
 		Data:  items,
 	}, nil
+}
+
+// ListWithHook 获取列表并对结果做二次处理
+func (s *BaseService[T]) ListWithHook(
+	query *gorm.DB,
+	pg *pagination.Pagination,
+	after func(items []T) error,
+) (*pagination.Response, error) {
+	resp, err := s.List(query, pg)
+	if err != nil {
+		return nil, err
+	}
+	if after == nil {
+		return resp, nil
+	}
+
+	items, ok := resp.Data.([]T)
+	if !ok {
+		return nil, errors.New("列表数据类型不匹配")
+	}
+	if err := after(items); err != nil {
+		return nil, err
+	}
+	resp.Data = items
+	return resp, nil
 }
 
 // Get 获取单条记录
@@ -160,13 +186,57 @@ func (h *BaseHandler) QueryList(c *gin.Context, query *gorm.DB, dest interface{}
 	h.SuccessWithPagination(c, dest, total)
 }
 
+// QueryListWithHook 通用分页查询，并支持对结果做二次处理
+func QueryListWithHook[T any](
+	h *BaseHandler,
+	c *gin.Context,
+	query *gorm.DB,
+	dest *[]T,
+	after func(items []T) error,
+) {
+	pg := h.GetPagination(c)
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		h.Error(c, err.Error())
+		return
+	}
+
+	if orderBy := pg.GetOrderBy(); orderBy != "" {
+		query = query.Order(orderBy)
+	} else {
+		query = query.Order("created_at DESC")
+	}
+
+	if err := query.Offset(pg.GetOffset()).Limit(pg.GetPageSize()).Find(dest).Error; err != nil {
+		h.Error(c, err.Error())
+		return
+	}
+
+	if after != nil {
+		if err := after(*dest); err != nil {
+			h.Error(c, err.Error())
+			return
+		}
+	}
+
+	h.SuccessWithPagination(c, *dest, total)
+}
+
 // QueryOne 通用单条查询
 func (h *BaseHandler) QueryOne(c *gin.Context, query *gorm.DB, dest interface{}, notFoundMsg string) bool {
-	if err := query.First(dest).Error; err != nil {
+	err := query.First(dest).Error
+	if err == nil {
+		return true
+	}
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		h.NotFound(c, notFoundMsg)
 		return false
 	}
-	return true
+
+	h.Error(c, err.Error())
+	return false
 }
 
 // ExecDelete 通用删除操作

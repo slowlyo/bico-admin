@@ -72,7 +72,7 @@ func (h *AdminUserHandler) List(c *gin.Context) {
 	}
 
 	var users []model.AdminUser
-	h.QueryList(c, query, &users)
+	crud.QueryListWithHook(&h.BaseHandler, c, query, &users, nil)
 }
 
 func (h *AdminUserHandler) Get(c *gin.Context) {

@@ -182,6 +182,7 @@ type Route struct {
 | 方法 | 说明 |
 |------|------|
 | `QueryList(c, query, &dest)` | 通用分页查询，自动处理 count/order/offset/limit |
+| `crud.QueryListWithHook(&h.BaseHandler, c, query, &dest, after)` | 通用分页查询 + 结果二次处理（例如补充权限、统计字段） |
 | `QueryOne(c, query, &dest, notFoundMsg)` | 通用单条查询，返回 bool 表示是否找到 |
 | `ExecDelete(c, db, model, id)` | 通用删除操作 |
 | `ExecTx(c, db, fn, successMsg, data)` | 通用事务操作 |
@@ -201,6 +202,21 @@ func (h *ArticleHandler) List(c *gin.Context) {
     
     var articles []model.Article
     h.QueryList(c, query, &articles)  // 自动处理分页和响应
+}
+
+// 分页查询 + 二次处理（示例：回填额外字段）
+func (h *ArticleHandler) ListWithExtra(c *gin.Context) {
+    var req listReq
+    h.BindQuery(c, &req)
+
+    query := h.db.Model(&model.Article{})
+
+    var articles []model.Article
+    crud.QueryListWithHook(&h.BaseHandler, c, query, &articles, func(items []model.Article) error {
+        // 这里做 items 的二次处理，例如：补充统计字段、聚合关联数据等
+        // 返回 error 会自动转为统一错误响应
+        return nil
+    })
 }
 
 // 单条查询
