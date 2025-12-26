@@ -11,7 +11,7 @@ import (
 
 	"bico-admin/internal/core/cache"
 	"bico-admin/internal/core/config"
-	"bico-admin/internal/job"
+	"bico-admin/internal/core/scheduler"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -23,7 +23,7 @@ type App struct {
 	cfg       *config.Config
 	engine    *gin.Engine
 	server    *http.Server
-	scheduler *job.Scheduler
+	scheduler *scheduler.Scheduler
 	db        *gorm.DB
 	cache     cache.Cache
 	logger    *zap.Logger
@@ -33,7 +33,7 @@ type App struct {
 func NewApp(
 	cfg *config.Config,
 	engine *gin.Engine,
-	scheduler *job.Scheduler,
+	scheduler *scheduler.Scheduler,
 	db *gorm.DB,
 	cache cache.Cache,
 	logger *zap.Logger,
@@ -61,11 +61,7 @@ func (a *App) Run() error {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	// 注册并启动定时任务
-	if err := job.RegisterJobs(a.scheduler, a.db, a.cache, a.logger); err != nil {
-		a.logger.Error("注册定时任务失败", zap.Error(err))
-		return fmt.Errorf("注册定时任务失败: %w", err)
-	}
+	// 启动定时任务调度器（任务由各模块自行注册）
 	a.scheduler.Start()
 
 	// 启动服务器
@@ -81,6 +77,12 @@ func (a *App) Run() error {
 	a.gracefulShutdown()
 
 	return nil
+}
+
+// Run 使用 AppContext 运行应用
+func Run(ctx *AppContext) error {
+	application := NewApp(ctx.Cfg, ctx.Engine, ctx.Scheduler, ctx.DB, ctx.Cache, ctx.Logger)
+	return application.Run()
 }
 
 // gracefulShutdown 优雅关闭

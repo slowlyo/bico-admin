@@ -1,8 +1,6 @@
 package admin
 
 import (
-	"reflect"
-
 	"bico-admin/internal/admin/handler"
 	"bico-admin/internal/admin/middleware"
 	"bico-admin/internal/pkg/crud"
@@ -19,6 +17,7 @@ type Router struct {
 	permMiddleware       *middleware.PermissionMiddleware
 	userStatusMiddleware *middleware.UserStatusMiddleware
 	db                   *gorm.DB
+	modules              []crud.Module
 }
 
 // NewRouter 创建路由实例
@@ -29,6 +28,7 @@ func NewRouter(
 	permMiddleware *middleware.PermissionMiddleware,
 	userStatusMiddleware *middleware.UserStatusMiddleware,
 	db *gorm.DB,
+	modules []crud.Module,
 ) *Router {
 	// 初始化基础权限树
 	initBasePermissions()
@@ -40,6 +40,7 @@ func NewRouter(
 		permMiddleware:       permMiddleware,
 		userStatusMiddleware: userStatusMiddleware,
 		db:                   db,
+		modules:              modules,
 	}
 }
 
@@ -92,40 +93,10 @@ func (r *Router) registerModules(group *gin.RouterGroup) {
 		r.userStatusMiddleware.Check(),
 	)
 
-	for _, reg := range crud.GetRegisteredModules() {
-		module := r.instantiateModule(reg.Constructor)
-		if module != nil {
-			moduleRouter.RegisterModule(group, module)
+	for _, module := range r.modules {
+		if module == nil {
+			continue
 		}
+		moduleRouter.RegisterModule(group, module)
 	}
-}
-
-// instantiateModule 实例化模块
-func (r *Router) instantiateModule(constructor interface{}) crud.Module {
-	constructorVal := reflect.ValueOf(constructor)
-	constructorType := constructorVal.Type()
-
-	numIn := constructorType.NumIn()
-	args := make([]reflect.Value, numIn)
-
-	for i := 0; i < numIn; i++ {
-		argType := constructorType.In(i)
-		switch argType.String() {
-		case "*gorm.DB":
-			args[i] = reflect.ValueOf(r.db)
-		default:
-			return nil
-		}
-	}
-
-	results := constructorVal.Call(args)
-	if len(results) == 0 {
-		return nil
-	}
-
-	if module, ok := results[0].Interface().(crud.Module); ok {
-		return module
-	}
-
-	return nil
 }

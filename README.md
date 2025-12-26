@@ -10,7 +10,7 @@
 - **[Gin](https://github.com/gin-gonic/gin)** - HTTP Web 框架
 - **[GORM](https://gorm.io/)** - ORM 数据库操作
 - **[Viper](https://github.com/spf13/viper)** - 配置管理
-- **[Dig](https://github.com/uber-go/dig)** - 依赖注入容器
+- **[Dig](https://github.com/uber-go/dig)** - 依赖注入容器（模块内使用）
 - **[Cobra](https://github.com/spf13/cobra)** - 命令行框架
 
 ### 前端
@@ -99,14 +99,20 @@ func (h *ArticleHandler) Update(c *gin.Context) { /* ... */ }
 func (h *ArticleHandler) Delete(c *gin.Context) { /* ... */ }
 
 // 5. 自动注册
-func init() {
-    crud.RegisterModule(NewArticleHandler)
-}
-
 var _ crud.Module = (*ArticleHandler)(nil)
 ```
 
-**完成！** 无需修改 `router.go`、`container.go` 或其他文件。
+然后在 `internal/admin/module.go` 中把新模块加入模块列表：
+
+```go
+return []crud.Module{
+    handler.NewAdminUserHandler(db),
+    handler.NewAdminRoleHandler(db),
+    NewArticleHandler(db),
+}
+```
+
+**完成！** 无需修改 `router.go`、`container.go` 或其他 core 文件。
 
 详细文档见 [CRUD 包文档](./docs/crud-pkg.md)
 

@@ -206,8 +206,4 @@ func (h *AdminUserHandler) syncRoles(tx *gorm.DB, user *model.AdminUser, roleIDs
 	return tx.Model(user).Association("Roles").Append(roles)
 }
 
-func init() {
-	crud.RegisterModule(NewAdminUserHandler)
-}
-
 var _ crud.Module = (*AdminUserHandler)(nil)

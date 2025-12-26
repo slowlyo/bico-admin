@@ -1,6 +1,6 @@
 # CRUD 包使用文档
 
-> 支持多模块分组（admin/api/自定义），自动注册 DI 和路由
+> 支持多模块分组（admin/api/自定义），自动注册权限和路由
 
 > `internal/pkg/crud` - 声明式 CRUD 框架，让新功能开发只需一个文件。
 
@@ -15,6 +15,8 @@
 - `container.go` (修改)
 
 使用本框架后，**只需一个 handler 文件**，路由、权限、DI 全部自动处理。
+
+说明：当前项目采用“core 只装配基础设施、模块自管理 DI”的架构，CRUD 模块实例由模块入口（例如 `internal/admin/module.go`）显式装配并传入路由层。
 
 ## 快速开始
 
@@ -61,15 +63,17 @@ func (h *ArticleHandler) Create(c *gin.Context) { /* ... */ }
 func (h *ArticleHandler) Update(c *gin.Context) { /* ... */ }
 func (h *ArticleHandler) Delete(c *gin.Context) { /* ... */ }
 
-// 5. 自动注册
-func init() {
-    crud.RegisterModule(NewArticleHandler)
-}
-
 var _ crud.Module = (*ArticleHandler)(nil)
 ```
 
-完成！不需要修改 `router.go`、`container.go` 或任何其他文件。
+完成！接下来在模块入口（例如 `internal/admin/module.go`）把该模块加入模块列表：
+
+```go
+return []crud.Module{
+    // ... 其他模块
+    NewArticleHandler(db),
+}
+```
 
 ---
 
@@ -77,28 +81,9 @@ var _ crud.Module = (*ArticleHandler)(nil)
 
 支持 `admin`、`api` 及自定义模块分组，不同分组可配置不同的中间件。
 
-### 注册到不同分组
-
-```go
-// 注册到 admin 分组（默认，需要 JWT + 权限验证）
-func init() {
-    crud.RegisterModule(NewArticleHandler)
-}
-
-// 注册到 api 分组（前台 API，可配置不同中间件）
-func init() {
-    crud.RegisterModuleTo(crud.GroupAPI, NewProductHandler)
-}
-
-// 注册到自定义分组
-func init() {
-    crud.RegisterModuleTo("wechat", NewWechatHandler)
-}
-```
-
 ### 配置分组中间件
 
-在 `container.go` 或 `router.go` 中配置：
+在模块入口（如 `internal/admin/module.go`）或模块 router 中配置：
 
 ```go
 // admin 分组：JWT + 权限 + 用户状态
@@ -113,9 +98,10 @@ apiRouter := crud.NewModuleRouterWithConfig(crud.RouterConfig{
 // 公开分组：无需认证
 publicRouter := crud.NewModuleRouterWithConfig(crud.RouterConfig{})
 
-// 注册路由
-adminRouter.RegisterAllModules(engine.Group("/admin-api"), crud.GroupAdmin)
-apiRouter.RegisterAllModules(engine.Group("/api"), crud.GroupAPI)
+// 注册路由（示例：模块内自行决定注册哪些 modules）
+for _, m := range modules {
+    adminRouter.RegisterModule(engine.Group("/admin-api"), m)
+}
 ```
 
 ---
@@ -319,7 +305,7 @@ crud.GetAllPermissionKeys()  // []string
 
 ## 完整示例
 
-参考 `internal/admin/handler/admin_user_handler.go`：
+参考 `internal/admin/handler/admin_user_handler.go` + `internal/admin/module.go`：
 
 ```go
 package handler
@@ -412,10 +398,6 @@ func (h *AdminUserHandler) Delete(c *gin.Context) {
     }, "删除成功", nil)
 }
 
-func init() {
-    crud.RegisterModule(NewAdminUserHandler)
-}
-
 var _ crud.Module = (*AdminUserHandler)(nil)
 ```
 
@@ -425,17 +407,17 @@ var _ crud.Module = (*AdminUserHandler)(nil)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    init() 阶段                          │
-│  crud.RegisterModule(NewXxxHandler) 注册构造函数         │
+│                  模块装配阶段（module.go）               │
+│  1. 模块自行装配依赖（可使用 dig）                        │
+│  2. 显式创建 []crud.Module（handler 构造）                │
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
-│                   Router 初始化                         │
-│  1. 遍历所有注册的模块                                   │
-│  2. 反射调用构造函数，注入 *gorm.DB                       │
-│  3. 调用 ModuleConfig() 获取配置                         │
-│  4. 注册权限到全局权限树                                  │
-│  5. 反射注册路由到 Gin                                   │
+│                   Router 注册阶段                        │
+│  1. 遍历 modules                                           │
+│  2. 调用 ModuleConfig() 获取配置                           │
+│  3. 注册权限到全局权限树                                    │
+│  4. 反射注册路由到 Gin                                     │
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -453,4 +435,4 @@ var _ crud.Module = (*AdminUserHandler)(nil)
 3. **嵌入 BaseHandler** - 减少重复代码
 4. **使用 QueryList/QueryOne** - 统一查询逻辑
 5. **使用 ExecTx** - 统一事务处理
-6. **init() 注册** - 自动发现，无需修改其他文件
+6. **模块显式装配** - 在模块入口维护 modules 列表，依赖清晰可控

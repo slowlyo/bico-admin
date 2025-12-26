@@ -5,7 +5,7 @@
 ## 项目概览
 
 **Bico Admin** 是一个前后端分离的现代化后台管理系统：
-- **后端**: Go + Gin + GORM + Dig（依赖注入）
+- **后端**: Go + Gin + GORM + Dig（模块内依赖注入）
 - **前端**: React 19 + Ant Design Pro + UmiJS 4 + TypeScript
 - **数据库**: SQLite（开发）/ MySQL（生产）
 - **缓存**: Memory / Redis
@@ -16,12 +16,13 @@
 
 ```
 ├── core/           # 核心基础设施层
-│   ├── app/        # 应用生命周期 + DI容器
+│   ├── app/        # AppContext 构建 + 模块注册 + 应用生命周期
 │   ├── config/     # 配置管理（Viper）
 │   ├── db/         # 数据库连接（GORM）
 │   ├── cache/      # 缓存接口（Memory/Redis）
-│   ├── server/     # Gin引擎 + 路由注册
+│   ├── server/     # Gin引擎 + 框架级路由注册
 │   ├── middleware/ # 核心中间件（JWT认证）
+│   ├── scheduler/  # 定时调度器（robfig/cron）
 │   └── upload/     # 文件上传（支持多种驱动）
 │
 ├── shared/         # 共享层（跨模块复用）
@@ -81,38 +82,31 @@ web/
 
 ### 1. 依赖注入（DI）
 
-**位置**: `internal/core/app/container.go`
+**原则**：core 只装配基础设施，业务模块自行装配依赖。
 
-使用 Uber Dig 管理依赖：
+#### Core 侧（基础设施装配）
+
+**位置**: `internal/core/app/context.go`
+
+core 通过 `BuildContext` 构建 `AppContext`，只包含基础设施对象：
 
 ```go
-// 注册顺序：基础设施 -> 服务 -> 处理器 -> 路由 -> 应用
-providers := []interface{}{
-    // 基础设施
-    func() (*config.Config, error) { return config.LoadConfig(configPath) },
-    provideDatabase,
-    provideGinEngine,
-    provideCache,
-    provideJWT,
-    
-    // 服务层
-    service.NewUserService,
-    
-    // 处理器
-    handler.NewUserHandler,
-    
-    // 路由
-    provideAdminRouter,
-    
-    // 应用
-    NewApp,
-}
+ctx, _ := app.BuildContext(configPath)
+// ctx.Cfg / ctx.DB / ctx.Cache / ctx.Engine / ctx.JWT / ctx.Scheduler ...
 ```
 
-**规则**：
-- Handler 构造函数参数自动注入
-- 接口依赖需要在 `provideXxx` 函数中显式声明返回类型
-- 使用 `dig.In` 简化多参数注入
+#### 模块侧（模块内 DI）
+
+每个模块通过 `module.go` 作为入口，在 `Register(ctx)` 内自行装配依赖（可使用 dig）：
+
+```go
+func (m *Module) Register(ctx *app.AppContext) error {
+    c := dig.New()
+    // Provide 模块依赖
+    // Invoke 注册路由到 ctx.Engine
+    return nil
+}
+```
 
 ### 2. 权限系统
 
@@ -334,12 +328,17 @@ func (h *ArticleHandler) Create(c *gin.Context) {
 func (h *ArticleHandler) Update(c *gin.Context) { /* 类似逻辑 */ }
 func (h *ArticleHandler) Delete(c *gin.Context) { /* 类似逻辑 */ }
 
-// 自动注册（无需修改 router.go / container.go）
-func init() {
-    crud.RegisterModule(NewArticleHandler)
-}
-
 var _ crud.Module = (*ArticleHandler)(nil)
+```
+
+然后在 `internal/admin/module.go` 中把新模块加入 `[]crud.Module` 列表（由模块显式装配）：
+
+```go
+return []crud.Module{
+    handler.NewAdminUserHandler(db),
+    handler.NewAdminRoleHandler(db),
+    NewArticleHandler(db),
+}
 ```
 
 #### 2. 创建模型 (`internal/admin/model/article.go`)
@@ -441,7 +440,8 @@ curl http://localhost:8080/admin-api/articles \
 - `web/config/proxy.ts` - 开发代理配置
 
 ### 核心文件
-- `internal/core/app/container.go` - DI容器（所有依赖注册）
+- `internal/core/app/context.go` - AppContext 构建 + 模块注册
+- `internal/core/app/container.go` - 旧 DI 入口（已废弃）
 - `internal/admin/consts/permissions.go` - 权限定义
 - `internal/admin/router.go` - 后台路由
 - `internal/migrate/migrate.go` - 数据库迁移

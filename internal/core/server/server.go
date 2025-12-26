@@ -102,8 +102,10 @@ func zapRecovery(logger *zap.Logger) gin.HandlerFunc {
 	}
 }
 
-// RegisterRoutes 注册所有路由
-func RegisterRoutes(engine *gin.Engine, adminRouter, apiRouter Router, cfg *config.Config, embedFS embed.FS) {
+// RegisterCoreRoutes 注册框架级路由
+//
+// 说明：业务路由由各模块自行注册，core 只处理健康检查/Swagger/静态资源等框架能力。
+func RegisterCoreRoutes(engine *gin.Engine, cfg *config.Config, embedFS embed.FS) {
 	// 健康检查
 	engine.GET("/health", func(c *gin.Context) {
 		response.SuccessWithData(c, gin.H{"status": "ok"})
@@ -117,19 +119,10 @@ func RegisterRoutes(engine *gin.Engine, adminRouter, apiRouter Router, cfg *conf
 		engine.Static(cfg.Upload.Local.ServePath, cfg.Upload.Local.BasePath)
 	}
 
-	// 注册模块路由
-	adminRouter.Register(engine)
-	apiRouter.Register(engine)
-
 	// 前端静态文件服务
 	if cfg.Server.EmbedStatic {
 		serveEmbedStatic(engine, embedFS)
 	}
-}
-
-// Router 路由接口
-type Router interface {
-	Register(engine *gin.Engine)
 }
 
 // serveEmbedStatic 服务嵌入的前端静态文件

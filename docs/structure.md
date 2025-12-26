@@ -14,7 +14,8 @@ bico-admin/
 │   ├── core/                # 核心基础设施层（有状态、需配置）
 │   │   ├── app/            # 应用生命周期管理
 │   │   │   ├── app.go      # App 实例，处理启动和优雅关闭
-│   │   │   └── container.go # DI 容器构建
+│   │   │   ├── context.go   # AppContext + Module 接口 + BuildContext
+│   │   │   └── container.go # 旧 DI 容器入口（已废弃，保留避免误用）
 │   │   ├── config/         # 配置管理
 │   │   │   └── config.go   # 配置结构体 + Viper 加载
 │   │   ├── db/             # 数据库层
@@ -30,10 +31,12 @@ bico-admin/
 │   │   ├── model/          # 基础模型
 │   │   │   └── base.go     # BaseModel（ID, CreatedAt, UpdatedAt）
 │   │   ├── server/         # 服务器层
-│   │   │   └── server.go   # Gin 引擎创建 + 路由注册
+│   │   │   └── server.go   # Gin 引擎创建 + 框架级路由注册
 │   │   ├── middleware/     # 通用中间件
 │   │   │   ├── jwt.go      # JWT认证中间件
 │   │   │   └── cors.go     # 跨域中间件
+│   │   ├── scheduler/      # 定时调度器（框架能力）
+│   │   │   └── scheduler.go # 基于 robfig/cron 的调度器封装
 │   │   └── upload/         # 文件上传
 │   │       ├── upload.go   # 上传接口
 │   │       ├── factory.go  # 上传工厂
@@ -67,17 +70,19 @@ bico-admin/
 │   │   │   ├── admin_user.go   # 后台用户模型
 │   │   │   ├── admin_role.go   # 后台角色模型
 │   │   │   └── menu.go         # 菜单模型
-│   │   └── router.go       # 路由注册（自动注册 CRUD 模块）
+│   │   ├── router.go       # 路由注册（接收模块显式提供的 CRUD modules）
+│   │   └── module.go       # 模块入口：模块内 DI 装配 + 注册路由
 │   │
 │   ├── api/                 # 前台 API 模块
 │   │   ├── handler/        # HTTP 处理器
 │   │   ├── service/        # 业务逻辑
 │   │   ├── model/          # 模块专属模型
-│   │   └── router.go       # 路由注册
+│   │   ├── router.go       # 路由注册
+│   │   └── module.go       # 模块入口：模块内装配 + 注册路由
 │   │
 │   ├── job/                 # 定时任务模块
-│   │   ├── scheduler.go     # 调度器封装（基于 robfig/cron）
 │   │   ├── register.go      # 任务注册器
+│   │   ├── module.go        # 模块入口：注册任务到 ctx.Scheduler
 │   │   └── task/            # 任务实现
 │   │       ├── clean.go     # 清理任务
 │   │       └── sync.go      # 同步任务
@@ -119,14 +124,15 @@ bico-admin/
 
 **职责：** 提供基础设施和框架能力（有状态、需配置、单例）
 
-- **app**: DI 容器管理、应用生命周期（启动、关闭）
+- **app**: AppContext 构建、模块注册、应用生命周期（启动、关闭）
 - **config**: 配置文件加载和解析
 - **db**: 数据库连接和连接池管理
 - **cache**: 缓存驱动（Memory/Redis）
 - **logger**: 日志系统（Zap + GORM 日志适配）
 - **model**: 基础模型（BaseModel）
-- **server**: HTTP 服务器初始化、路由注册
+- **server**: HTTP 服务器初始化、框架级路由注册
 - **middleware**: 通用中间件（JWT、CORS）
+- **scheduler**: 定时调度器
 - **upload**: 文件上传驱动
 
 ### 2. 工具层 (pkg)
@@ -142,19 +148,20 @@ bico-admin/
 
 **职责：** 实现具体业务功能
 
-每个模块采用经典三层结构：
+每个模块采用经典三层结构，并通过 `module.go` 作为模块入口：
 
 - **handler**: 处理 HTTP 请求，参数验证，调用 service
 - **service**: 业务逻辑层，处理复杂业务规则
 - **model**: 模块专属数据模型
-- **router.go**: 路由注册，实现 `server.Router` 接口
+- **router.go**: 路由注册
+- **module.go**: 模块入口（模块内 DI 装配 + 注册路由/任务）
 
 ### 4. 任务层 (job)
 
-**职责：** 定时任务调度和管理
+**职责：** 注册定时任务（调度器属于 core）
 
-- **scheduler.go**: 调度器封装（基于 `robfig/cron/v3`，支持秒级精度）
-- **register.go**: 任务注册器，统一注册所有定时任务
+- **register.go**: 任务注册器，统一创建任务并注册到调度器
+- **module.go**: 模块入口，将任务注册到 `ctx.Scheduler`
 - **task/**: 具体任务实现
   - `clean.go`: 清理过期数据（每天凌晨 3 点）
   - `sync.go`: 同步统计数据（每小时）
@@ -172,41 +179,30 @@ bico-admin/
 - 统一注册所有模型的 `AutoMigrate`
 - 支持通过命令行一键迁移
 
-## 依赖注入流程
+## 启动与模块装配流程
 
-### 容器构建 (container.go)
-
-```go
-BuildContainer(configPath) -> dig.Container
-  ├── Provide Config (从配置文件加载)
-  ├── Provide *gorm.DB (数据库连接)
-  ├── Provide *gin.Engine (HTTP 引擎)
-  ├── Provide Routers (各模块路由)
-  └── Provide *app.App (应用实例)
-```
-
-### 依赖注入优势
-
-- 解耦：模块间通过接口交互
-- 可测试：方便 Mock 依赖
-- 可维护：依赖关系清晰可见
-
-## 路由注册机制
-
-### Router 接口
+### 启动流程
 
 ```go
-type Router interface {
-    Register(engine *gin.Engine)
-}
+ctx, _ := app.BuildContext(configPath)
+
+server.RegisterCoreRoutes(ctx.Engine, ctx.Cfg, web.DistFS)
+
+_ = app.RegisterModules(
+    ctx,
+    admin.NewModule(),
+    api.NewModule(),
+    job.NewModule(),
+)
+
+_ = app.Run(ctx)
 ```
 
-### 注册流程
+### 依赖注入约定
 
-1. 各模块实现 `Router` 接口
-2. 在 `container.go` 中 Provide 到 DI 容器
-3. 在 `server.RegisterRoutes()` 中统一注册
-4. 支持路由分组（`/admin`, `/api`）
+- core 只负责创建基础设施并放入 `AppContext`
+- 业务模块在 `module.go` 内自行装配依赖（可使用 dig）
+- 业务路由在模块 `Register()` 内直接注册到 `ctx.Engine`
 
 ## 配置管理
 
@@ -289,7 +285,7 @@ bico-admin migrate  # 执行数据库迁移
 
 1. 在 `internal/admin/handler/` 创建 `xxx_handler.go`
 2. 嵌入 `crud.BaseHandler`，实现 `ModuleConfig()` 方法
-3. 在 `init()` 中调用 `crud.RegisterModule(NewXxxHandler)`
+3. 在 `internal/admin/module.go` 中把模块构造加入 `[]crud.Module`
 4. 在 `migrate.go` 中添加模型迁移
 
 详见 [CRUD 包文档](./crud-pkg.md)
@@ -299,7 +295,7 @@ bico-admin migrate  # 执行数据库迁移
 1. 在 `internal/` 下创建模块目录
 2. 按照 `handler/service/model` 组织代码
 3. 创建 `router.go` 实现路由注册
-4. 在 `container.go` 中注册到 DI 容器
+4. 创建 `module.go` 并在 `Register()` 中装配依赖、注册路由
 5. 在 `migrate.go` 中添加模型迁移
 
 ### 添加新的定时任务

@@ -291,8 +291,4 @@ func (h *AdminRoleHandler) exists(query string, args ...interface{}) bool {
 	return count > 0
 }
 
-func init() {
-	crud.RegisterModule(NewAdminRoleHandler)
-}
-
 var _ crud.Module = (*AdminRoleHandler)(nil)
