@@ -15,7 +15,6 @@ bico-admin/
 │   │   ├── app/            # 应用生命周期管理
 │   │   │   ├── app.go      # App 实例，处理启动和优雅关闭
 │   │   │   ├── context.go   # AppContext + Module 接口 + BuildContext
-│   │   │   └── container.go # 旧 DI 容器入口（已废弃，保留避免误用）
 │   │   ├── config/         # 配置管理
 │   │   │   └── config.go   # 配置结构体 + Viper 加载
 │   │   ├── db/             # 数据库层
@@ -201,7 +200,7 @@ _ = app.Run(ctx)
 ### 依赖注入约定
 
 - core 只负责创建基础设施并放入 `AppContext`
-- 业务模块在 `module.go` 内自行装配依赖（可使用 dig）
+- 业务模块在 `module.go` 内自行装配依赖（显式装配）
 - 业务路由在模块 `Register()` 内直接注册到 `ctx.Engine`
 
 ## 配置管理

@@ -12,7 +12,6 @@
 - `service/xxx_service.go`
 - `consts/permissions.go` (修改)
 - `router.go` (修改)
-- `container.go` (修改)
 
 使用本框架后，**只需一个 handler 文件**，路由、权限、DI 全部自动处理。
 
@@ -408,7 +407,7 @@ var _ crud.Module = (*AdminUserHandler)(nil)
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                  模块装配阶段（module.go）               │
-│  1. 模块自行装配依赖（可使用 dig）                        │
+│  1. 模块自行装配依赖（显式创建对象）                       │
 │  2. 显式创建 []crud.Module（handler 构造）                │
 └─────────────────────────────────────────────────────────┘
                           ↓

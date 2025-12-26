@@ -50,7 +50,7 @@ func main() {
 var rootCmd = &cobra.Command{
 	Use:   "bico-admin",
 	Short: "Bico Admin 管理系统",
-	Long:  "基于 Gin + GORM + Viper + Dig 构建的管理系统",
+	Long:  "基于 Gin + GORM + Viper 构建的管理系统",
 }
 
 var serveCmd = &cobra.Command{

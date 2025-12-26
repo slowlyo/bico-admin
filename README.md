@@ -10,7 +10,6 @@
 - **[Gin](https://github.com/gin-gonic/gin)** - HTTP Web 框架
 - **[GORM](https://gorm.io/)** - ORM 数据库操作
 - **[Viper](https://github.com/spf13/viper)** - 配置管理
-- **[Dig](https://github.com/uber-go/dig)** - 依赖注入容器（模块内使用）
 - **[Cobra](https://github.com/spf13/cobra)** - 命令行框架
 
 ### 前端

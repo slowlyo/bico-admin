@@ -5,7 +5,7 @@
 ## 项目概览
 
 **Bico Admin** 是一个前后端分离的现代化后台管理系统：
-- **后端**: Go + Gin + GORM + Dig（模块内依赖注入）
+- **后端**: Go + Gin + GORM（模块内显式装配依赖）
 - **前端**: React 19 + Ant Design Pro + UmiJS 4 + TypeScript
 - **数据库**: SQLite（开发）/ MySQL（生产）
 - **缓存**: Memory / Redis
@@ -97,13 +97,13 @@ ctx, _ := app.BuildContext(configPath)
 
 #### 模块侧（模块内 DI）
 
-每个模块通过 `module.go` 作为入口，在 `Register(ctx)` 内自行装配依赖（可使用 dig）：
+每个模块通过 `module.go` 作为入口，在 `Register(ctx)` 内自行装配依赖（显式创建 service/handler/router）：
 
 ```go
 func (m *Module) Register(ctx *app.AppContext) error {
-    c := dig.New()
-    // Provide 模块依赖
-    // Invoke 注册路由到 ctx.Engine
+    // 1) 创建 service
+    // 2) 创建 handler
+    // 3) 创建 router 并注册到 ctx.Engine
     return nil
 }
 ```

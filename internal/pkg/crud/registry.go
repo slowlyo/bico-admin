@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/dig"
 )
 
 // Permission 权限定义
@@ -46,70 +45,10 @@ type Module interface {
 	ModuleConfig() ModuleConfig
 }
 
-// ModuleRegistration 模块注册信息
-type ModuleRegistration struct {
-	Module      Module
-	Constructor interface{} // dig 构造函数
-	Group       string      // 模块分组，如 "admin", "api"
-}
-
-// 默认分组
-const (
-	GroupAdmin = "admin"
-	GroupAPI   = "api"
-)
-
 var (
-	registeredModules = make([]ModuleRegistration, 0)
-	moduleMu          sync.RWMutex
-	allPermissions    []Permission
-	permissionsMu     sync.RWMutex
+	allPermissions []Permission
+	permissionsMu  sync.RWMutex
 )
-
-// RegisterModule 注册模块到 admin 分组（在 init() 中调用）
-func RegisterModule(constructor interface{}) {
-	RegisterModuleTo(GroupAdmin, constructor)
-}
-
-// RegisterModuleTo 注册模块到指定分组
-func RegisterModuleTo(group string, constructor interface{}) {
-	moduleMu.Lock()
-	defer moduleMu.Unlock()
-	registeredModules = append(registeredModules, ModuleRegistration{
-		Constructor: constructor,
-		Group:       group,
-	})
-}
-
-// GetRegisteredModules 获取所有注册的模块
-func GetRegisteredModules() []ModuleRegistration {
-	moduleMu.RLock()
-	defer moduleMu.RUnlock()
-	return append([]ModuleRegistration{}, registeredModules...)
-}
-
-// GetModulesByGroup 获取指定分组的模块
-func GetModulesByGroup(group string) []ModuleRegistration {
-	moduleMu.RLock()
-	defer moduleMu.RUnlock()
-	var result []ModuleRegistration
-	for _, reg := range registeredModules {
-		if reg.Group == group {
-			result = append(result, reg)
-		}
-	}
-	return result
-}
-
-// ProvideModules 将所有模块注册到 dig 容器
-func ProvideModules(container *dig.Container) error {
-	for _, reg := range GetRegisteredModules() {
-		if err := container.Provide(reg.Constructor); err != nil {
-			return fmt.Errorf("provide module failed: %w", err)
-		}
-	}
-	return nil
-}
 
 // AddPermissions 添加权限到全局权限树
 func AddPermissions(parentKey string, perms []Permission) {
@@ -213,27 +152,6 @@ func NewModuleRouter(
 // NewModuleRouterWithConfig 使用配置创建模块路由注册器
 func NewModuleRouterWithConfig(config RouterConfig) *ModuleRouter {
 	return &ModuleRouter{config: config}
-}
-
-// RegisterAllModules 注册指定分组的所有模块路由
-func (r *ModuleRouter) RegisterAllModules(engine *gin.RouterGroup, group string) {
-	for _, reg := range GetModulesByGroup(group) {
-		if reg.Module != nil {
-			r.RegisterModule(engine, reg.Module)
-		}
-	}
-}
-
-// AutoRegister 自动注册分组的所有模块到 DI 容器并返回路由注册函数
-// 用法: crud.AutoRegister(container, "admin", routerConfig)
-func AutoRegister(container *dig.Container, group string, config RouterConfig) error {
-	// 注册所有模块构造函数到 DI
-	for _, reg := range GetModulesByGroup(group) {
-		if err := container.Provide(reg.Constructor); err != nil {
-			return fmt.Errorf("provide module [%s] failed: %w", group, err)
-		}
-	}
-	return nil
 }
 
 // RegisterModule 注册单个模块的路由
