@@ -27,6 +27,7 @@ type ServerConfig struct {
 	Port        int    `mapstructure:"port"`
 	Mode        string `mapstructure:"mode"`
 	EmbedStatic bool   `mapstructure:"embed_static"`
+	AdminPath   string `mapstructure:"admin_path"`
 }
 
 // AppConfig 应用配置

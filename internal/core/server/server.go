@@ -126,12 +126,16 @@ func RegisterCoreRoutes(engine *gin.Engine, cfg *config.Config, embedFS embed.FS
 
 	// 前端静态文件服务
 	if cfg.Server.EmbedStatic {
-		serveEmbedStatic(engine, embedFS)
+		serveEmbedStatic(engine, cfg.Server.AdminPath, embedFS)
 	}
 }
 
 // serveEmbedStatic 服务嵌入的前端静态文件
-func serveEmbedStatic(engine *gin.Engine, embedFS embed.FS) {
+func serveEmbedStatic(engine *gin.Engine, adminPath string, embedFS embed.FS) {
+	if adminPath == "" || adminPath == "/" {
+		adminPath = "/"
+	}
+
 	subFS, err := fs.Sub(embedFS, "dist")
 	if err != nil {
 		panic("failed to create sub filesystem: " + err.Error())
@@ -139,14 +143,36 @@ func serveEmbedStatic(engine *gin.Engine, embedFS embed.FS) {
 
 	fileServer := http.FileServer(http.FS(subFS))
 
+	// 如果配置了特定路径，则挂载到该路径下
+	if adminPath != "/" {
+		engine.StaticFS(adminPath, http.FS(subFS))
+	}
+
 	engine.NoRoute(func(c *gin.Context) {
+		path := c.Request.URL.Path
+
 		// API 路由返回 JSON 404
-		if len(c.Request.URL.Path) >= 10 && c.Request.URL.Path[:10] == "/admin-api" {
+		if len(path) >= 10 && path[:10] == "/admin-api" {
 			response.NotFound(c, "路由不存在")
 			return
 		}
-		if len(c.Request.URL.Path) >= 4 && c.Request.URL.Path[:4] == "/api" {
+		if len(path) >= 4 && path[:4] == "/api" {
 			response.NotFound(c, "路由不存在")
+			return
+		}
+
+		// 如果访问的是根路径且配置了 admin_path，则跳转到 admin_path
+		if path == "/" && adminPath != "/" {
+			c.Redirect(http.StatusMovedPermanently, adminPath)
+			return
+		}
+
+		// 处理 SPA 路由：如果请求的路径不是文件，则返回 index.html
+		if adminPath != "/" {
+			// 如果是以 adminPath 开头的请求，且不是静态资源请求（简单判断，通常静态资源有后缀）
+			// 这里交给 fileServer 处理，它会自动处理静态文件
+			// 如果文件不存在，则重定向到 index.html 以支持 SPA
+			fileServer.ServeHTTP(c.Writer, c.Request)
 			return
 		}
 
