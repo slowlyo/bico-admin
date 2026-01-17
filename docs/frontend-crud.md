@@ -1,328 +1,119 @@
 # 前端 CRUD 开发指南
 
-> 使用 `CrudTable` 和 `createCrudService`，一个页面只需 ~100 行代码。
+> 基于 Vue 3 + Artd Pro，通过 `useTable` Hook 和 `ArtTable` 组件实现高效的 CRUD 开发。
 
-## 快速开始
+## 核心 Hook: `useTable`
+
+`useTable` 是整个框架最核心的表格管理 Hook，封装了数据获取、分页、搜索、缓存、刷新策略以及列配置。
 
 ### 最小示例
 
-```tsx
-import type { ProColumns } from '@ant-design/pro-components';
-import { ProFormText, ProFormSwitch } from '@ant-design/pro-components';
-import { CrudTable } from '@/components';
-import { createCrudService } from '@/services/crud';
+```vue
+<template>
+  <div class="art-full-height">
+    <!-- 搜索栏 -->
+    <RoleSearch v-model="searchForm" @search="handleSearch" @reset="resetSearchParams" />
 
-// 1. 定义类型
-interface Article {
-  id: number;
-  title: string;
-  content: string;
-  enabled: boolean;
-}
+    <ElCard class="art-table-card" shadow="never">
+      <!-- 表格工具栏 -->
+      <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
+        <template #left>
+          <ElButton type="primary" @click="showDialog('add')">新增角色</ElButton>
+        </template>
+      </ArtTableHeader>
 
-// 2. 创建服务（一行搞定 CRUD API）
-const articleService = createCrudService<Article>('/articles');
+      <!-- 数据表格 -->
+      <ArtTable
+        :loading="loading"
+        :data="data"
+        :columns="columns"
+        :pagination="pagination"
+        @pagination:size-change="handleSizeChange"
+        @pagination:current-change="handleCurrentChange"
+      />
+    </ElCard>
+  </div>
+</template>
 
-// 3. 定义列
-const columns: ProColumns<Article>[] = [
-  { title: 'ID', dataIndex: 'id', width: 80, search: false },
-  { title: '标题', dataIndex: 'title' },
-  { title: '状态', dataIndex: 'enabled', valueType: 'switch' },
-];
+<script setup lang="ts">
+import { useTable } from '@/hooks/core/useTable'
+import { fetchGetRoleList } from '@/api/system-manage'
 
-// 4. 导出页面
-export default () => (
-  <CrudTable<Article>
-    title="文章"
-    permissionPrefix="content:article"
-    service={articleService}
-    columns={columns}
-    formContent={
-      <>
-        <ProFormText name="title" label="标题" rules={[{ required: true }]} />
-        <ProFormText name="content" label="内容" />
-        <ProFormSwitch name="enabled" label="状态" initialValue={true} />
-      </>
-    }
-  />
-);
+const {
+  columns,
+  columnChecks,
+  data,
+  loading,
+  pagination,
+  searchParams,
+  handleSearch,
+  resetSearchParams,
+  handleSizeChange,
+  handleCurrentChange,
+  refreshData
+} = useTable({
+  core: {
+    apiFn: fetchGetRoleList,
+    columnsFactory: () => [
+      { prop: 'id', label: 'ID', width: 80 },
+      { prop: 'name', label: '角色名称', minWidth: 120 },
+      { prop: 'code', label: '角色代码', minWidth: 120 },
+      { prop: 'created_at', label: '创建时间', width: 180 }
+    ]
+  }
+})
+</script>
 ```
-
-**完成！** 自动支持：列表、搜索、分页、新建、编辑、删除、权限控制。
 
 ---
 
-## 核心组件
+## 刷新策略
 
-### createCrudService
+`useTable` 提供了 5 种刷新方法，适配不同业务场景，能智能处理缓存清理和页码跳转：
 
-快速生成标准 CRUD API：
-
-```ts
-import { createCrudService } from '@/services/crud';
-
-// 基本用法
-const service = createCrudService<Article>('/articles');
-
-// 生成的方法：
-service.list(params)        // GET /articles
-service.get(id)             // GET /articles/:id
-service.create(data)        // POST /articles
-service.update(id, data)    // PUT /articles/:id
-service.delete(id)          // DELETE /articles/:id
-```
-
-### CrudTable
-
-封装了 ProTable + 弹窗表单的完整 CRUD 页面：
-
-```tsx
-<CrudTable<T>
-  // 必填
-  title="文章"                          // 模块名称
-  permissionPrefix="content:article"   // 权限前缀
-  service={articleService}             // CRUD 服务
-  columns={columns}                    // 列配置
-  formContent={<FormFields />}         // 表单字段
-
-  // 可选
-  recordToValues={(r) => ({...})}      // 编辑时转换初始值
-  transformParams={(p) => ({...})}     // 自定义请求参数
-  rowKey="id"                          // 行 key，默认 "id"
-  scrollX={1200}                       // 横向滚动宽度
-  showCreate={true}                    // 是否显示新建按钮
-  showDeleteConfirm={true}             // 是否显示删除确认
-  toolBarExtra={[<Button />]}          // 额外工具栏按钮
-  renderActions={(record, defaults) => ...}  // 自定义操作列
-/>
-```
-
-### CrudModal
-
-统一的创建/编辑弹窗（CrudTable 内部使用，也可单独使用）：
-
-```tsx
-<CrudModal<Article>
-  title="文章"
-  open={modalOpen}
-  onOpenChange={setModalOpen}
-  record={currentRow}                  // 有值=编辑，无值=创建
-  onCreate={service.create}
-  onUpdate={service.update}
-  onSuccess={() => reload()}
-  recordToValues={(r) => ({...})}
->
-  <ProFormText name="title" label="标题" />
-</CrudModal>
-```
+1. **`refreshCreate`**: 新增后刷新。回到第一页并清空分页相关缓存。
+2. **`refreshUpdate`**: 更新后刷新。保持当前页，仅清空当前查询条件的缓存。
+3. **`refreshRemove`**: 删除后刷新。保持当前页并清空缓存，若当前页数据删完则自动跳到前一页。
+4. **`refreshData`**: 手动全量刷新。清空所有缓存并重新获取。
+5. **`refreshSoft`**: 软刷新。仅清理缓存并获取，不改变任何状态，适用于定时任务。
 
 ---
 
 ## 权限控制
 
-CrudTable 自动处理权限，只需配置 `permissionPrefix`：
+权限控制通过 `v-auth` 指令或 `useAuth` Hook 实现，后端权限 key 对应 `meta.permissions`。
 
-```tsx
-permissionPrefix="system:admin_user"
-```
+```vue
+<!-- 指令方式 -->
+<ElButton v-auth="'system:role:create'">新增</ElButton>
 
-自动生成的权限检查：
-- `system:admin_user:create` - 新建按钮
-- `system:admin_user:edit` - 编辑按钮
-- `system:admin_user:delete` - 删除按钮
-
----
-
-## 表单字段复用
-
-创建和编辑共用同一套表单字段，可通过 `record` 判断模式：
-
-```tsx
-const FormContent: React.FC<{ record?: Article }> = ({ record }) => {
-  const isEdit = !!record;
-  
-  return (
-    <>
-      {/* 仅创建时显示 */}
-      {!isEdit && <ProFormText name="code" label="编码" />}
-      
-      {/* 创建和编辑都显示 */}
-      <ProFormText name="title" label="标题" />
-      <ProFormSwitch name="enabled" label="状态" />
-    </>
-  );
-};
-```
-
----
-
-## 完整示例
-
-用户管理页面（约 120 行 vs 原 450+ 行）：
-
-```tsx
-import type { ProColumns } from '@ant-design/pro-components';
-import { ProFormText, ProFormSwitch, ProFormSelect } from '@ant-design/pro-components';
-import { Avatar, Tag, Space, Upload, Button, message } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
-import React, { useState, useEffect } from 'react';
-import { CrudTable } from '@/components';
-import { createCrudService } from '@/services/crud';
-import { getAllAdminRoles } from '@/services/system/admin-role';
-import { buildApiUrl } from '@/services/config';
-
-interface AdminUser {
-  id: number;
-  username: string;
-  name: string;
-  avatar: string;
-  enabled: boolean;
-  roles?: { id: number; name: string }[];
-  created_at: string;
+<!-- Hook 方式 -->
+<script setup>
+const { hasAuth } = useAuth()
+if (hasAuth('system:role:edit')) {
+  // ...
 }
+</script>
+```
 
-const userService = createCrudService<AdminUser>('/admin-users');
+---
 
-const columns: ProColumns<AdminUser>[] = [
-  { title: 'ID', dataIndex: 'id', width: 80, search: false },
-  { title: '用户名', dataIndex: 'username', width: 150 },
-  {
-    title: '头像',
-    dataIndex: 'avatar',
-    width: 80,
-    search: false,
-    render: (_, r) => <Avatar src={r.avatar} size={40} />,
-  },
-  { title: '姓名', dataIndex: 'name', width: 150 },
-  {
-    title: '角色',
-    dataIndex: 'roles',
-    search: false,
-    render: (_, r) => r.roles?.map((role) => (
-      <Tag key={role.id} color="blue">{role.name}</Tag>
-    )),
-  },
-  {
-    title: '状态',
-    dataIndex: 'enabled',
-    valueType: 'select',
-    valueEnum: {
-      true: { text: '启用', status: 'Success' },
-      false: { text: '禁用', status: 'Default' },
-    },
-    render: (_, r) => (
-      <Tag color={r.enabled ? 'green' : 'red'}>
-        {r.enabled ? '启用' : '禁用'}
-      </Tag>
-    ),
-  },
-  {
-    title: '创建时间',
-    dataIndex: 'created_at',
-    valueType: 'dateTime',
-    search: false,
-    sorter: true,
-  },
-];
+## 搜索处理
 
-const FormContent: React.FC<{ record?: AdminUser }> = ({ record }) => {
-  const isEdit = !!record;
-  const [avatarUrl, setAvatarUrl] = useState('');
+搜索参数统一维护在 `searchParams` 中。
 
-  useEffect(() => {
-    setAvatarUrl(
-      record?.avatar || 
-      `https://api.dicebear.com/9.x/thumbs/png?seed=${Math.random()}`
-    );
-  }, [record]);
-
-  return (
-    <>
-      {!isEdit && (
-        <>
-          <ProFormText name="username" label="用户名" rules={[{ required: true }]} />
-          <ProFormText.Password name="password" label="密码" rules={[{ required: true }]} />
-        </>
-      )}
-      <ProFormText name="name" label="姓名" />
-      
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ marginBottom: 8 }}>头像</div>
-        <Space>
-          <Avatar src={avatarUrl} size={64} />
-          <Upload
-            name="avatar"
-            showUploadList={false}
-            action={buildApiUrl('/auth/avatar')}
-            headers={{ Authorization: `Bearer ${localStorage.getItem('token')}` }}
-            onChange={(info) => {
-              if (info.file.status === 'done') {
-                setAvatarUrl(info.file.response?.data?.url);
-                message.success('上传成功');
-              }
-            }}
-          >
-            <Button icon={<UploadOutlined />}>上传</Button>
-          </Upload>
-        </Space>
-      </div>
-
-      <ProFormSelect
-        name="roleIds"
-        label="角色"
-        mode="multiple"
-        request={async () => {
-          const res = await getAllAdminRoles();
-          return (res.data || []).map((r: any) => ({ label: r.name, value: r.id }));
-        }}
-      />
-      <ProFormSwitch name="enabled" label="状态" initialValue={true} />
-    </>
-  );
-};
-
-export default function AdminUserList() {
-  return (
-    <CrudTable<AdminUser>
-      title="用户"
-      permissionPrefix="system:admin_user"
-      service={userService}
-      columns={columns}
-      formContent={<FormContent />}
-      recordToValues={(r) => ({
-        name: r.name,
-        enabled: r.enabled,
-        roleIds: r.roles?.map((role) => role.id),
-      })}
-      transformParams={(params) => ({
-        ...params,
-        enabled: params.enabled === 'true' ? true : 
-                 params.enabled === 'false' ? false : undefined,
-      })}
-    />
-  );
+```ts
+const handleSearch = (params: Record<string, any>) => {
+  Object.assign(searchParams, params)
+  getData() // useTable 内部方法，重置到第一页并搜索
 }
 ```
-
----
-
-## 对比
-
-| 项目 | 传统方式 | CrudTable |
-|------|----------|-----------|
-| 文件数 | 4-5 个 | 1 个 |
-| 代码行数 | 400-500 行 | ~100 行 |
-| CreateForm | 单独组件 | 合并 |
-| UpdateForm | 单独组件 | 合并 |
-| 服务定义 | 5 个函数 | 1 行 |
-| 权限控制 | 手动判断 | 自动 |
 
 ---
 
 ## 最佳实践
 
-1. **类型优先** - 先定义好接口类型
-2. **列配置抽离** - 列配置建议单独定义，便于复用
-3. **表单组件化** - 复杂表单可抽成独立组件
-4. **善用 recordToValues** - 处理编辑时的数据转换
-5. **善用 transformParams** - 处理特殊的请求参数格式
+1. **Columns 抽离**: 建议将 `columnsFactory` 抽离到单独的文件或在 `setup` 顶部定义，保持逻辑清晰。
+2. **Api 函数规范**: 统一在 `src/api/` 下定义，使用 `request` 工具，并定义好 `Api` 命名空间下的类型。
+3. **缓存使用**: 对于变动不频繁的数据（如配置列表），开启 `performance.enableCache` 可显著提升用户体验。
+4. **响应式参数**: `searchParams` 是响应式的，可以直接绑定到搜索表单，但建议通过事件触发搜索以保证性能（防抖）。

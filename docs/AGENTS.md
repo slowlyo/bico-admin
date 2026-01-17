@@ -6,7 +6,7 @@
 
 **Bico Admin** 是一个前后端分离的现代化后台管理系统：
 - **后端**: Go + Gin + GORM（模块内显式装配依赖）
-- **前端**: React 19 + Ant Design Pro + UmiJS 4 + TypeScript
+- **前端**: Vue 3 + Artd Pro + Element Plus + TypeScript
 - **数据库**: SQLite（开发）/ MySQL（生产）
 - **缓存**: Memory / Redis
 
@@ -58,23 +58,17 @@
 
 ```
 web/
-├── config/         # 配置文件
-│   ├── routes.ts   # 路由配置（含权限）
-│   ├── config.ts   # 构建配置
-│   └── proxy.ts    # 代理配置
-│
 ├── src/
-│   ├── app.tsx           # 应用入口（初始化、布局）
-│   ├── access.ts         # 权限控制
-│   ├── requestErrorConfig.ts  # 请求错误处理
-│   ├── components/       # 公共组件
-│   ├── pages/           # 页面组件
-│   │   ├── auth/        # 认证页面
-│   │   ├── Dashboard/   # 工作台
-│   │   └── system/      # 系统管理
-│   ├── services/        # API服务
-│   └── locales/         # 国际化
-│
+│   ├── api/             # API 接口请求
+│   ├── assets/          # 静态资源
+│   ├── components/      # 公共组件
+│   ├── config/          # 全局配置
+│   ├── hooks/           # 自定义 Hook (如 useTable)
+│   ├── router/          # 路由配置
+│   ├── store/           # 状态管理 (Pinia)
+│   ├── views/           # 页面组件
+│   ├── App.vue          # 根组件
+│   └── main.ts          # 入口文件
 └── package.json
 ```
 
@@ -142,22 +136,25 @@ var AllPermissions = []Permission{
 users.GET("", r.permMiddleware.RequirePermission(consts.PermUserList), r.userHandler.List)
 ```
 
-**前端** (`web/config/routes.ts`):
+**前端** (`web/src/router/`):
 ```ts
 {
-  path: "/system/users",
-  name: "users",
-  component: "./system/users",
-  access: "system:admin_user:menu"  // 对应后端权限key
+  path: 'users',
+  name: 'User',
+  component: () => import('@/views/system/user/index.vue'),
+  meta: {
+    title: '用户管理',
+    permissions: ['system:admin_user:menu'] // 对应后端权限 key
+  }
 }
 ```
 
 #### 权限验证流程
 
 1. 用户登录后，后端返回用户的权限列表
-2. 前端将权限存入 `initialState.currentUser.permissions`
-3. `access.ts` 将权限数组转为对象 `{permission: true}`
-4. 路由的 `access` 字段控制菜单显示
+2. 前端将权限列表存储在 Pinia Store (`useUserStore`)
+3. `v-auth` 指令或 `useAuth()` Hook 进行权限校验
+4. 路由守卫根据 `meta.permissions` 控制页面访问
 5. 后端中间件 `RequirePermission` 验证接口访问权限
 
 ### 3. 认证流程
@@ -367,53 +364,49 @@ func Migrate(db *gorm.DB) error {
 }
 ```
 
-#### 4. 前端路由 (`web/config/routes.ts`)
+#### 4. 前端路由 (`web/src/router/modules/content.ts`)
 
 ```ts
 {
-    path: "/content",
-    name: "content",
-    icon: "book",
-    access: "content:manage",
-    routes: [
-        {
-            path: "/content/articles",
-            name: "articles",
-            component: "./content/articles",
-            access: "content:article:menu",
-        },
-    ],
+  path: 'articles',
+  name: 'Article',
+  component: () => import('@/views/content/article/index.vue'),
+  meta: {
+    title: '文章管理',
+    permissions: ['content:article:menu']
+  }
 }
 ```
 
-#### 9. 前端页面 (`web/src/pages/content/articles/index.tsx`)
+#### 9. 前端页面 (`web/src/views/content/article/index.vue`)
 
-```tsx
-import { ProTable } from '@ant-design/pro-components';
-import { useAccess } from '@umijs/max';
+```vue
+<template>
+  <div class="art-full-height">
+    <ArtTable
+      :loading="loading"
+      :data="data"
+      :columns="columns"
+      :pagination="pagination"
+      @refresh="refreshData"
+    />
+  </div>
+</template>
 
-export default function ArticleList() {
-    const access = useAccess();
-    
-    return (
-        <ProTable
-            columns={columns}
-            request={async (params) => {
-                const res = await getArticles(params);
-                return {
-                    data: res.data.list,
-                    total: res.data.total,
-                    success: res.code === 0,
-                };
-            }}
-            toolBarRender={() => [
-                access['content:article:create'] && (
-                    <Button type="primary">新建</Button>
-                ),
-            ]}
-        />
-    );
-}
+<script setup lang="ts">
+import { useTable } from '@/hooks/core/useTable'
+import { fetchGetArticleList } from '@/api/content'
+
+const { data, loading, columns, pagination, refreshData } = useTable({
+  core: {
+    apiFn: fetchGetArticleList,
+    columnsFactory: () => [
+      { prop: 'id', label: 'ID', width: 80 },
+      { prop: 'title', label: '标题' }
+    ]
+  }
+})
+</script>
 ```
 
 ### 运行和测试
@@ -451,9 +444,10 @@ curl http://localhost:8080/admin-api/articles \
 - `internal/admin/middleware/user_status.go` - 用户状态检查
 
 ### 前端核心
-- `web/src/app.tsx` - 应用初始化
-- `web/src/access.ts` - 权限控制
-- `web/src/requestErrorConfig.ts` - 请求拦截器
+- `web/src/main.ts` - 应用入口
+- `web/src/router/` - 路由与权限拦截
+- `web/src/utils/http/` - 请求拦截器
+- `web/src/hooks/core/useTable.ts` - 核心表格 Hook
 
 ## 编码规范
 
@@ -474,11 +468,11 @@ curl http://localhost:8080/admin-api/articles \
 
 ### 前端规范
 
-1. 使用 TypeScript，充分利用类型系统
-2. 组件拆分合理，单个文件不超过 500 行
-3. 组件不应该太大：可复用的通用组件提取到 `src/components/`，仅页面内使用的组件提取到对应页面目录下的 `./components/`
-4. API 调用统一在 `services/` 目录
-5. 权限控制使用 `access` 对象
+1. 使用 Vue 3 组合式 API (`<script setup>`)
+2. 复杂表格页面优先使用 `useTable` Hook
+3. 组件拆分合理，通用组件提取到 `src/components/core/`，业务组件提取到对应视图目录下的 `modules/`
+4. API 调用统一在 `src/api/` 目录，命名以 `fetch` 开头
+5. 样式使用 TailwindCSS + SCSS
 
 ### 命名规范
 

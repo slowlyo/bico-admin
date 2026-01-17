@@ -89,18 +89,17 @@ bico-admin/
 │   └── migrate/             # 数据库迁移
 │       └── migrate.go       # 统一管理所有模型的 AutoMigrate
 │
-├── web/                      # 前端项目
-│   ├── config/              # 配置文件
-│   │   ├── routes.ts        # 路由配置
-│   │   ├── config.ts        # 构建配置
-│   │   └── proxy.ts         # 代理配置
+├── web/                      # 前端项目 (Vue 3 + Artd Pro)
 │   ├── src/                 # 源代码
-│   │   ├── app.tsx          # 应用入口
-│   │   ├── access.ts        # 权限控制
+│   │   ├── api/             # API 接口请求
 │   │   ├── components/      # 公共组件
-│   │   ├── pages/          # 页面组件
-│   │   ├── services/       # API服务
-│   │   └── locales/        # 国际化
+│   │   ├── config/          # 全局配置
+│   │   ├── hooks/           # 自定义 Hook (如 useTable)
+│   │   ├── router/          # 路由配置
+│   │   ├── store/           # 状态管理 (Pinia)
+│   │   ├── views/           # 页面组件
+│   │   ├── App.vue          # 根组件
+│   │   └── main.ts          # 入口文件
 │   └── package.json
 │
 ├── docs/                     # 项目文档

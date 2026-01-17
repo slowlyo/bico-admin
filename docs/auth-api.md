@@ -23,7 +23,7 @@
 
 ### 1. 用户登录
 
-**接口地址：** `POST /admin-api/login`
+**接口地址：** `POST /admin-api/auth/login`
 
 **请求参数：**
 ```json
@@ -79,7 +79,7 @@
 
 ### 2. 用户退出登录
 
-**接口地址：** `POST /admin-api/logout`
+**接口地址：** `POST /admin-api/auth/logout`
 
 **请求头：**
 ```
@@ -151,12 +151,12 @@ go build -o bico-admin ./cmd/main.go
 
 ```bash
 # 登录
-curl -X POST http://localhost:8080/admin-api/login \
+curl -X POST http://localhost:8080/admin-api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 
 # 退出登录
-curl -X POST http://localhost:8080/admin-api/logout
+curl -X POST http://localhost:8080/admin-api/auth/logout
 ```
 
 ## 代码结构

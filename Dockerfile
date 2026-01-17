@@ -3,11 +3,14 @@ FROM node:20-alpine AS web-builder
 
 WORKDIR /app/web
 
-COPY web/package*.json ./
-RUN npm ci --registry=https://registry.npmmirror.com
+# 安装 pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY web/package.json web/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --registry=https://registry.npmmirror.com
 
 COPY web/ ./
-RUN npm run build
+RUN pnpm build
 
 
 # 阶段 2: 后端构建

@@ -140,13 +140,13 @@ type (
 		Name     string `json:"name"`
 		Avatar   string `json:"avatar"`
 		Enabled  *bool  `json:"enabled"`
-		RoleIDs  []uint `json:"roleIds"`
+		RoleIDs  []uint `json:"role_ids"`
 	}
 	updateUserReq struct {
 		Name     string `json:"name"`
 		Avatar   string `json:"avatar"`
 		Enabled  *bool  `json:"enabled"`
-		RoleIDs  []uint `json:"roleIds"`
+		RoleIDs  []uint `json:"role_ids"`
 		Password string `json:"password"`
 	}
 )

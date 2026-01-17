@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bico-admin/internal/core/upload"
+	"bico-admin/internal/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,7 +31,7 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 		}
 	}
 	if err != nil {
-		c.JSON(200, gin.H{"errno": 1, "message": "请上传文件"})
+		response.BadRequest(c, "请上传文件")
 		return
 	}
 
@@ -52,14 +53,11 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 
 	url, err := h.uploader.Upload(file, subPath)
 	if err != nil {
-		c.JSON(200, gin.H{"errno": 1, "message": err.Error()})
+		response.ErrorWithCode(c, 400, err.Error())
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"errno": 0,
-		"data": gin.H{
-			"url": url,
-		},
+	response.SuccessWithData(c, gin.H{
+		"url": url,
 	})
 }

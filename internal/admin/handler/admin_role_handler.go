@@ -32,6 +32,9 @@ func NewAdminRoleHandler(db *gorm.DB) *AdminRoleHandler {
 		if req.Code != "" {
 			query = query.Where("code LIKE ?", "%"+req.Code+"%")
 		}
+		if req.Description != "" {
+			query = query.Where("description LIKE ?", "%"+req.Description+"%")
+		}
 		if req.Enabled != nil {
 			query = query.Where("enabled = ?", *req.Enabled)
 		}
@@ -142,8 +145,9 @@ func (h *AdminRoleHandler) ModuleConfig() crud.ModuleConfig {
 		ParentPermission: PermSystemManage,
 		Permissions:      rolePerms.Tree,
 		Routes: rolePerms.RoutesWithExtra(
-			crud.Route{Method: "GET", Path: "/all", Handler: "GetAll", Permission: rolePerms.List},
-			crud.Route{Method: "GET", Path: "/permissions", Handler: "GetAllPermissions", Permission: rolePerms.List},
+			crud.AuthRoute("GET", "/all", "GetAll"),
+			crud.AuthRoute("GET", "/permissions", "GetAllPermissions"),
+			crud.Route{Method: "GET", Path: "/:id/permissions", Handler: "GetPermissions", Permission: rolePerms.List},
 			crud.Route{Method: "PUT", Path: "/:id/permissions", Handler: "UpdatePermissions", Permission: "system:admin_role:permission"},
 		),
 	}
@@ -152,9 +156,10 @@ func (h *AdminRoleHandler) ModuleConfig() crud.ModuleConfig {
 // 请求结构
 type (
 	roleListReq struct {
-		Name    string `form:"name"`
-		Code    string `form:"code"`
-		Enabled *bool  `form:"enabled"`
+		Name        string `form:"name"`
+		Code        string `form:"code"`
+		Description string `form:"description"`
+		Enabled     *bool  `form:"enabled"`
 	}
 	createRoleReq struct {
 		Name, Code, Description string
@@ -169,6 +174,21 @@ type (
 		Permissions []string `json:"permissions" binding:"required"`
 	}
 )
+
+func (h *AdminRoleHandler) GetPermissions(c *gin.Context) {
+	id, err := h.ParseID(c)
+	if err != nil {
+		return
+	}
+
+	perms, err := h.getPerms(h.DB, id)
+	if err != nil {
+		h.Error(c, err.Error())
+		return
+	}
+
+	h.Success(c, gin.H{"permissions": perms})
+}
 
 func (h *AdminRoleHandler) UpdatePermissions(c *gin.Context) {
 	id, err := h.ParseID(c)

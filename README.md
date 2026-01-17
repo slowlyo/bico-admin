@@ -13,11 +13,12 @@
 - **[Cobra](https://github.com/spf13/cobra)** - 命令行框架
 
 ### 前端
-- **[React 19](https://react.dev/)** - UI 框架
-- **[Ant Design Pro](https://pro.ant.design/)** - 企业级中后台解决方案
-- **[UmiJS 4](https://umijs.org/)** - 企业级前端框架
+- **[Vue 3](https://vuejs.org/)** - 现代渐进式 JavaScript 框架
+- **[Artd Pro](https://github.com/slowlyo/art-design-pro)** - 基于 Element Plus 的企业级中后台解决方案
+- **[Element Plus](https://element-plus.org/)** - 基于 Vue 3 的 UI 组件库
+- **[TailwindCSS](https://tailwindcss.com/)** - 原子化 CSS 框架
 - **[TypeScript](https://www.typescriptlang.org/)** - 类型安全
-- **[pnpm](https://pnpm.io/)** - 包管理器
+- **[pnpm](https://pnpm.io/)** - 高效的包管理器
 
 ## 快速开始
 
@@ -117,13 +118,16 @@ return []crud.Module{
 
 ### 前端路由
 
-在 `web/config/routes.ts` 配置：
+在 `web/src/router/` 配置，推荐在对应模块的路由文件中添加：
 ```ts
 {
-  path: "/system/articles",
-  name: "articles",
-  component: "./system/articles",
-  access: "system:article:menu"  // 对应后端权限 key
+  path: 'articles',
+  name: 'Article',
+  component: () => import('@/views/content/article/index.vue'),
+  meta: {
+    title: '文章管理',
+    permissions: ['content:article:menu'] // 对应后端权限 key
+  }
 }
 ```
 
@@ -155,7 +159,7 @@ make tidy      # 整理依赖
 - Go 1.21+
 - MySQL 5.7+
 - Node.js 20+
-- pnpm 9+ (前端包管理器)
+- pnpm 8+ (前端包管理器)
 
 ## License
 

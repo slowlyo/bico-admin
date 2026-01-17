@@ -22,7 +22,7 @@ server:
 
 ```bash
 cd web
-npm run build
+pnpm build
 ```
 
 这会在 `web/dist` 目录生成前端构建产物。
@@ -81,13 +81,13 @@ go build -tags embed -o bico-admin cmd/main.go
 
 1. **开发模式**
    - 关闭 `embed_static`
-   - 前端使用 `npm run dev` 独立运行
+   - 前端使用 `pnpm dev` 独立运行
    - 后端通过 CORS 支持前后端分离开发
 
 2. **生产模式**
    - 开启 `embed_static`
    - 使用 `-tags embed` 编译
-   - 前端必须先执行 `npm run build`
+   - 前端必须先执行 `pnpm build`
 
 3. **文件体积**
    - 嵌入后二进制文件会增大（通常 2-5 MB）
@@ -106,7 +106,7 @@ dev:
 
 # 生产构建
 build-prod:
-	cd web && npm run build
+	cd web && pnpm build
 	go build -tags embed -ldflags="-s -w" -o dist/bico-admin cmd/main.go
 
 # 清理
@@ -120,7 +120,7 @@ clean:
 
 **原因**：前端未构建或 `web/dist` 目录不存在
 
-**解决**：先执行 `cd web && npm run build`
+**解决**：先执行 `cd web && pnpm build`
 
 ### 问题：访问前端显示 404
 

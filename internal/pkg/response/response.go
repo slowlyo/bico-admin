@@ -77,12 +77,14 @@ func TooManyRequests(c *gin.Context, msg string) {
 	c.JSON(http.StatusTooManyRequests, Error(429, msg))
 }
 
-// SuccessWithPagination 分页成功响应（data直接是列表，total在外层）
+// SuccessWithPagination 分页成功响应（数据和总数都放在 data 中，方便前端统一处理）
 func SuccessWithPagination(c *gin.Context, list interface{}, total int64) {
 	c.JSON(http.StatusOK, gin.H{
-		"code":  0,
-		"msg":   "success",
-		"data":  list,
-		"total": total,
+		"code": 0,
+		"msg":  "success",
+		"data": gin.H{
+			"list":  list,
+			"total": total,
+		},
 	})
 }
