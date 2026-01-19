@@ -49,7 +49,7 @@ main
 
 # Database files
 *.db
-storage/
+/storage
 
 # Config files (if containing sensitive data)
 # config/config.local.yaml
