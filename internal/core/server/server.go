@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"bico-admin/internal/core/config"
@@ -22,6 +23,8 @@ func NewServer(cfg *config.ServerConfig, rateLimiter *middleware.RateLimiter, za
 	gin.SetMode(cfg.Mode)
 
 	engine := gin.New()
+	engine.RedirectTrailingSlash = false
+	engine.RedirectFixedPath = false
 	engine.Use(zapRecovery(zapLogger))
 	engine.Use(zapAccessLogger(zapLogger, cfg.Mode == "debug"))
 
@@ -132,7 +135,7 @@ func RegisterCoreRoutes(engine *gin.Engine, cfg *config.Config, embedFS embed.FS
 
 // serveEmbedStatic 服务嵌入的前端静态文件
 func serveEmbedStatic(engine *gin.Engine, adminPath string, embedFS embed.FS) {
-	if adminPath == "" || adminPath == "/" {
+	if adminPath == "" {
 		adminPath = "/"
 	}
 
@@ -141,42 +144,93 @@ func serveEmbedStatic(engine *gin.Engine, adminPath string, embedFS embed.FS) {
 		panic("failed to create sub filesystem: " + err.Error())
 	}
 
-	fileServer := http.FileServer(http.FS(subFS))
-
-	// 如果配置了特定路径，则挂载到该路径下
-	if adminPath != "/" {
-		engine.StaticFS(adminPath, http.FS(subFS))
+	// 统一前缀格式：确保以 / 开头，且不以 / 结尾
+	prefix := "/" + strings.Trim(adminPath, "/")
+	if prefix == "/" {
+		prefix = ""
 	}
 
-	engine.NoRoute(func(c *gin.Context) {
+	// 定义处理函数
+	handler := func(c *gin.Context) {
+		// 强制不缓存，解决开发/调试期间的 301 缓存问题
+		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+		c.Header("Pragma", "no-cache")
+		c.Header("Expires", "0")
+		c.Header("X-Bico-Debug", "v2-fixed-redirects")
+
 		path := c.Request.URL.Path
 
-		// API 路由返回 JSON 404
-		if len(path) >= 10 && path[:10] == "/admin-api" {
-			response.NotFound(c, "路由不存在")
-			return
-		}
-		if len(path) >= 4 && path[:4] == "/api" {
-			response.NotFound(c, "路由不存在")
+		// 1. API 路由直接跳过（理论上路由匹配不会进到这里，但做个兜底）
+		if strings.HasPrefix(path, "/admin-api") || strings.HasPrefix(path, "/api") {
+			c.Next()
 			return
 		}
 
-		// 如果访问的是根路径且配置了 admin_path，则跳转到 admin_path
-		if path == "/" && adminPath != "/" {
-			c.Redirect(http.StatusMovedPermanently, adminPath)
+		// 2. 处理前缀跳转 (如访问 /admin 跳转到 /admin/)
+		if prefix != "" && path == prefix {
+			c.Redirect(http.StatusFound, prefix+"/")
 			return
 		}
 
-		// 处理 SPA 路由：如果请求的路径不是文件，则返回 index.html
-		if adminPath != "/" {
-			// 如果是以 adminPath 开头的请求，且不是静态资源请求（简单判断，通常静态资源有后缀）
-			// 这里交给 fileServer 处理，它会自动处理静态文件
-			// 如果文件不存在，则重定向到 index.html 以支持 SPA
-			fileServer.ServeHTTP(c.Writer, c.Request)
+		// 3. 计算相对文件路径
+		filePath := path
+		if prefix != "" && strings.HasPrefix(path, prefix+"/") {
+			filePath = strings.TrimPrefix(path, prefix)
+		}
+		filePath = strings.TrimPrefix(filePath, "/")
+
+		// 4. 目录或空路径指向 index.html
+		if filePath == "" || strings.HasSuffix(filePath, "/") {
+			filePath = "index.html"
+		}
+
+		// 5. 尝试打开文件
+		f, err := subFS.Open(filePath)
+		if err != nil {
+			// 如果是带后缀的静态资源（如 .js, .css），文件不存在则直接 404
+			if strings.Contains(filePath, ".") && !strings.HasSuffix(filePath, "index.html") {
+				response.NotFound(c, "资源不存在")
+				return
+			}
+			// 否则作为 SPA 路由，返回 index.html
+			filePath = "index.html"
+			f, err = subFS.Open(filePath)
+			if err != nil {
+				response.NotFound(c, "入口文件不存在")
+				return
+			}
+		}
+		defer f.Close()
+
+		fi, _ := f.Stat()
+		if fi.IsDir() {
+			filePath = "index.html"
+		}
+
+		// 6. 响应内容
+		// 对于 index.html，必须手动读取并返回，绝对不能使用 http.FileServer 或 c.FileFromFS
+		// 因为它们检测到 index.html 时会尝试做 301 重定向，这是导致死循环的根源
+		if strings.HasSuffix(filePath, "index.html") {
+			content, err := fs.ReadFile(subFS, "index.html")
+			if err != nil {
+				response.NotFound(c, "读取入口文件失败")
+				return
+			}
+			c.Data(http.StatusOK, "text/html; charset=utf-8", content)
 			return
 		}
 
-		// 其他请求交给文件服务器处理
-		fileServer.ServeHTTP(c.Writer, c.Request)
-	})
+		// 其他普通资源使用 FileFromFS
+		c.FileFromFS(filePath, http.FS(subFS))
+	}
+
+	// 注册路由
+	if prefix != "" {
+		// 注册前缀路由及其子路由
+		engine.GET(prefix, handler)
+		engine.GET(prefix+"/*any", handler)
+	} else {
+		// 注册根路径通配
+		engine.NoRoute(handler)
+	}
 }

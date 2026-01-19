@@ -7,5 +7,5 @@ import "embed"
 
 // DistFS 前端构建产物
 //
-//go:embed dist
+//go:embed all:dist
 var DistFS embed.FS

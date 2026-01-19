@@ -11,6 +11,11 @@ html.dark {
   --el-bg-color: var(--default-box-color);
   --el-text-color-regular: #{$font-color};
 
+  // el-card 背景色跟系统背景色保持一致
+  .el-card {
+    --el-card-bg-color: var(--default-box-color) !important;
+  }
+
   // 富文本编辑器
   // 工具栏背景颜色
   --w-e-toolbar-bg-color: #18191c;

@@ -22,14 +22,7 @@
       "userCenter": "User center",
       "docs": "Document",
       "github": "Github",
-      "lockScreen": "Lock screen",
       "logout": "Log out"
-    },
-    "guide": {
-      "title": "Click here to view",
-      "theme": "Theme style",
-      "menu": "Open top menu",
-      "description": "More configurations"
     }
   },
   "common": {
@@ -206,18 +199,6 @@
     "submitBtnText": "Register",
     "hasAccount": "Already have an account?",
     "toLogin": "To login"
-  },
-  "lockScreen": {
-    "pwdError": "Password error",
-    "lock": {
-      "inputPlaceholder": "Please input lock screen password",
-      "btnText": "Lock"
-    },
-    "unlock": {
-      "inputPlaceholder": "Please input unlock password",
-      "btnText": "Unlock",
-      "backBtnText": "Back to login"
-    }
   },
   "greeting": {
     "dawn": "Good morning!",

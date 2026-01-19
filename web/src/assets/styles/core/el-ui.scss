@@ -37,12 +37,7 @@
   --el-datepicker-inrange-bg-color: var(--art-gray-200) !important;
 }
 
-// el-card 背景色跟系统背景色保持一致
-html.dark .el-card {
-  --el-card-bg-color: var(--default-box-color) !important;
-}
-
-// 修改 el-pagination 大小
+// el-pagination 大小优化
 .el-pagination--default {
   & {
     --el-pagination-button-width: 32px !important;

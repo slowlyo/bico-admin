@@ -105,6 +105,8 @@ export interface SystemConfig {
   systemMainColor: readonly string[]
   // 顶部栏功能配置
   headerBar?: HeaderBarFeatureConfig
+  // 快速入口配置
+  fastEnter?: FastEnterConfig
 }
 
 // 环境配置
@@ -161,4 +163,48 @@ export interface HeaderBarFeatureConfig {
   settings: FeatureConfigItem
   /** 主题切换 */
   themeToggle: FeatureConfigItem
+}
+
+// 快速入口应用配置
+export interface FastEnterApplication {
+  /** 应用名称 */
+  name: string
+  /** 应用描述 */
+  description?: string
+  /** 图标 */
+  icon: string
+  /** 图标颜色 */
+  iconColor?: string
+  /** 是否启用 */
+  enabled?: boolean
+  /** 排序权重 */
+  order?: number
+  /** 路由名称 */
+  routeName?: string
+  /** 外部链接 */
+  link?: string
+}
+
+// 快速链接配置
+export interface FastEnterQuickLink {
+  /** 链接名称 */
+  name: string
+  /** 是否启用 */
+  enabled?: boolean
+  /** 排序权重 */
+  order?: number
+  /** 路由名称 */
+  routeName?: string
+  /** 外部链接 */
+  link?: string
+}
+
+// 快速入口总配置
+export interface FastEnterConfig {
+  /** 最小显示宽度 */
+  minWidth?: number
+  /** 应用列表 */
+  applications: FastEnterApplication[]
+  /** 快速链接 */
+  quickLinks: FastEnterQuickLink[]
 }

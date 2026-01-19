@@ -82,8 +82,6 @@ export const useSettingStore = defineStore(
     const showLanguage = ref(SETTING_DEFAULT_CONFIG.showLanguage)
     /** 是否显示进度条 */
     const showNprogress = ref(SETTING_DEFAULT_CONFIG.showNprogress)
-    /** 是否显示设置引导 */
-    const showSettingGuide = ref(SETTING_DEFAULT_CONFIG.showSettingGuide)
     /** 是否显示节日文本 */
     const showFestivalText = ref(SETTING_DEFAULT_CONFIG.showFestivalText)
     /** 是否显示水印 */
@@ -298,20 +296,6 @@ export const useSettingStore = defineStore(
     }
 
     /**
-     * 隐藏设置引导
-     */
-    const hideSettingGuide = () => {
-      showSettingGuide.value = false
-    }
-
-    /**
-     * 显示设置引导
-     */
-    const openSettingGuide = () => {
-      showSettingGuide.value = true
-    }
-
-    /**
      * 设置页面过渡效果
      * @param transition 过渡效果名称
      */
@@ -409,7 +393,6 @@ export const useSettingStore = defineStore(
       showLanguage,
       showNprogress,
       colorWeak,
-      showSettingGuide,
       pageTransition,
       tabStyle,
       menuOpen,
@@ -444,8 +427,6 @@ export const useSettingStore = defineStore(
       setLanguage,
       setNprogress,
       setColorWeak,
-      hideSettingGuide,
-      openSettingGuide,
       setPageTransition,
       setTabStyle,
       setMenuOpen,

@@ -57,8 +57,6 @@ export const SETTING_DEFAULT_CONFIG = {
   showLanguage: true,
   /** 是否显示进度条 */
   showNprogress: false,
-  /** 是否显示设置引导 */
-  showSettingGuide: true,
   /** 是否显示节日文本 */
   showFestivalText: false,
   /** 是否显示水印 */

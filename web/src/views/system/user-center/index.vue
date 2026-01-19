@@ -3,33 +3,35 @@
   <div class="w-full h-full p-0 bg-transparent border-none shadow-none text-g-700">
     <div class="flex flex-col lg:flex-row items-start mt-2.5 gap-5">
       <!-- 左侧：头像设置 -->
-      <div class="w-full lg:w-80 shrink-0">
-        <div class="art-card-sm p-6 text-center">
-          <div class="text-left mb-4 pb-2 border-b border-g-300">
-            <span class="text-base font-medium">头像设置</span>
+      <div class="w-full lg:w-96 shrink-0">
+        <div class="art-card-sm">
+          <div class="p-4 border-b border-g-300">
+            <h1 class="text-base font-medium">头像设置</h1>
           </div>
-          <div class="flex flex-col items-center justify-center py-8">
-            <div
-              class="relative w-32 h-32 rounded-full overflow-hidden cursor-pointer group"
-              @click="triggerUpload"
-            >
-              <img
-                class="w-full h-full object-cover border border-g-200 dark:border-g-300 rounded-full shadow-sm"
-                :src="userInfo.avatar || '/src/assets/imgs/user/avatar.webp'"
-              />
+          <div class="p-6 text-center">
+            <div class="flex flex-col items-center justify-center py-8">
               <div
-                class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-white"
+                class="relative w-32 h-32 rounded-full overflow-hidden cursor-pointer group"
+                @click="triggerUpload"
               >
-                <ArtSvgIcon icon="ri:camera-line" class="text-2xl mb-1" />
-                <span class="text-xs">{{ uploading ? '上传中...' : '点击上传' }}</span>
+                <img
+                  class="w-full h-full object-cover border border-g-200 dark:border-g-300 rounded-full shadow-sm"
+                  :src="userInfo.avatar || '/src/assets/imgs/user/avatar.webp'"
+                />
+                <div
+                  class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-white"
+                >
+                  <ArtSvgIcon icon="ri:camera-line" class="text-2xl mb-1" />
+                  <span class="text-xs">{{ uploading ? '上传中...' : '点击上传' }}</span>
+                </div>
+                <input
+                  ref="fileInput"
+                  type="file"
+                  class="hidden"
+                  accept="image/*"
+                  @change="handleAvatarChange"
+                />
               </div>
-              <input
-                ref="fileInput"
-                type="file"
-                class="hidden"
-                accept="image/*"
-                @change="handleAvatarChange"
-              />
             </div>
           </div>
         </div>
@@ -45,7 +47,7 @@
 
           <ElForm
             :model="form"
-            class="p-6 max-w-2xl"
+            class="p-6"
             ref="ruleFormRef"
             :rules="rules"
             label-width="80px"
@@ -73,7 +75,7 @@
 
           <ElForm
             :model="pwdForm"
-            class="p-6 max-w-2xl"
+            class="p-6"
             ref="pwdFormRef"
             :rules="pwdRules"
             label-width="80px"
