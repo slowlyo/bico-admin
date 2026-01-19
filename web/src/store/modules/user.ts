@@ -35,6 +35,7 @@ import { fetchLogout } from '@/api/auth'
 import { ref, computed } from 'vue'
 import { LanguageEnum } from '@/enums/appEnum'
 import { router } from '@/router'
+import { RoutesAlias } from '@/router/routesAlias'
 import { useSettingStore } from './setting'
 import { useWorktabStore } from './worktab'
 import { AppRouteRecord } from '@/types/router'
@@ -149,7 +150,8 @@ export const useUserStore = defineStore(
         resetRouterState(500)
         // 跳转到登录页，携带当前路由作为 redirect 参数
         const currentRoute = router.currentRoute.value
-        const redirect = currentRoute.path !== '/login' ? currentRoute.fullPath : undefined
+        const isLoginPage = currentRoute.path === RoutesAlias.Login
+        const redirect = !isLoginPage ? currentRoute.fullPath : undefined
         router.push({
           name: 'Login',
           query: redirect ? { redirect } : undefined

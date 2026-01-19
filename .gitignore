@@ -29,11 +29,6 @@ go.work
 *~
 .DS_Store
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-
 # Logs
 logs/
 *.log

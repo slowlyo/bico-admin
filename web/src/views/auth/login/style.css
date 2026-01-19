@@ -2,7 +2,7 @@
 
 /* 授权页右侧区域 */
 .auth-right-wrap {
-  @apply absolute inset-x-0 top-[60%] w-[440px] h-[650px] py-[5px] mx-auto overflow-hidden -translate-y-1/2
+  @apply absolute inset-x-0 top-[55%] w-[440px] h-[650px] py-[5px] mx-auto overflow-hidden -translate-y-1/2
     max-sm:px-7 max-sm:w-full
     animate-[slideInRight_0.6s_cubic-bezier(0.25,0.46,0.45,0.94)_forwards]
     max-md:animate-none;
@@ -21,6 +21,18 @@
 
   .custom-height {
     @apply !h-[40px];
+  }
+
+  .captcha-img {
+    @apply cursor-pointer bg-gray-50 dark:bg-zinc-800 rounded overflow-hidden flex items-center justify-center border border-solid;
+    border-color: var(--el-border-color);
+    width: 120px;
+    height: 40px;
+    transition: border-color 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+
+    &:hover {
+      border-color: var(--el-border-color-hover);
+    }
   }
 }
 

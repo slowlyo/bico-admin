@@ -41,11 +41,7 @@
                   :placeholder="$t('login.placeholder.captcha')"
                   v-model.trim="formData.captchaCode"
                 />
-                <div
-                  class="captcha-img cursor-pointer bg-gray-100 dark:bg-zinc-800 rounded overflow-hidden flex items-center justify-center"
-                  style="width: 120px; height: 40px"
-                  @click="getCaptcha"
-                >
+                <div class="captcha-img" @click="getCaptcha">
                   <img v-if="captchaImg" :src="captchaImg" class="w-full h-full" alt="captcha" />
                   <span v-else class="text-xs text-gray-400">{{ $t('common.loading') }}</span>
                 </div>
@@ -78,6 +74,7 @@
 
 <script setup lang="ts">
   import { useUserStore } from '@/store/modules/user'
+import { RoutesAlias } from '@/router/routesAlias'
   import { useI18n } from 'vue-i18n'
   import { HttpError } from '@/utils/http/error'
   import { fetchLogin, fetchCaptcha, fetchAppConfig, fetchGetUserInfo } from '@/api/auth'
@@ -206,9 +203,11 @@
         localStorage.removeItem(StorageConfig.REMEMBER_PWD_KEY)
       }
 
-      // 获取 redirect 参数，如果存在则跳转到指定页面，否则跳转到首页
+      // 获取 redirect 参数，如果存在且不是登录页则跳转到指定页面，否则跳转到首页
       const redirect = route.query.redirect as string
-      router.push(redirect || '/')
+      const isLoginRedirect = redirect && (redirect.includes(RoutesAlias.Login) || redirect.includes('login'))
+      
+      router.push(isLoginRedirect ? '/' : (redirect || '/'))
     } catch (error) {
       // 登录失败刷新验证码
       getCaptcha()
