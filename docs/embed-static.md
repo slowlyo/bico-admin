@@ -1,137 +1,85 @@
-# 前端静态文件打包功能
+# 前端静态资源嵌入说明
 
-## 功能说明
+## 功能
 
-将前端构建产物嵌入到 Go 二进制文件中，实现单文件部署。
+将 `web/dist` 嵌入 Go 二进制，实现单文件部署。
 
-## 配置
+对应文件：
 
-在 `config/config.yaml` 中配置：
+- `web/embed.go`（`//go:build embed`）
+- `web/embed_stub.go`（`//go:build !embed`）
 
-```yaml
-server:
-  embed_static: false  # 是否将前端静态文件打包到二进制文件中
-```
-
-- `false`（默认）：不嵌入，使用常规模式开发
-- `true`：嵌入静态文件，需要使用 embed 编译标签
-
-## 使用步骤
-
-### 1. 构建前端
-
-```bash
-cd web
-pnpm build
-```
-
-这会在 `web/dist` 目录生成前端构建产物。
-
-### 2. 启用 embed 配置
-
-修改 `config/config.yaml`：
+## 相关配置
 
 ```yaml
 server:
   embed_static: true
+  admin_path: /admin
 ```
 
-### 3. 使用 embed 标签编译
+说明：
+
+- `embed_static=true` 时，后端会注册前端静态资源路由
+- `admin_path=/admin` 时，前端入口为 `/admin/`
+
+## 使用方式
+
+### 1. 分离开发（推荐本地）
+
+```yaml
+server:
+  embed_static: false
+```
+
+启动：
 
 ```bash
-go build -tags embed -o bico-admin cmd/main.go
+make serve
+cd web && pnpm dev
 ```
 
-编译完成后，二进制文件已包含前端资源。
-
-### 4. 部署运行
-
-将单个二进制文件和配置文件复制到服务器：
+### 2. 嵌入发布
 
 ```bash
-./bico-admin serve -c config/config.yaml
+# 方式一：直接命令
+cd web && pnpm build
+cd ..
+go build -tags embed -o bin/bico-admin ./cmd/main.go
+
+# 方式二：Makefile
+make package
 ```
 
-访问 `http://localhost:8080` 即可看到前端页面。
+运行：
 
-## 工作原理
-
-### 路由模式
-
-- **前端**：使用 hash 路由模式（`#/dashboard`）
-- **后端**：通过 `NoRoute` 处理所有非 API 请求，返回前端资源
-
-### 条件编译
-
-项目使用 Go 的 build tags 实现条件编译：
-
-- **`web/embed.go`**（`//go:build embed`）：嵌入模式，包含真实的静态文件
-- **`web/embed_stub.go`**（`//go:build !embed`）：开发模式，空的 embed.FS
-
-### API 路由保护
-
-嵌入模式下，以下路由仍走后端 API：
-
-- `/admin-api/*` - 后台管理 API
-- `/api/*` - 业务 API
-- `/uploads/*` - 文件上传
-- `/health` - 健康检查
-
-## 注意事项
-
-1. **开发模式**
-   - 关闭 `embed_static`
-   - 前端使用 `pnpm dev` 独立运行
-   - 后端通过 CORS 支持前后端分离开发
-
-2. **生产模式**
-   - 开启 `embed_static`
-   - 使用 `-tags embed` 编译
-   - 前端必须先执行 `pnpm build`
-
-3. **文件体积**
-   - 嵌入后二进制文件会增大（通常 2-5 MB）
-   - 可通过 UPX 压缩二进制文件
-
-4. **更新前端**
-   - 每次前端修改后需要重新 build 和编译
-   - 开发阶段建议关闭 embed 模式
-
-## Makefile 示例
-
-```makefile
-# 开发模式
-dev:
-	go run cmd/main.go serve
-
-# 生产构建
-build-prod:
-	cd web && pnpm build
-	go build -tags embed -ldflags="-s -w" -o dist/bico-admin cmd/main.go
-
-# 清理
-clean:
-	rm -rf web/dist dist/
+```bash
+./bin/bico-admin serve -c config/config.yaml
 ```
 
-## 故障排查
+访问：`http://localhost:8080/admin/`
 
-### 问题：编译报错 "pattern dist: no matching files found"
+## 路由处理说明
 
-**原因**：前端未构建或 `web/dist` 目录不存在
+嵌入模式下：
 
-**解决**：先执行 `cd web && pnpm build`
+1. `/admin-api/*`、`/api/*` 仍走后端接口。
+2. `admin_path` 下的前端路由由静态资源处理器兜底到 `index.html`。
+3. 访问 `/admin` 会重定向到 `/admin/`。
 
-### 问题：访问前端显示 404
+## 常见问题
 
-**原因**：
-1. `embed_static` 未开启
-2. 编译时未使用 `-tags embed`
+### 编译报错：`pattern dist: no matching files found`
 
-**解决**：检查配置并重新编译
+先执行前端构建：
 
-### 问题：前端路由刷新后 404
+```bash
+cd web && pnpm build
+```
 
-**原因**：未使用 hash 路由模式
+### 访问前端 404
 
-**解决**：前端已配置 hash 模式，确保前端重新构建
+检查三项：
+
+1. `server.embed_static` 是否为 `true`
+2. 是否使用 `-tags embed` 编译
+3. `server.admin_path` 与访问路径是否一致
