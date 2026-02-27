@@ -1,9 +1,10 @@
-.PHONY: help serve air tidy install migrate build web build-web package package-win clean swagger
+.PHONY: help serve air dev tidy install migrate build web build-web package package-win clean swagger
 
 help:
 	@echo "可用命令:"
 	@echo "  make serve     - 启动后端服务"
 	@echo "  make air       - 使用 air 热重载启动后端服务"
+	@echo "  make dev       - 同时启动前后端开发服务"
 	@echo "  make web       - 启动前端开发服务器"
 	@echo "  make build     - 编译后端"
 	@echo "  make build-web - 编译前端"
@@ -21,6 +22,10 @@ serve:
 air:
 	@command -v air >/dev/null 2>&1 || (echo "❌ 未安装 air，请先安装: go install github.com/air-verse/air@latest" && exit 1)
 	@air -c .air.toml
+
+dev:
+	@echo "🚀 同时启动前后端开发服务..."
+	@$(MAKE) -j2 air web
 
 tidy:
 	@echo "📦 整理依赖..."
@@ -48,11 +53,11 @@ build:
 
 web:
 	@echo "🚀 启动前端开发服务器..."
-	@cd web && npm run dev
+	@cd web && pnpm dev
 
 build-web:
 	@echo "🎨 构建前端..."
-	@cd web && npm run build
+	@cd web && pnpm build
 	@echo "✅ 前端构建完成"
 
 package: build-web

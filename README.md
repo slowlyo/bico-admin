@@ -75,12 +75,12 @@ make migrate
 本地分离开发建议将 `server.embed_static` 设为 `false`。
 
 ```bash
-# 终端 1：启动后端
-make serve
+# 推荐：一条命令同时启动前后端
+make dev
 
-# 终端 2：启动前端
-cd web
-pnpm dev
+# 或分开启动
+make air
+make web
 ```
 
 开发访问地址：
@@ -125,6 +125,7 @@ modules := []crud.Module{
 make help        # 查看所有可用命令
 make serve       # 启动后端服务
 make air         # 后端热重载
+make dev         # 同时启动前后端开发服务
 make web         # 启动前端开发服务器
 make migrate     # 数据库迁移
 make swagger     # 生成 Swagger 文档

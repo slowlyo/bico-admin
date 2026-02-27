@@ -4,6 +4,7 @@ import (
 	"bico-admin/internal/admin/service"
 	"bico-admin/internal/core/upload"
 	"bico-admin/internal/pkg/captcha"
+	"bico-admin/internal/pkg/crud"
 	"bico-admin/internal/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,7 @@ import (
 
 // AuthHandler 认证处理器
 type AuthHandler struct {
+	crud.BaseHandler
 	authService service.IAuthService
 	uploader    upload.Uploader
 	captcha     *captcha.Captcha
@@ -34,14 +36,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		CaptchaCode string `json:"captchaCode" binding:"required"`
 	}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "参数错误: "+err.Error())
+	if err := h.BindJSON(c, &req); err != nil {
 		return
 	}
 
 	// 验证验证码
 	if !h.captcha.Verify(req.CaptchaID, req.CaptchaCode) {
-		response.ErrorWithCode(c, 400, "验证码错误")
+		h.Error(c, "验证码错误")
 		return
 	}
 
@@ -52,96 +53,87 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 	resp, err := h.authService.Login(loginReq)
 	if err != nil {
-		response.ErrorWithCode(c, 400, err.Error())
+		h.Error(c, err.Error())
 		return
 	}
 
-	response.SuccessWithMessage(c, "登录成功", resp)
+	h.SuccessWithMessage(c, "登录成功", resp)
 }
 
 // Logout 退出登录接口
 func (h *AuthHandler) Logout(c *gin.Context) {
 	token := c.GetHeader("Authorization")
+	// Authorization 为 Bearer 时提取 token 正文。
 	if token != "" && len(token) > 7 && token[:7] == "Bearer " {
 		token = token[7:]
 	}
 
 	h.authService.Logout(token)
-	response.SuccessWithMessage(c, "退出成功", nil)
+	h.SuccessWithMessage(c, "退出成功", nil)
 }
 
 // CurrentUser 获取当前用户信息
 func (h *AuthHandler) CurrentUser(c *gin.Context) {
-	// 从上下文中获取用户信息（由 JWT 中间件设置）
-	userID, exists := c.Get("user_id")
-	if !exists {
-		userID = nil
-	}
-	if userID == nil {
-		response.ErrorWithCode(c, 401, "未授权")
+	userID, ok := h.mustUserID(c)
+	if !ok {
 		return
 	}
 
-	user, err := h.authService.GetUserByID(userID.(uint))
+	user, err := h.authService.GetUserByID(userID)
 	if err != nil {
-		response.NotFound(c, "用户不存在")
+		h.NotFound(c, "用户不存在")
 		return
 	}
 
-	response.SuccessWithData(c, user)
+	h.Success(c, user)
 }
 
 // UpdateProfile 更新用户资料
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists || userID == nil {
-		response.ErrorWithCode(c, 401, "未授权")
+	userID, ok := h.mustUserID(c)
+	if !ok {
 		return
 	}
 
 	var req service.UpdateProfileRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "参数错误: "+err.Error())
+	if err := h.BindJSON(c, &req); err != nil {
 		return
 	}
 
-	user, err := h.authService.UpdateProfile(userID.(uint), &req)
+	user, err := h.authService.UpdateProfile(userID, &req)
 	if err != nil {
-		response.ErrorWithCode(c, 400, err.Error())
+		h.Error(c, err.Error())
 		return
 	}
 
-	response.SuccessWithMessage(c, "更新成功", user)
+	h.SuccessWithMessage(c, "更新成功", user)
 }
 
 // ChangePassword 修改密码
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists || userID == nil {
-		response.ErrorWithCode(c, 401, "未授权")
+	userID, ok := h.mustUserID(c)
+	if !ok {
 		return
 	}
 
 	var req service.ChangePasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "参数错误: "+err.Error())
+	if err := h.BindJSON(c, &req); err != nil {
 		return
 	}
 
-	err := h.authService.ChangePassword(userID.(uint), &req)
+	err := h.authService.ChangePassword(userID, &req)
 	if err != nil {
-		response.ErrorWithCode(c, 400, err.Error())
+		h.Error(c, err.Error())
 		return
 	}
 
-	response.SuccessWithMessage(c, "密码修改成功", nil)
+	h.SuccessWithMessage(c, "密码修改成功", nil)
 }
 
 // UploadAvatar 上传头像
 func (h *AuthHandler) UploadAvatar(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists || userID == nil {
-		response.ErrorWithCode(c, 401, "未授权")
+	_, ok := h.mustUserID(c)
+	if !ok {
 		return
 	}
 
@@ -153,11 +145,11 @@ func (h *AuthHandler) UploadAvatar(c *gin.Context) {
 
 	url, err := h.uploader.Upload(file, "avatars")
 	if err != nil {
-		response.ErrorWithCode(c, 400, err.Error())
+		h.Error(c, err.Error())
 		return
 	}
 
-	response.SuccessWithMessage(c, "上传成功", gin.H{"url": url})
+	h.SuccessWithMessage(c, "上传成功", gin.H{"url": url})
 }
 
 // GetCaptcha 获取验证码
@@ -168,8 +160,29 @@ func (h *AuthHandler) GetCaptcha(c *gin.Context) {
 		return
 	}
 
-	response.SuccessWithData(c, gin.H{
+	h.Success(c, gin.H{
 		"id":    id,
 		"image": b64s,
 	})
+}
+
+// mustUserID 获取当前登录用户 ID。
+//
+// 说明：该方法统一处理 user_id 读取与类型校验，避免每个接口重复写 401 分支。
+func (h *AuthHandler) mustUserID(c *gin.Context) (uint, bool) {
+	userID, exists := c.Get("user_id")
+	// 未登录或上下文缺失时统一返回 401。
+	if !exists || userID == nil {
+		response.ErrorWithCode(c, 401, "未授权")
+		return 0, false
+	}
+
+	uid, ok := userID.(uint)
+	// user_id 类型异常时按未授权处理，避免 panic。
+	if !ok {
+		response.ErrorWithCode(c, 401, "未授权")
+		return 0, false
+	}
+
+	return uid, true
 }
