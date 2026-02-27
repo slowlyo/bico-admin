@@ -4,6 +4,8 @@ import (
 	"bico-admin/internal/admin/model"
 	"bico-admin/internal/pkg/crud"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -130,8 +132,14 @@ func NewAdminRoleHandler(db *gorm.DB) *AdminRoleHandler {
 	}
 
 	h.DeleteInTx = func(tx *gorm.DB, id uint) error {
-		tx.Where("role_id = ?", id).Delete(&model.AdminRolePermission{})
-		tx.Where("role_id = ?", id).Delete(&model.AdminUserRole{})
+		// 先清理角色权限关联，失败则回滚。
+		if err := tx.Where("role_id = ?", id).Delete(&model.AdminRolePermission{}).Error; err != nil {
+			return err
+		}
+		// 再清理用户角色关联，失败则回滚。
+		if err := tx.Where("role_id = ?", id).Delete(&model.AdminUserRole{}).Error; err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -162,16 +170,19 @@ type (
 		Enabled     *bool  `form:"enabled"`
 	}
 	createRoleReq struct {
-		Name, Code, Description string
-		Enabled                 *bool
-		Permissions             []string
+		Name        string   `json:"name" binding:"required"`
+		Code        string   `json:"code" binding:"required"`
+		Description string   `json:"description"`
+		Enabled     *bool    `json:"enabled"`
+		Permissions []string `json:"permissions"`
 	}
 	updateRoleReq struct {
-		Name, Description string
-		Enabled           *bool
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Enabled     *bool  `json:"enabled"`
 	}
 	updateRolePermReq struct {
-		Permissions []string `json:"permissions" binding:"required"`
+		Permissions []string `json:"permissions"`
 	}
 )
 
@@ -200,6 +211,11 @@ func (h *AdminRoleHandler) UpdatePermissions(c *gin.Context) {
 	if err := h.BindJSON(c, &req); err != nil {
 		return
 	}
+	// permissions 字段缺失时直接返回，避免误清空权限。
+	if req.Permissions == nil {
+		h.Error(c, "permissions 字段不能为空")
+		return
+	}
 	// 只需要校验角色是否存在，不需要加载权限
 	var role model.AdminRole
 	if !h.QueryOne(c, h.DB.Where("id = ?", id), &role, "角色不存在") {
@@ -207,7 +223,10 @@ func (h *AdminRoleHandler) UpdatePermissions(c *gin.Context) {
 	}
 
 	h.ExecTx(c, h.DB, func(tx *gorm.DB) error {
-		tx.Where("role_id = ?", id).Delete(&model.AdminRolePermission{})
+		// 先清空旧权限，再写入新权限，任一步失败都回滚。
+		if err := tx.Where("role_id = ?", id).Delete(&model.AdminRolePermission{}).Error; err != nil {
+			return err
+		}
 		return h.savePerms(tx, id, req.Permissions)
 	}, "权限配置成功", nil)
 }
@@ -218,7 +237,10 @@ func (h *AdminRoleHandler) GetAllPermissions(c *gin.Context) {
 
 func (h *AdminRoleHandler) GetAll(c *gin.Context) {
 	var roles []model.AdminRole
-	h.DB.Where("enabled = ?", true).Find(&roles)
+	if err := h.DB.Where("enabled = ?", true).Find(&roles).Error; err != nil {
+		h.Error(c, err.Error())
+		return
+	}
 	h.Success(c, roles)
 }
 
@@ -258,8 +280,33 @@ func (h *AdminRoleHandler) savePerms(tx *gorm.DB, roleID uint, perms []string) e
 		return nil
 	}
 
-	items := make([]model.AdminRolePermission, 0, len(perms))
-	for _, p := range perms {
+	validPerms := make(map[string]struct{})
+	for _, key := range crud.GetAllPermissionKeys() {
+		validPerms[key] = struct{}{}
+	}
+
+	dedupPerms := make([]string, 0, len(perms))
+	seen := make(map[string]struct{}, len(perms))
+	for _, raw := range perms {
+		p := strings.TrimSpace(raw)
+		// 空权限直接拒绝，避免脏数据入库。
+		if p == "" {
+			return errors.New("权限标识不能为空")
+		}
+		// 非法权限直接拒绝，避免越权配置。
+		if _, ok := validPerms[p]; !ok {
+			return fmt.Errorf("存在无效权限标识: %s", p)
+		}
+		// 重复权限自动去重，降低唯一约束冲突概率。
+		if _, ok := seen[p]; ok {
+			continue
+		}
+		seen[p] = struct{}{}
+		dedupPerms = append(dedupPerms, p)
+	}
+
+	items := make([]model.AdminRolePermission, 0, len(dedupPerms))
+	for _, p := range dedupPerms {
 		items = append(items, model.AdminRolePermission{RoleID: roleID, Permission: p})
 	}
 	return tx.CreateInBatches(items, 100).Error

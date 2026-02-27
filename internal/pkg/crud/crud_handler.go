@@ -248,7 +248,7 @@ func (h *CRUDHandler[T, L, C, U]) Delete(c *gin.Context) {
 		successMsg = "删除成功"
 	}
 
-	h.ExecTx(c, h.DB, func(tx *gorm.DB) error {
+	if err := h.DB.Transaction(func(tx *gorm.DB) error {
 		// 事务内扩展删除逻辑（例如清理关联表）
 		if h.DeleteInTx != nil {
 			if err := h.DeleteInTx(tx, id); err != nil {
@@ -256,8 +256,30 @@ func (h *CRUDHandler[T, L, C, U]) Delete(c *gin.Context) {
 			}
 		}
 		var item T
-		return tx.Delete(&item, id).Error
-	}, successMsg, nil)
+		result := tx.Delete(&item, id)
+		if result.Error != nil {
+			return result.Error
+		}
+		// 软删场景中 rowsAffected=0 代表记录不存在。
+		if result.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
+		return nil
+	}); err != nil {
+		// 删除不存在记录时返回 404，保持与 Get/Update 行为一致。
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			notFoundMsg := h.NotFoundMsg
+			if notFoundMsg == "" {
+				notFoundMsg = "记录不存在"
+			}
+			h.NotFound(c, notFoundMsg)
+			return
+		}
+		h.Error(c, err.Error())
+		return
+	}
+
+	h.SuccessWithMessage(c, successMsg, nil)
 }
 
 // DeleteBatch 批量删除。

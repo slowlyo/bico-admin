@@ -110,7 +110,10 @@ func NewAdminUserHandler(db *gorm.DB) *AdminUserHandler {
 		if err := tx.First(&user, id).Error; err != nil {
 			return err
 		}
-		_ = tx.Model(&user).Association("Roles").Clear()
+		// 删除用户前先清空角色关联，任一步失败都回滚。
+		if err := tx.Model(&user).Association("Roles").Clear(); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -152,15 +155,27 @@ type (
 )
 
 func (h *AdminUserHandler) syncRoles(tx *gorm.DB, user *model.AdminUser, roleIDs []uint) error {
-	_ = tx.Model(user).Association("Roles").Clear()
+	// 先清空旧关联，确保写入结果与请求保持一致。
+	if err := tx.Model(user).Association("Roles").Clear(); err != nil {
+		return err
+	}
 	if len(roleIDs) == 0 {
 		return nil
 	}
+
+	uniqueRoleIDs := crud.UniqueUints(roleIDs)
 	var roles []*model.AdminRole
-	if err := tx.Where("id IN ?", crud.UniqueUints(roleIDs)).Find(&roles).Error; err != nil {
+	if err := tx.Where("id IN ?", uniqueRoleIDs).Find(&roles).Error; err != nil {
 		return err
 	}
-	return tx.Model(user).Association("Roles").Append(roles)
+	// 如果查询数量不一致，说明请求中存在无效角色 ID。
+	if len(roles) != len(uniqueRoleIDs) {
+		return errors.New("存在无效角色 ID")
+	}
+	if err := tx.Model(user).Association("Roles").Append(roles); err != nil {
+		return err
+	}
+	return nil
 }
 
 var _ crud.Module = (*AdminUserHandler)(nil)

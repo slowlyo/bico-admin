@@ -95,9 +95,10 @@ func (r *Router) Register(engine *gin.Engine) {
 			auth.POST("/avatar", r.authHandler.UploadAvatar)
 		}
 
-		// 自动注册所有 CRUD 模块路由
-		r.registerModules(authorized)
 	}
+
+	// CRUD 模块由模块路由器自行处理公开/鉴权路由，避免重复挂载中间件。
+	r.registerModules(admin)
 }
 
 // registerModules 注册所有通过 crud.RegisterModule 注册的模块

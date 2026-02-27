@@ -1,10 +1,13 @@
 package pagination
 
 import (
+	"regexp"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
+
+var sortFieldPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$`)
 
 const (
 	DefaultPage     = 1
@@ -64,16 +67,28 @@ func FromContext(c *gin.Context) *Pagination {
 
 // GetOrderBy 获取排序子句
 func (p *Pagination) GetOrderBy() string {
-	if p.SortField == "" {
+	sortField := sanitizeSortField(p.SortField)
+	// 排序字段不合法时直接忽略，避免拼接 SQL 片段。
+	if sortField == "" {
 		return ""
 	}
-	
+
 	order := "DESC"
+	// 前端约定 ascend 表示升序，其余值默认降序。
 	if p.SortOrder == "ascend" {
 		order = "ASC"
 	}
-	
-	return p.SortField + " " + order
+
+	return sortField + " " + order
+}
+
+// sanitizeSortField 校验排序字段，仅允许字母数字下划线和单层表名前缀。
+func sanitizeSortField(field string) string {
+	// 非法字段直接丢弃，交给默认排序兜底。
+	if !sortFieldPattern.MatchString(field) {
+		return ""
+	}
+	return field
 }
 
 // Response 分页响应
