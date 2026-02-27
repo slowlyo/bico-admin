@@ -29,15 +29,15 @@ func (m *Module) Register(ctx *app.AppContext) error {
 
 	jwtAuth := coreMiddleware.JWTAuth(ctx.JWT, authSvc)
 	permMiddleware := middleware.NewPermissionMiddleware(authSvc)
-	userStatusMiddleware := middleware.NewUserStatusMiddleware(ctx.DB)
+	userStatusMiddleware := middleware.NewUserStatusMiddleware(authSvc)
 
 	authHandler := handler.NewAuthHandler(authSvc, ctx.Uploader, ctx.Captcha)
 	uploadHandler := handler.NewUploadHandler(ctx.Uploader)
 	commonHandler := handler.NewCommonHandler(cfgSvc)
 
 	modules := []crud.Module{
-		handler.NewAdminUserHandler(ctx.DB),
-		handler.NewAdminRoleHandler(ctx.DB),
+		handler.NewAdminUserHandler(ctx.DB, authSvc),
+		handler.NewAdminRoleHandler(ctx.DB, authSvc),
 	}
 
 	r := NewRouter(authHandler, uploadHandler, commonHandler, jwtAuth, permMiddleware, userStatusMiddleware, ctx.DB, modules)

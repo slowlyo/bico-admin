@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 	"time"
 
 	"bico-admin/internal/admin/model"
@@ -18,6 +20,11 @@ var (
 	ErrInvalidPassword  = errors.New("密码错误")
 	ErrUserDisabled     = errors.New("用户已被禁用")
 	ErrOldPasswordWrong = errors.New("原密码错误")
+)
+
+const (
+	permissionCacheTTL = 5 * time.Minute
+	userStatusCacheTTL = 1 * time.Minute
 )
 
 // LoginRequest 登录请求
@@ -55,13 +62,21 @@ type ChangePasswordRequest struct {
 
 // IAuthService 认证服务接口
 type IAuthService interface {
-	Login(req interface{}) (interface{}, error)
+	Login(req *LoginRequest) (*LoginResponse, error)
 	Logout(token string) error
 	IsTokenBlacklisted(token string) bool
 	GetUserByID(userID uint) (*UserInfo, error)
 	UpdateProfile(userID uint, req *UpdateProfileRequest) (*UserInfo, error)
 	ChangePassword(userID uint, req *ChangePasswordRequest) error
 	GetUserPermissions(userID uint) ([]string, error)
+	IsUserEnabled(userID uint) (bool, error)
+}
+
+// AuthCacheInvalidator 认证缓存失效接口
+type AuthCacheInvalidator interface {
+	InvalidateUserPermissionCache(userID uint)
+	InvalidateRoleUsersPermissionCache(roleID uint)
+	InvalidateUserStatusCache(userID uint)
 }
 
 // AuthService 认证服务
@@ -81,17 +96,10 @@ func NewAuthService(db *gorm.DB, jwtManager *jwt.JWTManager, cache cache.Cache) 
 }
 
 // Login 用户登录
-func (s *AuthService) Login(req interface{}) (interface{}, error) {
-	loginReq := req.(*struct {
-		Username    string `json:"username" binding:"required"`
-		Password    string `json:"password" binding:"required"`
-		CaptchaID   string `json:"captchaId" binding:"required"`
-		CaptchaCode string `json:"captchaCode" binding:"required"`
-	})
-
+func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 	var user model.AdminUser
 
-	err := s.db.Where("username = ?", loginReq.Username).First(&user).Error
+	err := s.db.Where("username = ?", req.Username).First(&user).Error
 	if err != nil {
 		return nil, ErrUserNotFound
 	}
@@ -100,7 +108,7 @@ func (s *AuthService) Login(req interface{}) (interface{}, error) {
 		return nil, ErrUserDisabled
 	}
 
-	if !password.Verify(user.Password, loginReq.Password) {
+	if !password.Verify(user.Password, req.Password) {
 		return nil, ErrInvalidPassword
 	}
 
@@ -109,9 +117,7 @@ func (s *AuthService) Login(req interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	return &LoginResponse{
-		Token: token,
-	}, nil
+	return &LoginResponse{Token: token}, nil
 }
 
 // Logout 用户退出登录
@@ -144,7 +150,14 @@ func (s *AuthService) GetUserByID(userID uint) (*UserInfo, error) {
 		return nil, ErrUserDisabled
 	}
 
-	permissions, _ := s.GetUserPermissions(userID)
+	permissions, err := s.GetUserPermissions(userID)
+	// 权限读取失败时直接返回，避免返回不完整用户信息。
+	if err != nil {
+		return nil, err
+	}
+
+	// 命中用户查询后同步刷新状态缓存，减少后续中间件查库频率。
+	s.setUserStatusCache(userID, user.Enabled)
 
 	return &UserInfo{
 		ID:          user.ID,
@@ -184,7 +197,11 @@ func (s *AuthService) UpdateProfile(userID uint, req *UpdateProfileRequest) (*Us
 		}
 	}
 
-	permissions, _ := s.GetUserPermissions(userID)
+	permissions, err := s.GetUserPermissions(userID)
+	// 权限读取失败时返回错误，避免返回不完整数据。
+	if err != nil {
+		return nil, err
+	}
 
 	return &UserInfo{
 		ID:          user.ID,
@@ -228,6 +245,11 @@ func (s *AuthService) ChangePassword(userID uint, req *ChangePasswordRequest) er
 
 // GetUserPermissions 获取用户的所有权限
 func (s *AuthService) GetUserPermissions(userID uint) ([]string, error) {
+	// 先读缓存，命中则直接返回，降低鉴权链路查库频率。
+	if cachedPerms, ok := s.getPermissionsCache(userID); ok {
+		return cachedPerms, nil
+	}
+
 	// 获取用户信息
 	var user model.AdminUser
 	if err := s.db.Select("username").First(&user, userID).Error; err != nil {
@@ -236,7 +258,9 @@ func (s *AuthService) GetUserPermissions(userID uint) ([]string, error) {
 
 	// 如果是默认管理员账户，返回所有权限
 	if user.Username == "admin" {
-		return crud.GetAllPermissionKeys(), nil
+		adminPerms := crud.GetAllPermissionKeys()
+		s.setPermissionsCache(userID, adminPerms)
+		return adminPerms, nil
 	}
 
 	// 从数据库查询普通用户权限
@@ -248,5 +272,126 @@ func (s *AuthService) GetUserPermissions(userID uint) ([]string, error) {
 		Where("admin_user_roles.user_id = ? AND admin_roles.enabled = ?", userID, true).
 		Pluck("permission", &permissions).Error
 
-	return permissions, err
+	if err != nil {
+		return nil, err
+	}
+
+	s.setPermissionsCache(userID, permissions)
+	return permissions, nil
+}
+
+// IsUserEnabled 获取用户启用状态（优先读取缓存）
+func (s *AuthService) IsUserEnabled(userID uint) (bool, error) {
+	if cachedEnabled, ok := s.getUserStatusCache(userID); ok {
+		return cachedEnabled, nil
+	}
+
+	var user model.AdminUser
+	if err := s.db.Select("enabled").First(&user, userID).Error; err != nil {
+		// 用户不存在时返回统一业务错误。
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, ErrUserNotFound
+		}
+		return false, err
+	}
+
+	s.setUserStatusCache(userID, user.Enabled)
+	return user.Enabled, nil
+}
+
+// InvalidateUserPermissionCache 失效指定用户权限缓存
+func (s *AuthService) InvalidateUserPermissionCache(userID uint) {
+	_ = s.cache.Delete(permissionCacheKey(userID))
+}
+
+// InvalidateRoleUsersPermissionCache 失效指定角色下所有用户的权限缓存
+func (s *AuthService) InvalidateRoleUsersPermissionCache(roleID uint) {
+	var userIDs []uint
+	if err := s.db.Table("admin_user_roles").
+		Where("role_id = ?", roleID).
+		Distinct("user_id").
+		Pluck("user_id", &userIDs).Error; err != nil {
+		return
+	}
+	for _, userID := range userIDs {
+		_ = s.cache.Delete(permissionCacheKey(userID))
+	}
+}
+
+// InvalidateUserStatusCache 失效指定用户状态缓存
+func (s *AuthService) InvalidateUserStatusCache(userID uint) {
+	_ = s.cache.Delete(userStatusCacheKey(userID))
+}
+
+// getPermissionsCache 获取用户权限缓存
+func (s *AuthService) getPermissionsCache(userID uint) ([]string, bool) {
+	value, err := s.cache.Get(permissionCacheKey(userID))
+	if err != nil {
+		return nil, false
+	}
+	return parseStringSlice(value)
+}
+
+// setPermissionsCache 写入用户权限缓存
+func (s *AuthService) setPermissionsCache(userID uint, permissions []string) {
+	_ = s.cache.Set(permissionCacheKey(userID), permissions, permissionCacheTTL)
+}
+
+// getUserStatusCache 获取用户状态缓存
+func (s *AuthService) getUserStatusCache(userID uint) (bool, bool) {
+	value, err := s.cache.Get(userStatusCacheKey(userID))
+	if err != nil {
+		return false, false
+	}
+	switch v := value.(type) {
+	case bool:
+		return v, true
+	case string:
+		parsed, err := strconv.ParseBool(v)
+		if err != nil {
+			return false, false
+		}
+		return parsed, true
+	case float64:
+		// 某些序列化场景可能将布尔值落成 0/1。
+		return v != 0, true
+	default:
+		return false, false
+	}
+}
+
+// setUserStatusCache 写入用户状态缓存
+func (s *AuthService) setUserStatusCache(userID uint, enabled bool) {
+	_ = s.cache.Set(userStatusCacheKey(userID), enabled, userStatusCacheTTL)
+}
+
+// permissionCacheKey 生成权限缓存 key
+func permissionCacheKey(userID uint) string {
+	return fmt.Sprintf("auth:user:%d:permissions", userID)
+}
+
+// userStatusCacheKey 生成用户状态缓存 key
+func userStatusCacheKey(userID uint) string {
+	return fmt.Sprintf("auth:user:%d:enabled", userID)
+}
+
+// parseStringSlice 将缓存值安全转换为字符串数组
+func parseStringSlice(value interface{}) ([]string, bool) {
+	switch v := value.(type) {
+	case []string:
+		return v, true
+	case []interface{}:
+		result := make([]string, 0, len(v))
+		for _, item := range v {
+			str, ok := item.(string)
+			// 缓存内容出现非字符串时认为数据损坏，直接回源查询。
+			if !ok {
+				return nil, false
+			}
+			result = append(result, str)
+		}
+		return result, true
+	default:
+		return nil, false
+	}
 }

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bico-admin/internal/admin/model"
+	"bico-admin/internal/admin/service"
 	"bico-admin/internal/pkg/crud"
 	"bico-admin/internal/pkg/password"
 	"errors"
@@ -15,10 +16,11 @@ var userPerms = crud.NewCRUDPerms("system", "admin_user", "用户管理")
 // AdminUserHandler 用户管理处理器
 type AdminUserHandler struct {
 	crud.CRUDHandler[model.AdminUser, userListReq, createUserReq, updateUserReq]
+	cacheInvalidator service.AuthCacheInvalidator
 }
 
-func NewAdminUserHandler(db *gorm.DB) *AdminUserHandler {
-	h := &AdminUserHandler{}
+func NewAdminUserHandler(db *gorm.DB, cacheInvalidator service.AuthCacheInvalidator) *AdminUserHandler {
+	h := &AdminUserHandler{cacheInvalidator: cacheInvalidator}
 	h.DB = db
 	h.NotFoundMsg = "用户不存在"
 
@@ -96,10 +98,23 @@ func NewAdminUserHandler(db *gorm.DB) *AdminUserHandler {
 	}
 
 	h.UpdateInTx = func(tx *gorm.DB, id uint, existing *model.AdminUser, req *updateUserReq) error {
+		// 角色发生变更时同步角色关联并失效权限缓存。
 		if req.RoleIDs == nil {
+			// 仅更新启用状态时失效状态缓存。
+			if req.Enabled != nil && h.cacheInvalidator != nil {
+				h.cacheInvalidator.InvalidateUserStatusCache(existing.ID)
+			}
 			return nil
 		}
-		return h.syncRoles(tx, existing, req.RoleIDs)
+		if err := h.syncRoles(tx, existing, req.RoleIDs); err != nil {
+			return err
+		}
+		if h.cacheInvalidator != nil {
+			h.cacheInvalidator.InvalidateUserPermissionCache(existing.ID)
+			// 角色更新请求可能同时包含 enabled，统一失效状态缓存。
+			h.cacheInvalidator.InvalidateUserStatusCache(existing.ID)
+		}
+		return nil
 	}
 	h.ReloadAfterUpdate = func(tx *gorm.DB, id uint, existing *model.AdminUser) error {
 		return tx.Preload("Roles").First(existing, id).Error
@@ -113,6 +128,10 @@ func NewAdminUserHandler(db *gorm.DB) *AdminUserHandler {
 		// 删除用户前先清空角色关联，任一步失败都回滚。
 		if err := tx.Model(&user).Association("Roles").Clear(); err != nil {
 			return err
+		}
+		if h.cacheInvalidator != nil {
+			h.cacheInvalidator.InvalidateUserPermissionCache(user.ID)
+			h.cacheInvalidator.InvalidateUserStatusCache(user.ID)
 		}
 		return nil
 	}

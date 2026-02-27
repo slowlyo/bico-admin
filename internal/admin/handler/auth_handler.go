@@ -45,7 +45,12 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.authService.Login(&req)
+	// 验证码校验通过后，仅将账号密码传入服务层。
+	loginReq := &service.LoginRequest{
+		Username: req.Username,
+		Password: req.Password,
+	}
+	resp, err := h.authService.Login(loginReq)
 	if err != nil {
 		response.ErrorWithCode(c, 400, err.Error())
 		return

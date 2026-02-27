@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bico-admin/internal/pkg/response"
+	"fmt"
 	"sync"
 	"time"
 
@@ -11,10 +12,11 @@ import (
 
 // RateLimiter 限流器接口
 type RateLimiter struct {
-	limiters map[string]*rate.Limiter
-	mu       sync.RWMutex
-	rate     rate.Limit
-	burst    int
+	limiters    map[string]*rate.Limiter
+	mu          sync.RWMutex
+	rate        rate.Limit
+	burst       int
+	cleanupOnce sync.Once
 }
 
 // NewRateLimiter 创建限流器
@@ -52,6 +54,13 @@ func (rl *RateLimiter) getLimiter(key string) *rate.Limiter {
 	return limiter
 }
 
+// startCleanup 启动限流器清理协程（仅启动一次）
+func (rl *RateLimiter) startCleanup(interval time.Duration) {
+	rl.cleanupOnce.Do(func() {
+		rl.cleanupExpiredLimiters(interval)
+	})
+}
+
 // cleanupExpiredLimiters 清理过期限流器（定期清理避免内存泄漏）
 func (rl *RateLimiter) cleanupExpiredLimiters(interval time.Duration) {
 	ticker := time.NewTicker(interval)
@@ -69,8 +78,8 @@ func (rl *RateLimiter) cleanupExpiredLimiters(interval time.Duration) {
 
 // RateLimit 限流中间件（基于IP）
 func (rl *RateLimiter) RateLimit() gin.HandlerFunc {
-	// 启动清理协程
-	rl.cleanupExpiredLimiters(5 * time.Minute)
+	// 启动清理协程（只会启动一次）
+	rl.startCleanup(5 * time.Minute)
 
 	return func(c *gin.Context) {
 		// 获取客户端IP
@@ -89,7 +98,7 @@ func (rl *RateLimiter) RateLimit() gin.HandlerFunc {
 
 // RateLimitByUser 限流中间件（基于用户ID）
 func (rl *RateLimiter) RateLimitByUser() gin.HandlerFunc {
-	rl.cleanupExpiredLimiters(5 * time.Minute)
+	rl.startCleanup(5 * time.Minute)
 
 	return func(c *gin.Context) {
 		// 从JWT中间件获取用户ID
@@ -105,7 +114,7 @@ func (rl *RateLimiter) RateLimitByUser() gin.HandlerFunc {
 			}
 		} else {
 			// 已认证用户使用用户ID限流
-			key := userID.(string)
+			key := buildUserRateLimitKey(userID)
 			limiter := rl.getLimiter(key)
 			if !limiter.Allow() {
 				response.TooManyRequests(c, "请求过于频繁，请稍后再试")
@@ -118,9 +127,28 @@ func (rl *RateLimiter) RateLimitByUser() gin.HandlerFunc {
 	}
 }
 
+// buildUserRateLimitKey 构建用户维度限流 key
+func buildUserRateLimitKey(userID interface{}) string {
+	switch v := userID.(type) {
+	case string:
+		return "user:" + v
+	case uint:
+		return fmt.Sprintf("user:%d", v)
+	case uint64:
+		return fmt.Sprintf("user:%d", v)
+	case int:
+		return fmt.Sprintf("user:%d", v)
+	case int64:
+		return fmt.Sprintf("user:%d", v)
+	default:
+		// 未知类型兜底转字符串，避免类型断言 panic。
+		return fmt.Sprintf("user:%v", v)
+	}
+}
+
 // RateLimitByKey 限流中间件（基于自定义key）
 func (rl *RateLimiter) RateLimitByKey(keyFunc func(*gin.Context) string) gin.HandlerFunc {
-	rl.cleanupExpiredLimiters(5 * time.Minute)
+	rl.startCleanup(5 * time.Minute)
 
 	return func(c *gin.Context) {
 		key := keyFunc(c)

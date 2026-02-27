@@ -54,14 +54,19 @@ var (
 func AddPermissions(parentKey string, perms []Permission) {
 	permissionsMu.Lock()
 	defer permissionsMu.Unlock()
+	permsCopy := clonePermissions(perms)
 
 	if parentKey == "" {
-		allPermissions = append(allPermissions, perms...)
+		allPermissions = append(allPermissions, permsCopy...)
 		return
 	}
 
 	// 在现有权限树中找到父节点并添加
-	addToParent(&allPermissions, parentKey, perms)
+	if addToParent(&allPermissions, parentKey, permsCopy) {
+		return
+	}
+	// 父节点不存在时退化为挂在根节点，避免权限被静默丢弃。
+	allPermissions = append(allPermissions, permsCopy...)
 }
 
 func addToParent(tree *[]Permission, parentKey string, children []Permission) bool {
@@ -83,14 +88,14 @@ func addToParent(tree *[]Permission, parentKey string, children []Permission) bo
 func SetBasePermissions(perms []Permission) {
 	permissionsMu.Lock()
 	defer permissionsMu.Unlock()
-	allPermissions = perms
+	allPermissions = clonePermissions(perms)
 }
 
 // GetAllPermissions 获取完整的权限树
 func GetAllPermissions() []Permission {
 	permissionsMu.RLock()
 	defer permissionsMu.RUnlock()
-	return allPermissions
+	return clonePermissions(allPermissions)
 }
 
 // GetAllPermissionKeys 获取所有权限的 key 列表
@@ -245,4 +250,20 @@ func (r *ModuleRouter) registerRoute(group *gin.RouterGroup, handlerVal reflect.
 	default:
 		panic(fmt.Sprintf("unsupported HTTP method: %s", route.Method))
 	}
+}
+
+// clonePermissions 深拷贝权限树，避免外部修改全局状态。
+func clonePermissions(perms []Permission) []Permission {
+	if len(perms) == 0 {
+		return nil
+	}
+	cloned := make([]Permission, len(perms))
+	for i, perm := range perms {
+		cloned[i] = Permission{
+			Key:      perm.Key,
+			Label:    perm.Label,
+			Children: clonePermissions(perm.Children),
+		}
+	}
+	return cloned
 }

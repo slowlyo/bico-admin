@@ -65,16 +65,30 @@ func (a *App) Run() error {
 	a.scheduler.Start()
 
 	// 启动服务器
+	serverErrCh := make(chan error, 1)
 	go func() {
 		a.logger.Info("服务启动成功", zap.String("addr", addr))
 		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			a.logger.Error("服务启动失败", zap.Error(err))
-			os.Exit(1)
+			serverErrCh <- err
 		}
 	}()
 
-	// 优雅关闭
-	a.gracefulShutdown()
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(quit)
+
+	select {
+	case err := <-serverErrCh:
+		a.logger.Error("服务启动失败", zap.Error(err))
+		_ = a.shutdown()
+		return err
+	case <-quit:
+		a.logger.Info("收到退出信号，开始优雅关闭")
+	}
+
+	if err := a.shutdown(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -85,12 +99,8 @@ func Run(ctx *AppContext) error {
 	return application.Run()
 }
 
-// gracefulShutdown 优雅关闭
-func (a *App) gracefulShutdown() {
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
+// shutdown 执行资源关闭
+func (a *App) shutdown() error {
 	a.logger.Info("正在关闭服务")
 
 	// 停止定时任务调度器
@@ -118,6 +128,7 @@ func (a *App) gracefulShutdown() {
 
 	if err := a.server.Shutdown(ctx); err != nil {
 		a.logger.Error("服务关闭异常", zap.Error(err))
+		return err
 	}
 
 	// 同步日志
@@ -126,4 +137,5 @@ func (a *App) gracefulShutdown() {
 	}
 
 	a.logger.Info("服务已关闭")
+	return nil
 }

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bico-admin/internal/admin/model"
+	"bico-admin/internal/admin/service"
 	"bico-admin/internal/pkg/crud"
 	"errors"
 	"fmt"
@@ -19,10 +20,11 @@ var rolePerms = crud.NewCRUDPerms("system", "admin_role", "角色管理").WithEx
 // AdminRoleHandler 角色管理处理器
 type AdminRoleHandler struct {
 	crud.CRUDHandler[model.AdminRole, roleListReq, createRoleReq, updateRoleReq]
+	cacheInvalidator service.AuthCacheInvalidator
 }
 
-func NewAdminRoleHandler(db *gorm.DB) *AdminRoleHandler {
-	h := &AdminRoleHandler{}
+func NewAdminRoleHandler(db *gorm.DB, cacheInvalidator service.AuthCacheInvalidator) *AdminRoleHandler {
+	h := &AdminRoleHandler{cacheInvalidator: cacheInvalidator}
 	h.DB = db
 	h.NotFoundMsg = "角色不存在"
 
@@ -122,6 +124,14 @@ func NewAdminRoleHandler(db *gorm.DB) *AdminRoleHandler {
 		return updates, nil
 	}
 
+	h.UpdateInTx = func(tx *gorm.DB, id uint, existing *model.AdminRole, req *updateRoleReq) error {
+		// 角色启用状态变化会直接影响用户权限结果，需要失效该角色下用户缓存。
+		if req.Enabled != nil && *req.Enabled != existing.Enabled && h.cacheInvalidator != nil {
+			h.cacheInvalidator.InvalidateRoleUsersPermissionCache(existing.ID)
+		}
+		return nil
+	}
+
 	h.ReloadAfterUpdate = func(tx *gorm.DB, id uint, existing *model.AdminRole) error {
 		perms, err := h.getPerms(tx, id)
 		if err != nil {
@@ -132,6 +142,10 @@ func NewAdminRoleHandler(db *gorm.DB) *AdminRoleHandler {
 	}
 
 	h.DeleteInTx = func(tx *gorm.DB, id uint) error {
+		// 删除角色前先失效该角色下用户权限缓存，避免删除后无法定位用户集合。
+		if h.cacheInvalidator != nil {
+			h.cacheInvalidator.InvalidateRoleUsersPermissionCache(id)
+		}
 		// 先清理角色权限关联，失败则回滚。
 		if err := tx.Where("role_id = ?", id).Delete(&model.AdminRolePermission{}).Error; err != nil {
 			return err
@@ -226,6 +240,9 @@ func (h *AdminRoleHandler) UpdatePermissions(c *gin.Context) {
 		// 先清空旧权限，再写入新权限，任一步失败都回滚。
 		if err := tx.Where("role_id = ?", id).Delete(&model.AdminRolePermission{}).Error; err != nil {
 			return err
+		}
+		if h.cacheInvalidator != nil {
+			h.cacheInvalidator.InvalidateRoleUsersPermissionCache(id)
 		}
 		return h.savePerms(tx, id, req.Permissions)
 	}, "权限配置成功", nil)
