@@ -34,10 +34,23 @@ import { SystemConfig } from '@/types/config'
 import { configImages } from './assets/images'
 import { headerBarConfig } from './modules/headerBar'
 
+/**
+ * 获取系统默认名称
+ * 优先复用入口页标题，避免旧模板名称闪现。
+ */
+const getDefaultSystemName = (): string => {
+  // 非浏览器环境下无法读取页面标题，直接返回空字符串。
+  if (typeof document === 'undefined') {
+    return ''
+  }
+
+  return document.title || ''
+}
+
 const appConfig: SystemConfig = {
   // 系统信息
   systemInfo: {
-    name: 'Art Design Pro' // 系统名称
+    name: getDefaultSystemName() // 系统名称
   },
   // 系统主题
   systemThemeStyles: {

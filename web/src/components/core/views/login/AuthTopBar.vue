@@ -5,7 +5,7 @@
   >
     <div class="flex-cc !hidden max-[1180px]:!flex ml-2 max-sm:ml-6">
       <ArtLogo class="icon" size="46" />
-      <h1 class="text-xl font-medium ml-2">{{ settingStore.appConfig.name }}</h1>
+      <h1 class="text-xl font-medium ml-2">{{ settingStore.appName }}</h1>
     </div>
 
     <div class="flex-cc gap-1.5 mr-2 max-sm:mr-5">
@@ -25,15 +25,12 @@
 
 <script setup lang="ts">
   import { useSettingStore } from '@/store/modules/setting'
-  import { useUserStore } from '@/store/modules/user'
   import { useHeaderBar } from '@/hooks/core/useHeaderBar'
   import { themeAnimation } from '@/utils/ui/animation'
-  import AppConfig from '@/config'
 
   defineOptions({ name: 'AuthTopBar' })
 
   const settingStore = useSettingStore()
-  const userStore = useUserStore()
   const { isDark } = storeToRefs(settingStore)
   const { shouldShowThemeToggle } = useHeaderBar()
 </script>

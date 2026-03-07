@@ -25,8 +25,11 @@
   import { Loading } from '@element-plus/icons-vue'
   import type { ButtonType } from 'element-plus'
   import { useThrottleFn } from '@vueuse/core'
+  import { useSettingStore } from '@/store/modules/setting'
 
   defineOptions({ name: 'ArtExcelExport' })
+
+  const settingStore = useSettingStore()
 
   /** 导出数据类型 */
   type ExportValue = string | number | boolean | null | undefined | Date
@@ -128,6 +131,13 @@
   }
 
   const isExporting = ref(false)
+
+  /**
+   * 获取导出作者
+   */
+  const exportAuthor = computed(() => {
+    return props.workbookOptions.creator || settingStore.appName
+  })
 
   /** 是否有数据可导出 */
   const hasData = computed(() => Array.isArray(props.data) && props.data.length > 0)
@@ -257,7 +267,7 @@
         workbook.Props = {
           Title: filename,
           Subject: '数据导出',
-          Author: props.workbookOptions.creator || 'Art Design Pro',
+          Author: exportAuthor.value,
           Manager: props.workbookOptions.lastModifiedBy || '',
           Company: '系统导出',
           Category: '数据',

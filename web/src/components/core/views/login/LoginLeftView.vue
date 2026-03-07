@@ -3,7 +3,7 @@
   <div class="login-left-view">
     <div class="logo">
       <ArtLogo class="icon" size="46" />
-      <h1 class="title">{{ settingStore.appConfig.name }}</h1>
+      <h1 class="title">{{ settingStore.appName }}</h1>
     </div>
 
     <div class="left-img">

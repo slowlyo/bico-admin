@@ -40,6 +40,8 @@ import { useCeremony } from '@/hooks/core/useCeremony'
 import { StorageConfig } from '@/utils'
 import { SETTING_DEFAULT_CONFIG } from '@/config/setting'
 
+const DEFAULT_APP_NAME = AppConfig.systemInfo.name || ''
+
 /**
  * 系统设置状态管理
  * 管理应用的菜单、主题、界面显示等各项设置
@@ -90,9 +92,39 @@ export const useSettingStore = defineStore(
     // 应用配置
     /** 应用配置信息 */
     const appConfig = ref<Api.App.Config>({
-      name: AppConfig.systemInfo.name || '',
+      name: DEFAULT_APP_NAME,
       logo: AppConfig.systemInfo.logo || '',
       debug: false
+    })
+
+    /**
+     * 规范化应用名称
+     * 过滤历史模板名称，避免旧缓存继续污染界面。
+     * @param name 原始应用名称
+     * @param fallback 回退名称
+     */
+    const normalizeAppName = (name?: string, fallback: string = DEFAULT_APP_NAME): string => {
+      const trimmedName = name?.trim() || ''
+
+      // 接口未返回名称时，回退到当前默认名称。
+      if (!trimmedName) {
+        return fallback
+      }
+
+      // 命中历史模板名称时，直接回退，避免旧品牌残留。
+      if (trimmedName.toLowerCase() === 'art design pro') {
+        return fallback
+      }
+
+      return trimmedName
+    }
+
+    /**
+     * 获取应用名称
+     * 优先使用接口配置，未加载时回退到入口页默认标题。
+     */
+    const appName = computed((): string => {
+      return normalizeAppName(appConfig.value.name)
     })
 
     // 功能设置
@@ -363,8 +395,40 @@ export const useSettingStore = defineStore(
       festivalDate.value = date
     }
 
+    /**
+     * 设置双列菜单文本显示状态
+     * @param show 是否显示
+     */
     const setDualMenuShowText = (show: boolean) => {
       dualMenuShowText.value = show
+    }
+
+    /**
+     * 同步浏览器标题中的应用名称
+     * 保留当前页面标题，仅替换尾部应用名。
+     */
+    const syncDocumentTitle = (): void => {
+      // 非浏览器环境下无需同步标题。
+      if (typeof document === 'undefined') {
+        return
+      }
+
+      const currentAppName = appName.value
+
+      // 应用名称为空时不覆盖当前标题。
+      if (!currentAppName) {
+        return
+      }
+
+      const titleSegments = document.title.split(' - ')
+
+      // 已存在页面标题时只替换应用名，避免丢失页面语义。
+      if (titleSegments.length > 1) {
+        document.title = `${titleSegments.slice(0, -1).join(' - ')} - ${currentAppName}`
+        return
+      }
+
+      document.title = currentAppName
     }
 
     /**
@@ -372,7 +436,12 @@ export const useSettingStore = defineStore(
      * @param config 配置信息
      */
     const setAppConfig = (config: Api.App.Config) => {
-      appConfig.value = config
+      appConfig.value = {
+        ...appConfig.value,
+        ...config,
+        name: normalizeAppName(config.name, normalizeAppName(appConfig.value.name))
+      }
+      syncDocumentTitle()
     }
 
     return {
@@ -405,6 +474,7 @@ export const useSettingStore = defineStore(
       dualMenuShowText,
       containerWidth,
       appConfig,
+      appName,
       getMenuTheme,
       isDark,
       getMenuOpenWidth,

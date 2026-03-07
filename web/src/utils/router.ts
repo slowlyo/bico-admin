@@ -6,7 +6,7 @@
  * @module utils/router
  */
 import { RouteLocationNormalized, RouteRecordRaw } from 'vue-router'
-import AppConfig from '@/config'
+import { useSettingStore } from '@/store/modules/setting'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import i18n, { $t } from '@/locales'
@@ -32,11 +32,22 @@ export const configureNProgress = () => {
  */
 export const setPageTitle = (to: RouteLocationNormalized): void => {
   const { title } = to.meta
-  if (title) {
-    setTimeout(() => {
-      document.title = `${formatMenuTitle(String(title))} - ${AppConfig.systemInfo.name}`
-    }, 150)
-  }
+  const settingStore = useSettingStore()
+  const appName = settingStore.appName
+
+  setTimeout(() => {
+    // 存在路由标题时，保留页面名称并拼接当前应用名。
+    if (title) {
+      const pageTitle = formatMenuTitle(String(title))
+      document.title = appName ? `${pageTitle} - ${appName}` : pageTitle
+      return
+    }
+
+    // 路由未声明标题时，回退为当前应用名。
+    if (appName) {
+      document.title = appName
+    }
+  }, 150)
 }
 
 /**
