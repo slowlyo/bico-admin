@@ -47,10 +47,23 @@ const getDefaultSystemName = (): string => {
   return document.title || ''
 }
 
+/**
+ * 获取公共资源默认路径
+ * 统一处理 base 路径，避免部署到子路径时资源丢失。
+ * @param assetName 资源文件名
+ * @returns 资源访问路径
+ */
+const getDefaultPublicAssetPath = (assetName: string): string => {
+  const baseUrl = import.meta.env.BASE_URL || '/'
+  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+  return `${normalizedBaseUrl}${assetName}`
+}
+
 const appConfig: SystemConfig = {
   // 系统信息
   systemInfo: {
-    name: getDefaultSystemName() // 系统名称
+    name: getDefaultSystemName(), // 系统名称
+    logo: getDefaultPublicAssetPath('logo.png') // 系统默认 logo
   },
   // 系统主题
   systemThemeStyles: {

@@ -81,8 +81,6 @@ export interface SystemBasicConfig {
   description?: string
   // 系统logo
   logo?: string
-  // 系统favicon
-  favicon?: string
   // 版权信息
   copyright?: string
 }

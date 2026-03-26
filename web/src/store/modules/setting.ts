@@ -41,6 +41,7 @@ import { StorageConfig } from '@/utils'
 import { SETTING_DEFAULT_CONFIG } from '@/config/setting'
 
 const DEFAULT_APP_NAME = AppConfig.systemInfo.name || ''
+const DEFAULT_APP_LOGO = AppConfig.systemInfo.logo || ''
 
 /**
  * 系统设置状态管理
@@ -93,7 +94,7 @@ export const useSettingStore = defineStore(
     /** 应用配置信息 */
     const appConfig = ref<Api.App.Config>({
       name: DEFAULT_APP_NAME,
-      logo: AppConfig.systemInfo.logo || '',
+      logo: DEFAULT_APP_LOGO,
       debug: false
     })
 
@@ -432,6 +433,43 @@ export const useSettingStore = defineStore(
     }
 
     /**
+     * 同步浏览器标签页图标
+     * 直接复用当前 logo，避免维护两套图标配置。
+     */
+    const syncDocumentFavicon = (): void => {
+      // 非浏览器环境下无需同步图标。
+      if (typeof document === 'undefined') {
+        return
+      }
+
+      const currentFavicon = appConfig.value.logo?.trim() || DEFAULT_APP_LOGO
+
+      // 未拿到有效图标时保持现状，避免写入空地址。
+      if (!currentFavicon) {
+        return
+      }
+
+      const faviconLink =
+        document.querySelector<HTMLLinkElement>('link#app-favicon') ||
+        document.querySelector<HTMLLinkElement>('link[rel="icon"]') ||
+        document.querySelector<HTMLLinkElement>('link[rel="shortcut icon"]') ||
+        document.createElement('link')
+
+      // 已有节点时复用，避免重复插入多个 favicon 标签。
+      if (!faviconLink.id) {
+        faviconLink.id = 'app-favicon'
+      }
+
+      faviconLink.rel = 'icon'
+      faviconLink.href = currentFavicon
+
+      // 新节点需要挂到 head，浏览器才会识别。
+      if (!faviconLink.parentNode) {
+        document.head.appendChild(faviconLink)
+      }
+    }
+
+    /**
      * 设置应用配置
      * @param config 配置信息
      */
@@ -442,6 +480,7 @@ export const useSettingStore = defineStore(
         name: normalizeAppName(config.name, normalizeAppName(appConfig.value.name))
       }
       syncDocumentTitle()
+      syncDocumentFavicon()
     }
 
     return {
