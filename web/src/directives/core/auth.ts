@@ -35,6 +35,8 @@
 import { useAuth } from '@/hooks/core/useAuth'
 import { App, Directive, DirectiveBinding } from 'vue'
 
+export type AuthDirective = Directive<HTMLElement, string | string[]>
+
 interface AuthBinding extends DirectiveBinding {
   value: string | string[]
 }
@@ -62,7 +64,7 @@ function removeElement(el: HTMLElement): void {
   }
 }
 
-const authDirective: Directive = {
+const authDirective: AuthDirective = {
   mounted: checkAuthPermission,
   updated: checkAuthPermission
 }

@@ -179,6 +179,8 @@ declare namespace Api {
       code?: string
       description?: string
       enabled?: boolean
+      startTime?: string | null
+      endTime?: string | null
     }
 
     /** 权限树节点 */

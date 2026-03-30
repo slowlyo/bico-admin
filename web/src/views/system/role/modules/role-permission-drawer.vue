@@ -2,11 +2,15 @@
   <ElDrawer
     v-model="visible"
     title="配置权限"
-    size="500px"
+    :size="drawerSize"
+    class="role-permission-drawer"
+    header-class="role-permission-drawer__header"
+    body-class="role-permission-drawer__body"
+    footer-class="role-permission-drawer__footer"
     @close="handleClose"
   >
-    <div class="flex flex-col h-full overflow-hidden">
-      <div class="mb-3 flex items-center gap-2 border-b border-[var(--art-card-border)] pb-3">
+    <div class="role-permission-drawer__content">
+      <div class="role-permission-drawer__toolbar">
         <ElButton
           plain
           @click="handleSelectAll"
@@ -23,9 +27,10 @@
         </ElButton>
       </div>
 
-      <div class="flex-1 overflow-auto">
+      <div class="role-permission-drawer__tree">
         <ElTree
           ref="treeRef"
+          class="role-permission-drawer__tree-inner"
           :data="permissionTree"
           show-checkbox
           node-key="key"
@@ -33,14 +38,14 @@
           :props="defaultProps"
         >
           <template #default="{ data }">
-            <span>{{ data.label }}</span>
+            <span class="role-permission-drawer__node">{{ data.label }}</span>
           </template>
         </ElTree>
       </div>
     </div>
 
     <template #footer>
-      <div class="flex justify-end gap-2">
+      <div class="role-permission-drawer__actions">
         <ElButton @click="handleClose">取消</ElButton>
         <ElButton type="primary" @click="savePermission">保存</ElButton>
       </div>
@@ -49,6 +54,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useWindowSize } from '@vueuse/core'
   import {
     fetchGetAllPermissions,
     fetchGetRolePermissions,
@@ -75,8 +81,26 @@
 
   const emit = defineEmits<Emits>()
 
+  const MOBILE_BREAKPOINT = 768
+  const DESKTOP_DRAWER_SIZE = '500px'
+
   const treeRef = ref<TreeInstance>()
   const permissionTree = ref<Api.SystemManage.Permission[]>([])
+  const { width } = useWindowSize()
+
+  /**
+   * 是否使用移动端抽屉布局
+   */
+  const isMobile = computed(() => width.value <= MOBILE_BREAKPOINT)
+
+  /**
+   * 根据屏幕宽度计算抽屉尺寸
+   */
+  const drawerSize = computed(() => {
+    // 移动端改为全屏，避免固定宽度撑出视口。
+    if (isMobile.value) return '100%'
+    return DESKTOP_DRAWER_SIZE
+  })
 
   /**
    * 加载权限树
@@ -285,3 +309,110 @@
     }
   }
 </script>
+
+<style scoped lang="scss">
+  .role-permission-drawer__content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .role-permission-drawer__toolbar,
+  .role-permission-drawer__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    :deep(.el-button + .el-button) {
+      margin-left: 0;
+    }
+  }
+
+  .role-permission-drawer__toolbar {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--art-card-border);
+  }
+
+  .role-permission-drawer__tree {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding-right: 4px;
+  }
+
+  .role-permission-drawer__node {
+    display: block;
+    flex: 1;
+    min-width: 0;
+    white-space: normal;
+    word-break: break-all;
+    line-height: 1.5;
+    padding: 6px 0;
+  }
+
+  .role-permission-drawer__actions {
+    justify-content: flex-end;
+  }
+
+  :deep(.role-permission-drawer__header) {
+    margin-bottom: 0;
+    padding: 20px 20px 12px;
+  }
+
+  :deep(.role-permission-drawer__body) {
+    padding: 0 20px;
+    overflow: hidden;
+  }
+
+  :deep(.role-permission-drawer__footer) {
+    padding: 12px 20px 20px;
+    border-top: 1px solid var(--art-card-border);
+  }
+
+  :deep(.role-permission-drawer .el-tree) {
+    background: transparent;
+  }
+
+  :deep(.role-permission-drawer .el-tree-node__content) {
+    align-items: flex-start;
+    height: auto;
+    min-height: 36px;
+    padding: 2px 0;
+  }
+
+  :deep(.role-permission-drawer .el-tree-node__expand-icon) {
+    margin-top: 10px;
+  }
+
+  @media (width <= 768px) {
+    .role-permission-drawer__toolbar,
+    .role-permission-drawer__actions {
+      flex-direction: column;
+    }
+
+    .role-permission-drawer__toolbar :deep(.el-button),
+    .role-permission-drawer__actions :deep(.el-button) {
+      width: 100%;
+      margin-left: 0;
+    }
+
+    :deep(.role-permission-drawer__header) {
+      padding: 16px 16px 12px;
+    }
+
+    :deep(.role-permission-drawer__body) {
+      padding: 0 16px;
+    }
+
+    :deep(.role-permission-drawer__footer) {
+      padding: 12px 16px 16px;
+    }
+
+    .role-permission-drawer__tree {
+      padding-right: 0;
+    }
+  }
+</style>

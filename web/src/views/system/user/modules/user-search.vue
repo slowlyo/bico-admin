@@ -91,9 +91,9 @@
     emit('reset')
   }
 
-  async function handleSearch() {
+  async function handleSearch(params: Record<string, any>) {
     await searchBarRef.value.validate()
-    emit('search', formData.value)
-    console.log('表单数据', formData.value)
+    emit('search', params)
+    console.log('表单数据', params)
   }
 </script>

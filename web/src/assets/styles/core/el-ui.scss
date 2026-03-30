@@ -37,6 +37,11 @@
   --el-datepicker-inrange-bg-color: var(--art-gray-200) !important;
 }
 
+// el-card 背景色跟系统背景色保持一致
+html.dark .el-card {
+  --el-card-bg-color: var(--default-box-color) !important;
+}
+
 // el-pagination 大小优化
 .el-pagination--default {
   & {
@@ -205,6 +210,11 @@
 
 // 处理移动端组件兼容性
 @media screen and (max-width: 640px) {
+  body.el-popup-parent--hidden {
+    width: 100% !important;
+    padding-right: 0 !important;
+  }
+
   .el-message-box,
   .el-dialog {
     width: calc(100% - 24px) !important;

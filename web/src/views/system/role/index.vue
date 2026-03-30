@@ -90,7 +90,7 @@
     loading,
     pagination,
     getData,
-    searchParams,
+    replaceSearchParams,
     resetSearchParams,
     handleSizeChange,
     handleCurrentChange,
@@ -217,8 +217,7 @@
    * @param params 搜索参数
    */
   const handleSearch = (params: Record<string, any>) => {
-    // 搜索参数赋值
-    Object.assign(searchParams, params)
+    replaceSearchParams(params)
     getData()
   }
 
@@ -242,8 +241,6 @@
           console.error('删除角色失败:', error)
         }
       })
-      .catch(() => {
-        ElMessage.info('已取消删除')
-      })
+      .catch(() => {})
   }
 </script>
