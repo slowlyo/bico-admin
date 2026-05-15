@@ -24,8 +24,12 @@ air:
 	@air -c .air.toml
 
 dev:
-	@echo "🚀 同时启动前后端开发服务..."
-	@$(MAKE) -j2 air web
+	@echo "🚀 启动后端开发服务..."
+	@$(MAKE) air &
+	@echo "⏳ 等待后端服务就绪..."
+	@while ! nc -z localhost 8080 2>/dev/null; do sleep 0.5; done
+	@echo "✅ 后端已就绪，启动前端..."
+	@$(MAKE) web
 
 tidy:
 	@echo "📦 整理依赖..."
