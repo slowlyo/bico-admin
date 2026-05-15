@@ -42,7 +42,7 @@
                   v-model.trim="formData.captchaCode"
                 />
                 <div class="captcha-img" @click="getCaptcha">
-                  <img v-if="captchaImg" :src="captchaImg" class="w-full h-full" alt="captcha" />
+                  <img v-if="captchaImg" :src="captchaImg" class="w-full h-full dark:invert-[0.87] dark:brightness-[1.1] transition duration-300" alt="captcha" />
                   <span v-else class="text-xs text-gray-400">{{ $t('common.loading') }}</span>
                 </div>
               </div>
