@@ -14,6 +14,7 @@ type Router struct {
 	authHandler          *handler.AuthHandler
 	uploadHandler        *handler.UploadHandler
 	commonHandler        *handler.CommonHandler
+	dashboardHandler     *handler.DashboardHandler
 	jwtAuth              gin.HandlerFunc
 	permMiddleware       *middleware.PermissionMiddleware
 	userStatusMiddleware *middleware.UserStatusMiddleware
@@ -26,6 +27,7 @@ func NewRouter(
 	authHandler *handler.AuthHandler,
 	uploadHandler *handler.UploadHandler,
 	commonHandler *handler.CommonHandler,
+	dashboardHandler *handler.DashboardHandler,
 	jwtAuth gin.HandlerFunc,
 	permMiddleware *middleware.PermissionMiddleware,
 	userStatusMiddleware *middleware.UserStatusMiddleware,
@@ -39,6 +41,7 @@ func NewRouter(
 		authHandler:          authHandler,
 		uploadHandler:        uploadHandler,
 		commonHandler:        commonHandler,
+		dashboardHandler:     dashboardHandler,
 		jwtAuth:              jwtAuth,
 		permMiddleware:       permMiddleware,
 		userStatusMiddleware: userStatusMiddleware,
@@ -75,6 +78,9 @@ func (r *Router) Register(engine *gin.Engine) {
 	{
 		// 通用上传（富文本图片/视频等）
 		authorized.POST("/upload", r.uploadHandler.Upload)
+
+		// 工作台概览
+		authorized.GET("/dashboard/overview", r.dashboardHandler.GetOverview)
 
 		// 示例接口
 		demoExcel := handler.NewDemoExcelHandler()

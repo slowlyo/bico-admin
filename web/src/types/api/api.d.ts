@@ -114,6 +114,68 @@ declare namespace Api {
     }
   }
 
+  /** 工作台类型 */
+  namespace Dashboard {
+    /** 工作台概览 */
+    interface Overview {
+      server: ServerInfo
+      runtime: RuntimeInfo
+      database: DatabaseInfo
+      monitor: MonitorInfo
+    }
+
+    /** 服务器基础信息 */
+    interface ServerInfo {
+      hostname: string
+      os: string
+      arch: string
+      goVersion: string
+      mode: string
+      port: number
+      startedAt: string
+      uptimeSeconds: number
+    }
+
+    /** Go 运行时信息 */
+    interface RuntimeInfo {
+      cpuCores: number
+      goMaxProcs: number
+      goroutines: number
+      allocMb: number
+      sysMb: number
+      heapInuseMb: number
+      nextGcMb: number
+      gcCycles: number
+    }
+
+    /** 数据库连接池信息 */
+    interface DatabaseInfo {
+      driver: string
+      maxOpenConnections: number
+      maxIdleConnections: number
+      openConnections: number
+      inUse: number
+      idle: number
+      waitCount: number
+      waitDurationSeconds: number
+    }
+
+    /** 监控信息 */
+    interface MonitorInfo {
+      collectedAt: string
+      metrics: MonitorMetric[]
+    }
+
+    /** 单个监控指标 */
+    interface MonitorMetric {
+      key: string
+      label: string
+      value: number
+      unit: string
+      status: 'normal' | 'warning'
+    }
+  }
+
   /** 系统管理类型 */
   namespace SystemManage {
     /** 用户列表 */

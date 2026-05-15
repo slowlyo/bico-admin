@@ -1,6 +1,15 @@
 import request from '@/utils/http'
 import { AppRouteRecord } from '@/types/router'
 
+// --- 工作台 ---
+
+/** 获取工作台概览 */
+export function fetchDashboardOverview() {
+  return request.get<Api.Dashboard.Overview>({
+    url: '/admin-api/dashboard/overview'
+  })
+}
+
 // --- 用户管理 ---
 
 /** 获取用户列表 */

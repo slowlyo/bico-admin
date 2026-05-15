@@ -34,13 +34,14 @@ func (m *Module) Register(ctx *app.AppContext) error {
 	authHandler := handler.NewAuthHandler(authSvc, ctx.Uploader, ctx.Captcha)
 	uploadHandler := handler.NewUploadHandler(ctx.Uploader)
 	commonHandler := handler.NewCommonHandler(cfgSvc)
+	dashboardHandler := handler.NewDashboardHandler(ctx.Cfg, ctx.DB)
 
 	modules := []crud.Module{
 		handler.NewAdminUserHandler(ctx.DB, authSvc),
 		handler.NewAdminRoleHandler(ctx.DB, authSvc),
 	}
 
-	r := NewRouter(authHandler, uploadHandler, commonHandler, jwtAuth, permMiddleware, userStatusMiddleware, ctx.DB, modules)
+	r := NewRouter(authHandler, uploadHandler, commonHandler, dashboardHandler, jwtAuth, permMiddleware, userStatusMiddleware, ctx.DB, modules)
 	r.Register(ctx.Engine)
 
 	return nil
