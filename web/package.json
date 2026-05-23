@@ -8,11 +8,11 @@
   },
   "scripts": {
     "dev": "vite --open",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vite build",
+    "typecheck": "vue-tsc --noEmit",
     "serve": "vite preview",
     "lint": "eslint",
-    "fix": "eslint --fix",
-    "clean:dev": "tsx scripts/clean-dev.ts"
+    "fix": "eslint --fix"
   },
   "pnpm": {
     "overrides": {
