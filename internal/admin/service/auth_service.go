@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"bico-admin/internal/admin/model"
@@ -20,11 +21,15 @@ var (
 	ErrInvalidPassword  = errors.New("密码错误")
 	ErrUserDisabled     = errors.New("用户已被禁用")
 	ErrOldPasswordWrong = errors.New("原密码错误")
+	ErrLoginLocked      = errors.New("登录失败次数过多，请15分钟后再试")
 )
 
 const (
 	permissionCacheTTL = 5 * time.Minute
 	userStatusCacheTTL = 1 * time.Minute
+	loginFailTTL       = 15 * time.Minute
+	loginLockTTL       = 15 * time.Minute
+	maxLoginFailCount  = 5
 )
 
 // LoginRequest 登录请求
@@ -98,9 +103,15 @@ func NewAuthService(db *gorm.DB, jwtManager *jwt.JWTManager, cache cache.Cache) 
 // Login 用户登录
 func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 	var user model.AdminUser
+	username := normalizeLoginUsername(req.Username)
 
-	err := s.db.Where("username = ?", req.Username).First(&user).Error
+	if s.isLoginLocked(username) {
+		return nil, ErrLoginLocked
+	}
+
+	err := s.db.Where("username = ?", username).First(&user).Error
 	if err != nil {
+		s.recordLoginFailure(username)
 		return nil, ErrUserNotFound
 	}
 
@@ -109,6 +120,7 @@ func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 	}
 
 	if !password.Verify(user.Password, req.Password) {
+		s.recordLoginFailure(username)
 		return nil, ErrInvalidPassword
 	}
 
@@ -117,7 +129,74 @@ func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 		return nil, err
 	}
 
+	s.clearLoginFailures(username)
+
 	return &LoginResponse{Token: token}, nil
+}
+
+// isLoginLocked 判断账号是否处于登录锁定期。
+// 使用独立锁定 key，避免失败次数过期后仍误判。
+func (s *AuthService) isLoginLocked(username string) bool {
+	return s.cache.Exists(buildLoginLockKey(username))
+}
+
+// recordLoginFailure 记录账号密码错误次数。
+// 达到阈值后写入锁定 key，后续请求在查库前直接拒绝。
+func (s *AuthService) recordLoginFailure(username string) {
+	failKey := buildLoginFailKey(username)
+	failCount := s.getLoginFailCount(failKey) + 1
+
+	if failCount >= maxLoginFailCount {
+		// 达到锁定阈值时删除计数 key，锁定期结束后重新计数。
+		_ = s.cache.Delete(failKey)
+		_ = s.cache.Set(buildLoginLockKey(username), true, loginLockTTL)
+		return
+	}
+
+	_ = s.cache.Set(failKey, failCount, loginFailTTL)
+}
+
+// clearLoginFailures 在登录成功后清理失败记录。
+// 成功登录说明当前密码已通过校验，历史失败次数不应继续影响该账号。
+func (s *AuthService) clearLoginFailures(username string) {
+	_ = s.cache.Delete(buildLoginFailKey(username))
+	_ = s.cache.Delete(buildLoginLockKey(username))
+}
+
+// getLoginFailCount 读取账号当前失败次数。
+// 内存缓存保持 int，Redis JSON 反序列化数字为 float64，因此需要兼容两种形态。
+func (s *AuthService) getLoginFailCount(key string) int {
+	value, err := s.cache.Get(key)
+	if err != nil {
+		return 0
+	}
+
+	switch count := value.(type) {
+	case int:
+		return count
+	case int64:
+		return int(count)
+	case float64:
+		return int(count)
+	default:
+		return 0
+	}
+}
+
+// normalizeLoginUsername 统一登录账号格式。
+// 这里只去除首尾空白，保持大小写敏感，避免改变现有账号匹配规则。
+func normalizeLoginUsername(username string) string {
+	return strings.TrimSpace(username)
+}
+
+// buildLoginFailKey 构建登录失败次数缓存 key。
+func buildLoginFailKey(username string) string {
+	return "auth:login:fail:" + username
+}
+
+// buildLoginLockKey 构建登录锁定缓存 key。
+func buildLoginLockKey(username string) string {
+	return "auth:login:lock:" + username
 }
 
 // Logout 用户退出登录
