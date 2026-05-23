@@ -39,6 +39,7 @@ type AppConfig struct {
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
 	Driver       string         `mapstructure:"driver"`
+	AutoMigrate  bool           `mapstructure:"auto_migrate"`
 	SQLite       SQLiteConfig   `mapstructure:"sqlite"`
 	MySQL        MySQLConfig    `mapstructure:"mysql"`
 	Postgres     PostgresConfig `mapstructure:"postgres"`

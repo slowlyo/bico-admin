@@ -52,11 +52,14 @@ app:
 ```yaml
 database:
   driver: sqlite
+  auto_migrate: true   # 是否在 serve 启动时自动执行迁移
   max_idle_conns: 10
   max_open_conns: 100
   sqlite:
     path: storage/data.db
 ```
+
+`auto_migrate` 适合开发环境开启；生产环境建议关闭，并通过 `./bico-admin migrate -c config/config.yaml` 手动执行。
 
 ### log
 

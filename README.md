@@ -65,6 +65,8 @@ make install
 make migrate
 ```
 
+开发配置默认开启 `database.auto_migrate`，启动服务时会自动迁移；生产建议关闭后手动执行迁移。
+
 首次迁移会初始化默认管理员账户：
 
 - 用户名：`admin`

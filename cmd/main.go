@@ -64,6 +64,12 @@ var serveCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		// 启动迁移只受配置控制；失败时停止启动，避免后续模块运行在未准备好的数据库上。
+		if err := runStartupMigration(ctx); err != nil {
+			ctx.Logger.Error("启动迁移失败", zap.Error(err))
+			os.Exit(1)
+		}
+
 		server.RegisterCoreRoutes(ctx.Engine, ctx.Cfg, web.DistFS)
 
 		if err := app.RegisterModules(
@@ -81,6 +87,25 @@ var serveCmd = &cobra.Command{
 			os.Exit(1)
 		}
 	},
+}
+
+// runStartupMigration 根据配置决定是否在 HTTP 服务启动前执行迁移。
+//
+// 说明：迁移必须早于路由注册和任务启动，避免服务已对外可用但表结构还未准备好。
+func runStartupMigration(ctx *app.AppContext) error {
+	if !ctx.Cfg.Database.AutoMigrate {
+		// 未显式开启启动迁移时保持原有手动迁移模式，避免生产环境启动时自动改表。
+		return nil
+	}
+
+	ctx.Logger.Info("开始启动迁移")
+	if err := migrate.AutoMigrate(ctx.DB); err != nil {
+		// 迁移失败时阻断启动，避免服务运行在不完整的表结构上。
+		return err
+	}
+	ctx.Logger.Info("启动迁移完成")
+
+	return nil
 }
 
 var migrateCmd = &cobra.Command{

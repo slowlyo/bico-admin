@@ -10,6 +10,7 @@ app:
 
 database:
   driver: sqlite  # 支持 sqlite / mysql / postgres
+  auto_migrate: false  # 生产环境默认关闭启动迁移，避免多实例并发改表
   max_idle_conns: 10
   max_open_conns: 100
   
