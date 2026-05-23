@@ -78,9 +78,9 @@ export function useHeaderBar() {
     return isFeatureEnabled('fullscreen')
   })
 
-  // 检查设置面板是否显示
+  // 设置面板只在 debug 模式开放，避免生产环境暴露主题配置入口。
   const shouldShowSettings = computed(() => {
-    return isFeatureEnabled('settings')
+    return isFeatureEnabled('settings') && settingStore.appConfig.debug
   })
 
   // 检查主题切换是否显示
