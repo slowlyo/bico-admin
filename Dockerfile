@@ -4,7 +4,7 @@ FROM node:20-alpine AS web-builder
 WORKDIR /app/web
 
 # 安装 pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 COPY web/package.json web/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --registry=https://registry.npmmirror.com
@@ -14,7 +14,7 @@ RUN pnpm build
 
 
 # 阶段 2: 后端构建
-FROM golang:1.24-alpine AS go-builder
+FROM golang:1.25-alpine AS go-builder
 
 WORKDIR /app
 

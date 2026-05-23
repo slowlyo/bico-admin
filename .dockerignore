@@ -22,7 +22,6 @@ logs/
 Thumbs.db
 
 # Docs
-docs/
 README.md
 
 # CI/CD
