@@ -8,7 +8,6 @@ import AutoImport from 'unplugin-auto-import/vite'
 import ElementPlus from 'unplugin-element-plus/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import tailwindcss from '@tailwindcss/vite'
-// import { visualizer } from 'rollup-plugin-visualizer'
 
 export default ({ mode }: { mode: string }) => {
   const root = process.cwd()
@@ -99,7 +98,6 @@ export default ({ mode }: { mode: string }) => {
         'echarts/renderers',
         'xlsx',
         'xgplayer',
-        'crypto-js',
         'file-saver',
         'vue-img-cutter',
         'element-plus/es',
