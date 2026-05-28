@@ -440,17 +440,15 @@ html.dark .el-card {
         color: var(--art-gray-900) !important;
         font-weight: 400 !important;
         background-color: var(--art-el-active-color) !important;
-        margin-bottom: 4px !important;
+      }
+
+      &.is-hovering:not(:hover):not(.is-selected) {
+        background-color: transparent !important;
       }
 
       &:hover {
         background-color: var(--art-hover-color) !important;
       }
-    }
-
-    .el-select-dropdown__item:hover ~ .is-selected,
-    .el-select-dropdown__item.is-selected:has(~ .el-select-dropdown__item:hover) {
-      background-color: transparent !important;
     }
   }
 }
