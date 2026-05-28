@@ -281,8 +281,8 @@
         pwdUpdating.value = true
         try {
           await fetchChangePassword({
-            old_password: pwdForm.old_password,
-            new_password: pwdForm.new_password
+            oldPassword: pwdForm.old_password,
+            newPassword: pwdForm.new_password
           })
           ElMessage.success('修改成功')
           // 清空表单
