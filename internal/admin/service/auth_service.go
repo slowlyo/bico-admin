@@ -336,7 +336,7 @@ func (s *AuthService) GetUserPermissions(userID uint) ([]string, error) {
 	}
 
 	// 如果是默认管理员账户，返回所有权限
-	if user.ID == 1 {
+	if userID == 1 {
 		adminPerms := crud.GetAllPermissionKeys()
 		s.setPermissionsCache(userID, adminPerms)
 		return adminPerms, nil
