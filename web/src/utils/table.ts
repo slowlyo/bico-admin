@@ -30,11 +30,23 @@ export function transformTableParams<T = any>(
  */
 export function transformTableResponse<T>(response: {
   code: number;
-  data?: T[];
+  data?: any;
   total?: number;
 }) {
+  const responseData = response.data;
+  
+  // 处理后端分页响应数据（包裹在 data.list 中）
+  if (responseData && typeof responseData === 'object' && 'list' in responseData) {
+    return {
+      data: (responseData.list || []) as T[],
+      total: responseData.total || 0,
+      success: response.code === 0,
+    };
+  }
+
+  // 处理无分页或旧接口响应数据（data 直接为数组）
   return {
-    data: (response.data || []) as T[],
+    data: (responseData || []) as T[],
     total: response.total || 0,
     success: response.code === 0,
   };

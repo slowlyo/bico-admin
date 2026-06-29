@@ -17,7 +17,7 @@
 - **[Ant Design Pro](https://pro.ant.design/)** - 企业级中后台解决方案
 - **[UmiJS 4](https://umijs.org/)** - 企业级前端框架
 - **[TypeScript](https://www.typescriptlang.org/)** - 类型安全
-- **[pnpm](https://pnpm.io/)** - 包管理器
+- **[Bun](https://bun.sh/)** - 包管理器
 
 ## 快速开始
 
@@ -40,13 +40,13 @@ make serve
 cd web
 
 # 安装依赖
-pnpm install
+bun install
 
 # 启动开发服务器
-pnpm dev
+bun dev
 
 # 构建生产版本
-pnpm build
+bun run build
 ```
 
 ## 开发指南
@@ -155,7 +155,7 @@ make tidy      # 整理依赖
 - Go 1.21+
 - MySQL 5.7+
 - Node.js 20+
-- pnpm 9+ (前端包管理器)
+- Bun 1.0+ (前端包管理器)
 
 ## License
 
