@@ -17,7 +17,6 @@ yarn-error.log
 /coverage
 .idea
 yarn.lock
-package-lock.json
 *bak
 .vscode
 
@@ -28,13 +27,28 @@ package-lock.json
 functions/*
 .temp/**
 
+# claude code local settings
+.claude/settings.local.json
+
 # umi
 .umi
 .umi-production
 .umi-test
+.umi-undefined
+.turbopack
 
 # screenshot
 screenshot
 .firebase
 
 build
+
+# worktrees
+.worktrees
+
+# superpowers docs
+docs/superpowers
+
+# cloudflare wrangler
+.wrangler
+requestRecord.mock.js

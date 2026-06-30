@@ -127,12 +127,12 @@ declare namespace API {
     data: T;
   };
 
-  /** 登录参数 */
   export type LoginParams = {
-    username: string;
-    password: string;
+    username?: string;
+    password?: string;
     captchaId?: string;
     captchaCode?: string;
+    rememberPassword?: boolean;
   };
 
   /** 登录结果 */

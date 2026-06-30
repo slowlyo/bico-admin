@@ -6,7 +6,7 @@ import { SettingDrawer } from "@ant-design/pro-components";
 import type { RequestConfig, RunTimeLayoutConfig } from "@umijs/max";
 import { history } from "@umijs/max";
 import React from "react";
-import { AvatarDropdown, AvatarName, Footer } from "@/components";
+import { AvatarDropdown, AvatarName } from "@/components";
 import { getCurrentUser as fetchCurrentUser } from "@/services/auth";
 import { getAppConfig } from "@/services/common";
 import { buildLoginUrl, getCurrentPathWithSearch, LOGIN_PATH } from "@/utils/redirect";
@@ -133,7 +133,6 @@ export const layout: RunTimeLayoutConfig = ({
         // waterMarkProps: {
         //     content: initialState?.currentUser?.name,
         // },
-        footerRender: () => <Footer />,
         onPageChange: () => {
             const { pathname } = history.location;
             // 如果没有登录，重定向到 login

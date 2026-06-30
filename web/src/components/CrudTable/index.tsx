@@ -5,9 +5,16 @@ import { Button, message, Popconfirm, Space } from 'antd';
 import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import { useAccess } from '@umijs/max';
 import { PageContainer } from '@/components';
-import { DEFAULT_PAGINATION } from '@/constants';
 import { transformTableParams, transformTableResponse } from '@/utils/table';
+import type { TablePaginationConfig } from 'antd';
 import CrudModal from '../CrudModal';
+
+const DEFAULT_PAGINATION: TablePaginationConfig = {
+  showSizeChanger: true,
+  showQuickJumper: true,
+  pageSizeOptions: ['10', '20', '50', '100'],
+  defaultPageSize: 10,
+};
 
 type CrudService<T> = {
   list: (params?: any) => Promise<API.Response<T[]> & { total?: number }>;

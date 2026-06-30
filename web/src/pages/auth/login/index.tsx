@@ -17,7 +17,6 @@ import { Alert, App } from "antd";
 import { createStyles } from "antd-style";
 import React, { useState } from "react";
 import { flushSync } from "react-dom";
-import { Footer } from "@/components";
 import { login, getCaptcha } from '@/services/auth';
 import { saveCredentials, getCredentials, clearCredentials } from '@/utils/crypto';
 import { getSafeRedirectFromSearch } from '@/utils/redirect';
@@ -170,7 +169,7 @@ const Login: React.FC = () => {
             message.success(defaultLoginSuccessMessage);
             
             // 跳转到重定向页面或首页
-            history.replace(getRedirectPath());
+            window.location.href = getRedirectPath();
         } catch (error: any) {
             // 响应拦截器已将后端错误信息放到 error.message 中
             setUserLoginState({ 
@@ -312,7 +311,6 @@ const Login: React.FC = () => {
                     </div>
                 </LoginForm>
             </div>
-            <Footer />
         </div>
     );
 };

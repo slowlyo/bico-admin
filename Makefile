@@ -38,7 +38,7 @@ tidy:
 
 install:
 	@echo "📦 安装前端依赖..."
-	@cd web && bun install
+	@cd web && pnpm install
 	@echo "✅ 前端依赖安装完成"
 
 migrate:
@@ -57,11 +57,11 @@ build:
 
 web:
 	@echo "🚀 启动前端开发服务器..."
-	@cd web && bun dev
+	@cd web && pnpm start
 
 build-web:
 	@echo "🎨 构建前端..."
-	@cd web && bun run build
+	@cd web && pnpm run build
 	@echo "✅ 前端构建完成"
 
 package: build-web

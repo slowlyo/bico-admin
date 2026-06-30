@@ -3,10 +3,11 @@
  */
 
 export interface LoginParams {
-  username: string;
-  password: string;
-  captchaId: string;
-  captchaCode: string;
+  username?: string;
+  password?: string;
+  captchaId?: string;
+  captchaCode?: string;
+  rememberPassword?: boolean;
 }
 
 export interface LoginResult {

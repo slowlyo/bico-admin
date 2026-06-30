@@ -5,30 +5,17 @@
 /**
  * 布局组件
  */
-import Footer from './Footer';
-import { Question, SelectLang } from './RightContent';
 import { AvatarDropdown, AvatarName } from './RightContent/AvatarDropdown';
-import PageContainer from './PageContainer';
-
-import RichEditor from './RichEditor';
-
-import ExcelImportExportActions from './ExcelImportExportActions';
 
 /**
- * CRUD 组件
+ * 业务组件
  */
-import CrudModal from './CrudModal';
-import CrudTable from './CrudTable';
+export { default as ErrorBoundary } from './ErrorBoundary';
+export { default as OfflineBanner } from './OfflineBanner';
+export { default as CrudModal } from './CrudModal';
+export { default as CrudTable } from './CrudTable';
+export { default as ExcelImportExportActions } from './ExcelImportExportActions';
+export { default as RichEditor } from './RichEditor';
+export { default as PageContainer } from './PageContainer';
 
-export {
-  AvatarDropdown,
-  AvatarName,
-  Footer,
-  PageContainer,
-  Question,
-  SelectLang,
-  CrudModal,
-  CrudTable,
-  RichEditor,
-  ExcelImportExportActions,
-};
+export { AvatarDropdown, AvatarName };

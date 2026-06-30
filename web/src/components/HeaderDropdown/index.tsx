@@ -1,7 +1,7 @@
 import { Dropdown } from 'antd';
 import type { DropDownProps } from 'antd/es/dropdown';
 import { createStyles } from 'antd-style';
-import classNames from 'classnames';
+import { clsx } from 'clsx';
 import React from 'react';
 
 const useStyles = createStyles(({ token }) => {
@@ -10,12 +10,20 @@ const useStyles = createStyles(({ token }) => {
       [`@media screen and (max-width: ${token.screenXS}px)`]: {
         width: '100%',
       },
+      '.ant-dropdown-menu-item .anticon, .ant-dropdown-menu-submenu-title .anticon':
+        {
+          display: 'inline-flex',
+          alignItems: 'center',
+        },
+      '.ant-dropdown-menu-submenu-title .anticon': {
+        color: token.colorTextSecondary,
+      },
     },
   };
 });
 
 export type HeaderDropdownProps = {
-  popupClassName?: string;
+  overlayClassName?: string;
   placement?:
     | 'bottomLeft'
     | 'bottomRight'
@@ -26,13 +34,15 @@ export type HeaderDropdownProps = {
 } & Omit<DropDownProps, 'overlay'>;
 
 const HeaderDropdown: React.FC<HeaderDropdownProps> = ({
-  popupClassName: cls,
+  overlayClassName: cls,
   ...restProps
 }) => {
   const { styles } = useStyles();
   return (
     <Dropdown
-      classNames={{ root: classNames(styles.dropdown, cls) }}
+      classNames={{
+        root: clsx(styles.dropdown, cls),
+      }}
       {...restProps}
     />
   );

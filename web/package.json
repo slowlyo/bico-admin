@@ -1,59 +1,97 @@
 {
-  "name": "bico-admin",
-  "version": "6.0.0",
+  "name": "ant-design-pro",
+  "version": "6.0.2",
   "private": true,
   "description": "An out-of-box UI solution for enterprise applications",
   "repository": "git@github.com:ant-design/ant-design-pro.git",
   "scripts": {
     "analyze": "cross-env ANALYZE=1 max build",
     "build": "max build",
-    "dev": "npm run start:dev",
-    "i18n-remove": "pro i18n-remove --locale=zh-CN --write",
-    "postinstall": "max setup",
+    "deploy": "cross-env CI=true max build && gh-pages -d dist",
+    "dev": "cross-env UMI_ENV=dev MOCK=none max dev",
     "lint": "npm run tsc",
-    "preview": "npm run build && max preview --port 8000",
-    "record": "cross-env NODE_ENV=development REACT_APP_ENV=test max record --scene=login",
-    "serve": "umi-serve",
+    "lint-staged": "lint-staged",
+    "openapi": "max openapi",
+    "prepare": "max setup",
+    "preview": "max preview --port 8000",
+    "preview:build": "max build && max preview --port 8000",
+    "record": "cross-env NODE_ENV=development UMI_ENV=test max record --scene=login",
     "start": "cross-env UMI_ENV=dev max dev",
-    "start:dev": "cross-env REACT_APP_ENV=dev UMI_ENV=dev max dev",
-    "start:pre": "cross-env REACT_APP_ENV=pre UMI_ENV=dev max dev",
-    "start:test": "cross-env REACT_APP_ENV=test UMI_ENV=dev max dev",
+    "start:no-mock": "cross-env MOCK=none max dev",
+    "start:pre": "cross-env UMI_ENV=pre MOCK=none max dev",
+    "start:test": "cross-env UMI_ENV=test MOCK=none max dev",
     "tsc": "tsc --noEmit"
   },
   "browserslist": [
     "defaults"
   ],
   "dependencies": {
-    "@ant-design/icons": "^6.0.0",
-    "@ant-design/pro-components": "^2.8.10",
+    "@ant-design/icons": "^6.3.1",
+    "@ant-design/pro-components": "^3.1.12-0",
     "@wangeditor/editor": "^5.1.23",
     "@wangeditor/editor-for-react": "^1.0.6",
-    "antd": "^6.0.0",
-    "antd-style": "^3.7.1",
+    "antd": "^6.5.0",
+    "antd-style": "^4.1.0",
     "classnames": "^2.5.1",
-    "dayjs": "^1.11.13",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.20",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
   },
   "devDependencies": {
-    "@ant-design/pro-cli": "^3.3.0",
-    "@testing-library/dom": "^10.4.0",
-    "@testing-library/react": "^16.0.1",
-    "@types/express": "^5.0.3",
-    "@types/lodash": "^4.17.10",
-    "@types/node": "^24.0.10",
-    "@types/react": "^19.1.5",
-    "@types/react-dom": "^19.1.5",
+    "@ant-design/cli": "^6.5.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.0.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@types/react-helmet": "^6.1.11",
-    "@umijs/max": "^4.6.9",
-    "cross-env": "^7.0.3",
-    "express": "^4.21.1",
+    "@umijs/lint": "^4.6.51",
+    "@umijs/max": "^4.6.67",
+    "@umijs/max-plugin-openapi": "^2.0.3",
+    "@umijs/request-record": "^1.1.4",
+    "cross-env": "^10.1.0",
+    "express": "^5.2.1",
+    "gh-pages": "^6.3.0",
+    "swagger-ui-dist": "^5.32.5",
+    "tailwindcss": "^4.3.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.6.3",
-    "umi-presets-pro": "^2.0.3",
-    "umi-serve": "^1.9.11"
+    "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "@umijs/plugins": {
+      "@ant-design/pro-components": "$@ant-design/pro-components"
+    }
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
+  },
+  "create-umi": {
+    "ignoreScript": [
+      "docker*",
+      "functions*",
+      "site",
+      "generateMock"
+    ],
+    "ignoreDependencies": [
+      "netlify*",
+      "serverless"
+    ],
+    "ignore": [
+      ".dockerignore",
+      ".git",
+      ".github",
+      ".gitpod.yml",
+      "CODE_OF_CONDUCT.md",
+      "Dockerfile",
+      "Dockerfile.*",
+      "lambda",
+      "LICENSE",
+      "netlify.toml",
+      "README.*.md",
+      "azure-pipelines.yml",
+      "docker",
+      "CNAME",
+      "create-umi"
+    ]
   }
 }
