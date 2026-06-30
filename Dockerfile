@@ -1,16 +1,13 @@
 # 阶段 1: 前端构建
-FROM node:20-alpine AS web-builder
+FROM oven/bun:1-alpine AS web-builder
 
 WORKDIR /app/web
 
-# 安装 pnpm
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
-
-COPY web/package.json web/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --registry=https://registry.npmmirror.com
+COPY web/package.json web/bun.lock ./
+RUN bun install --frozen-lockfile --registry=https://registry.npmmirror.com
 
 COPY web/ ./
-RUN pnpm build
+RUN bun run build
 
 
 # 阶段 2: 后端构建
