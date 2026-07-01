@@ -7,6 +7,8 @@ import (
 	"bico-admin/internal/core/app"
 	coreMiddleware "bico-admin/internal/core/middleware"
 	"bico-admin/internal/pkg/crud"
+
+	"gorm.io/gorm"
 )
 
 // Module admin 模块
@@ -36,13 +38,19 @@ func (m *Module) Register(ctx *app.AppContext) error {
 	commonHandler := handler.NewCommonHandler(cfgSvc)
 	dashboardHandler := handler.NewDashboardHandler(ctx.Cfg, ctx.DB)
 
-	modules := []crud.Module{
-		handler.NewAdminUserHandler(ctx.DB, authSvc),
-		handler.NewAdminRoleHandler(ctx.DB, authSvc),
-	}
-
+	modules := NewCRUDModules(ctx.DB, authSvc)
 	r := NewRouter(authHandler, uploadHandler, commonHandler, dashboardHandler, jwtAuth, permMiddleware, userStatusMiddleware, ctx.DB, modules)
 	r.Register(ctx.Engine)
 
 	return nil
+}
+
+// NewCRUDModules 创建后台声明式 CRUD 模块列表。
+//
+// 说明：运行时路由注册和 Swagger 文档增强共用同一份模块配置，避免接口路径与文档漂移。
+func NewCRUDModules(db *gorm.DB, cacheInvalidator service.AuthCacheInvalidator) []crud.Module {
+	return []crud.Module{
+		handler.NewAdminUserHandler(db, cacheInvalidator),
+		handler.NewAdminRoleHandler(db, cacheInvalidator),
+	}
 }

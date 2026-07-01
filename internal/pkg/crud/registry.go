@@ -37,12 +37,25 @@ type ModuleConfig struct {
 
 	// 路由配置
 	Routes []Route
+
+	// Swagger 配置
+	Swagger SwaggerConfig
 }
 
 // Module Handler 模块接口，实现此接口的 Handler 会被自动注册
 type Module interface {
 	// ModuleConfig 返回模块配置
 	ModuleConfig() ModuleConfig
+}
+
+// SwaggerConfig 描述声明式 CRUD 路由生成 Swagger 所需的类型信息。
+//
+// 说明：这些类型只用于文档生成，不参与运行时请求处理。
+type SwaggerConfig struct {
+	Model         interface{}
+	ListRequest   interface{}
+	CreateRequest interface{}
+	UpdateRequest interface{}
 }
 
 var (

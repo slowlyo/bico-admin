@@ -61,23 +61,39 @@ export default [
         ],
     },
     {
-        path: "/demo",
-        name: "demo",
-        icon: "experiment",
+        path: "/developer",
+        name: "developer",
+        icon: "tool",
+        access: "developer",
         routes: [
             {
-                path: "/demo",
-                redirect: "/demo/excel",
+                path: "/developer",
+                redirect: "/developer/api-docs",
             },
             {
-                path: "/demo/excel",
-                name: "excel",
-                component: "./demo/excel",
+                path: "/developer/api-docs",
+                name: "api-docs",
+                component: "./developer/api-docs",
             },
             {
-                path: "/demo/editor",
-                name: "editor",
-                component: "./demo/editor",
+                path: "/developer/demo",
+                name: "demo",
+                routes: [
+                    {
+                        path: "/developer/demo",
+                        redirect: "/developer/demo/excel",
+                    },
+                    {
+                        path: "/developer/demo/excel",
+                        name: "excel",
+                        component: "./demo/excel",
+                    },
+                    {
+                        path: "/developer/demo/editor",
+                        name: "editor",
+                        component: "./demo/editor",
+                    },
+                ],
             },
         ],
     },

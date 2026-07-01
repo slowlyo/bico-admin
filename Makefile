@@ -24,12 +24,20 @@ air:
 	@air -c .air.toml
 
 dev:
+	@if nc -z localhost 8080 2>/dev/null; then echo "端口 8080 已被占用，请先停止已有后端服务"; exit 1; fi
 	@echo "🚀 启动后端开发服务..."
-	@$(MAKE) air &
-	@echo "⏳ 等待后端服务就绪..."
-	@while ! nc -z localhost 8080 2>/dev/null; do sleep 0.5; done
-	@echo "✅ 后端已就绪，启动前端..."
-	@$(MAKE) web
+	@$(MAKE) air & \
+	backend_pid=$$!; \
+	echo "⏳ 等待后端服务就绪..."; \
+	while ! nc -z localhost 8080 2>/dev/null; do \
+		if ! kill -0 $$backend_pid 2>/dev/null; then \
+			wait $$backend_pid; \
+			exit 1; \
+		fi; \
+		sleep 0.5; \
+	done; \
+	echo "✅ 后端已就绪，启动前端..."; \
+	$(MAKE) web
 
 tidy:
 	@echo "📦 整理依赖..."
@@ -47,7 +55,9 @@ migrate:
 swagger:
 	@echo "📝 生成 Swagger 文档..."
 	@go install github.com/swaggo/swag/cmd/swag@latest
-	@swag init -g cmd/main.go -o docs
+	@swag init -g doc.go -d docs/admin,internal/admin -o docs/admin --instanceName admin
+	@swag init -g doc.go -d docs/api,internal/api -o docs/api --instanceName api
+	@go run ./cmd/swagger-enhance
 	@echo "✅ Swagger 文档生成完成"
 
 build:

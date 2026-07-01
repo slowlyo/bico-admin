@@ -164,6 +164,7 @@ func (h *AdminRoleHandler) ModuleConfig() crud.ModuleConfig {
 	return crud.ModuleConfig{
 		Name:             "admin_role",
 		Group:            "/admin-roles",
+		Description:      "角色管理",
 		ParentPermission: PermSystemManage,
 		Permissions:      rolePerms.Tree,
 		Routes: rolePerms.RoutesWithExtra(
@@ -172,6 +173,12 @@ func (h *AdminRoleHandler) ModuleConfig() crud.ModuleConfig {
 			crud.Route{Method: "GET", Path: "/:id/permissions", Handler: "GetPermissions", Permission: rolePerms.List},
 			crud.Route{Method: "PUT", Path: "/:id/permissions", Handler: "UpdatePermissions", Permission: "system:admin_role:permission"},
 		),
+		Swagger: crud.SwaggerConfig{
+			Model:         model.AdminRole{},
+			ListRequest:   roleListReq{},
+			CreateRequest: createRoleReq{},
+			UpdateRequest: updateRoleReq{},
+		},
 	}
 }
 
@@ -200,6 +207,15 @@ type (
 	}
 )
 
+// GetPermissions 获取角色权限。
+// @Summary 获取角色权限
+// @Description 获取指定角色已配置的权限 key 列表
+// @Tags 角色管理
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "角色 ID"
+// @Success 200 {object} adminResponse{data=rolePermissionsResponse}
+// @Router /admin-roles/{id}/permissions [get]
 func (h *AdminRoleHandler) GetPermissions(c *gin.Context) {
 	id, err := h.ParseID(c)
 	if err != nil {
@@ -215,6 +231,17 @@ func (h *AdminRoleHandler) GetPermissions(c *gin.Context) {
 	h.Success(c, gin.H{"permissions": perms})
 }
 
+// UpdatePermissions 更新角色权限。
+// @Summary 更新角色权限
+// @Description 覆盖指定角色的权限 key 列表
+// @Tags 角色管理
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "角色 ID"
+// @Param body body updateRolePermReq true "权限列表"
+// @Success 200 {object} adminResponse
+// @Router /admin-roles/{id}/permissions [put]
 func (h *AdminRoleHandler) UpdatePermissions(c *gin.Context) {
 	id, err := h.ParseID(c)
 	if err != nil {
@@ -248,10 +275,26 @@ func (h *AdminRoleHandler) UpdatePermissions(c *gin.Context) {
 	}, "权限配置成功", nil)
 }
 
+// GetAllPermissions 获取完整权限树。
+// @Summary 获取完整权限树
+// @Description 获取后台所有菜单和按钮权限
+// @Tags 角色管理
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} adminResponse{data=[]permissionDocItem}
+// @Router /admin-roles/permissions [get]
 func (h *AdminRoleHandler) GetAllPermissions(c *gin.Context) {
 	h.Success(c, crud.GetAllPermissions())
 }
 
+// GetAll 获取全部启用角色。
+// @Summary 获取全部启用角色
+// @Description 获取下拉选择使用的启用角色列表
+// @Tags 角色管理
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} adminResponse{data=[]adminRoleDocItem}
+// @Router /admin-roles/all [get]
 func (h *AdminRoleHandler) GetAll(c *gin.Context) {
 	var roles []model.AdminRole
 	if err := h.DB.Where("enabled = ?", true).Find(&roles).Error; err != nil {

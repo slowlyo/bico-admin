@@ -17,6 +17,11 @@ export default {
       target: 'http://localhost:8080',
       changeOrigin: true,
     },
+    // 代理后端 Swagger UI，开发者工具页面通过 iframe 直接复用后端文档。
+    '/swagger/': {
+      target: 'http://localhost:8080',
+      changeOrigin: true,
+    },
   },
   /**
    * @name 详细的代理配置

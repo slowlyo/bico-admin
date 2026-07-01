@@ -3,7 +3,8 @@ package main
 import (
 	"os"
 
-	_ "bico-admin/docs"
+	_ "bico-admin/docs/admin"
+	_ "bico-admin/docs/api"
 	"bico-admin/internal/admin"
 	"bico-admin/internal/api"
 	"bico-admin/internal/core/app"
@@ -16,25 +17,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
-
-// @title Bico Admin API
-// @version 1.0
-// @description 基于 Gin + GORM 构建的管理系统 API 文档
-// @termsOfService https://github.com/slowlyo/bico-admin
-
-// @contact.name API Support
-// @contact.url https://github.com/slowlyo/bico-admin
-
-// @license.name MIT
-// @license.url https://opensource.org/licenses/MIT
-
-// @host localhost:8080
-// @BasePath /
-
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
-// @description JWT 认证，格式: Bearer {token}
 
 var (
 	configPath string

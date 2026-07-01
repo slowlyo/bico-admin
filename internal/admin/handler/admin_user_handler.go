@@ -143,9 +143,16 @@ func (h *AdminUserHandler) ModuleConfig() crud.ModuleConfig {
 	return crud.ModuleConfig{
 		Name:             "admin_user",
 		Group:            "/admin-users",
+		Description:      "用户管理",
 		ParentPermission: PermSystemManage,
 		Permissions:      userPerms.Tree,
 		Routes:           userPerms.Routes(),
+		Swagger: crud.SwaggerConfig{
+			Model:         model.AdminUser{},
+			ListRequest:   userListReq{},
+			CreateRequest: createUserReq{},
+			UpdateRequest: updateUserReq{},
+		},
 	}
 }
 

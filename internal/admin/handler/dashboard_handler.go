@@ -88,6 +88,13 @@ func NewDashboardHandler(cfg *config.Config, db *gorm.DB) *DashboardHandler {
 }
 
 // GetOverview 获取工作台概览数据。
+// @Summary 获取工作台概览
+// @Description 获取服务器、运行时、数据库和监控指标概览
+// @Tags 工作台
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} adminResponse{data=DashboardOverview}
+// @Router /dashboard/overview [get]
 func (h *DashboardHandler) GetOverview(c *gin.Context) {
 	overview, err := h.buildOverview()
 	if err != nil {

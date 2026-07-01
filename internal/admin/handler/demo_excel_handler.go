@@ -29,6 +29,13 @@ func NewDemoExcelHandler() *DemoExcelHandler {
 var DemoExcelHeaders = []string{"姓名", "手机号", "年龄", "城市"}
 
 // DownloadTemplate 下载导入模板（示例包含模拟数据）。
+// @Summary 下载 Excel 导入模板
+// @Description 下载示例 Excel 模板文件
+// @Tags 示例
+// @Produce application/octet-stream
+// @Security BearerAuth
+// @Success 200 {file} file
+// @Router /demo/excel/template [get]
 func (h *DemoExcelHandler) DownloadTemplate(c *gin.Context) {
 	f, err := excelpkg.BuildHeaderTemplate(DemoExcelHeaders)
 	if err != nil {
@@ -49,6 +56,15 @@ func (h *DemoExcelHandler) DownloadTemplate(c *gin.Context) {
 }
 
 // Import 导入 Excel（示例）。
+// @Summary 导入 Excel
+// @Description 上传并解析示例 Excel 文件
+// @Tags 示例
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param file formData file true "Excel 或 CSV 文件"
+// @Success 200 {object} adminResponse{data=demoExcelImportResponse}
+// @Router /demo/excel/import [post]
 func (h *DemoExcelHandler) Import(c *gin.Context) {
 	result, err := excelpkg.ParseUploadedAuto(c, "file")
 	if err != nil {
@@ -80,6 +96,13 @@ func (h *DemoExcelHandler) Import(c *gin.Context) {
 }
 
 // Export 导出 Excel（示例）。
+// @Summary 导出 Excel
+// @Description 导出示例 Excel 文件
+// @Tags 示例
+// @Produce application/octet-stream
+// @Security BearerAuth
+// @Success 200 {file} file
+// @Router /demo/excel/export [get]
 func (h *DemoExcelHandler) Export(c *gin.Context) {
 	f, err := excelpkg.BuildHeaderTemplate(DemoExcelHeaders)
 	if err != nil {

@@ -100,12 +100,12 @@ export const layout: RunTimeLayoutConfig = ({
      * 过滤菜单数据
      */
     const filterMenuData = (menuData: MenuDataItem[]): MenuDataItem[] => {
-        const removeDemo = !initialState?.appConfig?.debug;
+        const removeDeveloper = !initialState?.appConfig?.debug;
 
         return (menuData || [])
             .filter((item) => {
-                // debug 关闭时隐藏示例菜单
-                if (removeDemo && item?.path === "/demo") {
+                // 调试模式关闭时隐藏开发者工具，避免生产环境暴露调试入口。
+                if (removeDeveloper && item?.path === "/developer") {
                     return false;
                 }
                 return true;

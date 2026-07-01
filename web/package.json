@@ -31,7 +31,8 @@
     "clsx": "^2.1.1",
     "dayjs": "^1.11.20",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "swagger-ui-dist": "^5.32.8"
   },
   "devDependencies": {
     "@types/node": "^26.0.0",

@@ -20,6 +20,18 @@ func NewUploadHandler(uploader upload.Uploader) *UploadHandler {
 }
 
 // Upload 上传文件
+// @Summary 上传通用文件
+// @Description 上传富文本图片或视频文件
+// @Tags 上传
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param file formData file false "通用文件"
+// @Param image formData file false "图片文件"
+// @Param video formData file false "视频文件"
+// @Param type formData string false "上传类型，image 或 video"
+// @Success 200 {object} adminResponse{data=uploadResponse}
+// @Router /upload [post]
 func (h *UploadHandler) Upload(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {

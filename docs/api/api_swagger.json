@@ -1,8 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "基于 Gin + GORM 构建的管理系统 API 文档",
-        "title": "Bico Admin API",
+        "description": "对外 API 模块文档",
+        "title": "Bico Admin Open API",
         "termsOfService": "https://github.com/slowlyo/bico-admin",
         "contact": {
             "name": "API Support",
@@ -15,14 +15,6 @@
         "version": "1.0"
     },
     "host": "localhost:8080",
-    "basePath": "/",
-    "paths": {},
-    "securityDefinitions": {
-        "BearerAuth": {
-            "description": "JWT 认证，格式: Bearer {token}",
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
-        }
-    }
+    "basePath": "/api",
+    "paths": {}
 }

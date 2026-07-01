@@ -1,0 +1,1122 @@
+basePath: /admin-api
+definitions:
+    handler.DashboardDatabaseInfo:
+        properties:
+            driver:
+                type: string
+            idle:
+                type: integer
+            inUse:
+                type: integer
+            maxIdleConnections:
+                type: integer
+            maxOpenConnections:
+                type: integer
+            openConnections:
+                type: integer
+            waitCount:
+                type: integer
+            waitDurationSeconds:
+                type: number
+        type: object
+    handler.DashboardMonitorInfo:
+        properties:
+            collectedAt:
+                type: string
+            metrics:
+                items:
+                    $ref: '#/definitions/handler.DashboardMonitorMetric'
+                type: array
+        type: object
+    handler.DashboardMonitorMetric:
+        properties:
+            key:
+                type: string
+            label:
+                type: string
+            status:
+                type: string
+            unit:
+                type: string
+            value:
+                type: number
+        type: object
+    handler.DashboardOverview:
+        properties:
+            database:
+                $ref: '#/definitions/handler.DashboardDatabaseInfo'
+            monitor:
+                $ref: '#/definitions/handler.DashboardMonitorInfo'
+            runtime:
+                $ref: '#/definitions/handler.DashboardRuntimeInfo'
+            server:
+                $ref: '#/definitions/handler.DashboardServerInfo'
+        type: object
+    handler.DashboardRuntimeInfo:
+        properties:
+            allocMb:
+                type: number
+            cpuCores:
+                type: integer
+            gcCycles:
+                type: integer
+            goMaxProcs:
+                type: integer
+            goroutines:
+                type: integer
+            heapInuseMb:
+                type: number
+            nextGcMb:
+                type: number
+            sysMb:
+                type: number
+        type: object
+    handler.DashboardServerInfo:
+        properties:
+            arch:
+                type: string
+            goVersion:
+                type: string
+            hostname:
+                type: string
+            mode:
+                type: string
+            os:
+                type: string
+            port:
+                type: integer
+            startedAt:
+                type: string
+            uptimeSeconds:
+                type: integer
+        type: object
+    handler.adminResponse:
+        properties:
+            code:
+                type: integer
+            data: {}
+            msg:
+                type: string
+        type: object
+    handler.adminRoleDocItem:
+        properties:
+            code:
+                type: string
+            description:
+                type: string
+            enabled:
+                type: boolean
+            id:
+                type: integer
+            name:
+                type: string
+            permissions:
+                items:
+                    type: string
+                type: array
+        type: object
+    handler.appConfigDocResponse:
+        properties:
+            debug:
+                type: boolean
+            logo:
+                type: string
+            name:
+                type: string
+        type: object
+    handler.captchaResponse:
+        properties:
+            id:
+                type: string
+            image:
+                type: string
+        type: object
+    handler.createRoleReq:
+        properties:
+            code:
+                type: string
+            description:
+                type: string
+            enabled:
+                type: boolean
+            name:
+                type: string
+            permissions:
+                items:
+                    type: string
+                type: array
+        required:
+            - name
+            - code
+        type: object
+    handler.createUserReq:
+        properties:
+            avatar:
+                type: string
+            enabled:
+                type: boolean
+            name:
+                type: string
+            password:
+                type: string
+            role_ids:
+                items:
+                    format: uint
+                    type: integer
+                type: array
+            username:
+                type: string
+        required:
+            - username
+            - password
+        type: object
+    handler.currentUserDocResponse:
+        properties:
+            avatar:
+                type: string
+            enabled:
+                type: boolean
+            id:
+                type: integer
+            name:
+                type: string
+            permissions:
+                items:
+                    type: string
+                type: array
+            username:
+                type: string
+        type: object
+    handler.demoExcelImportResponse:
+        properties:
+            preview:
+                items:
+                    items:
+                        type: string
+                    type: array
+                type: array
+            total:
+                type: integer
+        type: object
+    handler.loginDocResponse:
+        properties:
+            token:
+                type: string
+        type: object
+    handler.loginRequest:
+        properties:
+            captchaCode:
+                type: string
+            captchaId:
+                type: string
+            password:
+                type: string
+            username:
+                type: string
+        required:
+            - captchaCode
+            - captchaId
+            - password
+            - username
+        type: object
+    handler.permissionDocItem:
+        properties:
+            children:
+                items:
+                    $ref: '#/definitions/handler.permissionDocItem'
+                type: array
+            key:
+                type: string
+            label:
+                type: string
+        type: object
+    handler.roleListReq:
+        properties:
+            code:
+                type: string
+            description:
+                type: string
+            enabled:
+                type: boolean
+            name:
+                type: string
+        type: object
+    handler.rolePermissionsResponse:
+        properties:
+            permissions:
+                items:
+                    type: string
+                type: array
+        type: object
+    handler.updateRolePermReq:
+        properties:
+            permissions:
+                items:
+                    type: string
+                type: array
+        type: object
+    handler.updateRoleReq:
+        properties:
+            description:
+                type: string
+            enabled:
+                type: boolean
+            name:
+                type: string
+        type: object
+    handler.updateUserReq:
+        properties:
+            avatar:
+                type: string
+            enabled:
+                type: boolean
+            name:
+                type: string
+            password:
+                type: string
+            role_ids:
+                items:
+                    format: uint
+                    type: integer
+                type: array
+        type: object
+    handler.uploadResponse:
+        properties:
+            url:
+                type: string
+        type: object
+    handler.userListReq:
+        properties:
+            enabled:
+                type: boolean
+            name:
+                type: string
+            username:
+                type: string
+        type: object
+    model.AdminRole:
+        properties:
+            code:
+                type: string
+            created_at:
+                format: date-time
+                type: string
+            description:
+                type: string
+            enabled:
+                type: boolean
+            id:
+                format: uint
+                type: integer
+            name:
+                type: string
+            permissions:
+                items:
+                    type: string
+                type: array
+            updated_at:
+                format: date-time
+                type: string
+        type: object
+    model.AdminUser:
+        properties:
+            avatar:
+                type: string
+            created_at:
+                format: date-time
+                type: string
+            enabled:
+                type: boolean
+            id:
+                format: uint
+                type: integer
+            name:
+                type: string
+            roles:
+                items:
+                    properties:
+                        code:
+                            type: string
+                        created_at:
+                            format: date-time
+                            type: string
+                        description:
+                            type: string
+                        enabled:
+                            type: boolean
+                        id:
+                            format: uint
+                            type: integer
+                        name:
+                            type: string
+                        permissions:
+                            items:
+                                type: string
+                            type: array
+                        updated_at:
+                            format: date-time
+                            type: string
+                    type: object
+                type: array
+            updated_at:
+                format: date-time
+                type: string
+            username:
+                type: string
+        type: object
+    service.ChangePasswordRequest:
+        properties:
+            newPassword:
+                type: string
+            oldPassword:
+                type: string
+        required:
+            - newPassword
+            - oldPassword
+        type: object
+    service.UpdateProfileRequest:
+        properties:
+            avatar:
+                type: string
+            name:
+                type: string
+        type: object
+    swagger.PageResponse:
+        properties:
+            code:
+                type: integer
+            data:
+                properties:
+                    list:
+                        items:
+                            type: object
+                        type: array
+                    total:
+                        format: int64
+                        type: integer
+                type: object
+            msg:
+                type: string
+        type: object
+    swagger.Response:
+        properties:
+            code:
+                type: integer
+            data:
+                type: object
+            msg:
+                type: string
+        type: object
+host: localhost:8080
+info:
+    contact:
+        name: API Support
+        url: https://github.com/slowlyo/bico-admin
+    description: 后台管理模块 API 文档
+    license:
+        name: MIT
+        url: https://opensource.org/licenses/MIT
+    termsOfService: https://github.com/slowlyo/bico-admin
+    title: Bico Admin Admin API
+    version: "1.0"
+paths:
+    /admin-roles:
+        get:
+            description: 需要权限：system:admin_role:list
+            parameters:
+                - description: 页码
+                  in: query
+                  name: page
+                  required: false
+                  type: integer
+                - description: 每页数量
+                  in: query
+                  name: pageSize
+                  required: false
+                  type: integer
+                - description: 排序字段
+                  in: query
+                  name: sortField
+                  required: false
+                  type: string
+                - description: 排序方向：ascend 为升序，其余为降序
+                  in: query
+                  name: sortOrder
+                  required: false
+                  type: string
+                - description: Name
+                  in: query
+                  name: name
+                  required: false
+                  type: string
+                - description: Code
+                  in: query
+                  name: code
+                  required: false
+                  type: string
+                - description: Description
+                  in: query
+                  name: description
+                  required: false
+                  type: string
+                - description: Enabled
+                  in: query
+                  name: enabled
+                  required: false
+                  type: boolean
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/swagger.PageResponse'
+            security:
+                - BearerAuth: []
+            summary: 获取角色管理列表
+            tags:
+                - 角色管理
+        post:
+            description: 需要权限：system:admin_role:create
+            parameters:
+                - description: 创建参数
+                  in: body
+                  name: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/handler.createRoleReq'
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/swagger.Response'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/model.AdminRole'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 创建角色管理
+            tags:
+                - 角色管理
+    /admin-roles/{id}:
+        delete:
+            description: 需要权限：system:admin_role:delete
+            parameters:
+                - description: 记录 ID
+                  format: uint
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/swagger.Response'
+            security:
+                - BearerAuth: []
+            summary: 删除角色管理
+            tags:
+                - 角色管理
+        get:
+            description: 需要权限：system:admin_role:list
+            parameters:
+                - description: 记录 ID
+                  format: uint
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/swagger.Response'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/model.AdminRole'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 获取角色管理详情
+            tags:
+                - 角色管理
+        put:
+            description: 需要权限：system:admin_role:edit
+            parameters:
+                - description: 记录 ID
+                  format: uint
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+                - description: 更新参数
+                  in: body
+                  name: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/handler.updateRoleReq'
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/swagger.Response'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/model.AdminRole'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 更新角色管理
+            tags:
+                - 角色管理
+    /admin-roles/{id}/permissions:
+        get:
+            description: 获取指定角色已配置的权限 key 列表
+            parameters:
+                - description: 角色 ID
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/handler.adminResponse'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/handler.rolePermissionsResponse'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 获取角色权限
+            tags:
+                - 角色管理
+        put:
+            consumes:
+                - application/json
+            description: 覆盖指定角色的权限 key 列表
+            parameters:
+                - description: 角色 ID
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+                - description: 权限列表
+                  in: body
+                  name: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/handler.updateRolePermReq'
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/handler.adminResponse'
+            security:
+                - BearerAuth: []
+            summary: 更新角色权限
+            tags:
+                - 角色管理
+    /admin-roles/all:
+        get:
+            description: 获取下拉选择使用的启用角色列表
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/handler.adminResponse'
+                            - properties:
+                                data:
+                                    items:
+                                        $ref: '#/definitions/handler.adminRoleDocItem'
+                                    type: array
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 获取全部启用角色
+            tags:
+                - 角色管理
+    /admin-roles/permissions:
+        get:
+            description: 获取后台所有菜单和按钮权限
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/handler.adminResponse'
+                            - properties:
+                                data:
+                                    items:
+                                        $ref: '#/definitions/handler.permissionDocItem'
+                                    type: array
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 获取完整权限树
+            tags:
+                - 角色管理
+    /admin-users:
+        get:
+            description: 需要权限：system:admin_user:list
+            parameters:
+                - description: 页码
+                  in: query
+                  name: page
+                  required: false
+                  type: integer
+                - description: 每页数量
+                  in: query
+                  name: pageSize
+                  required: false
+                  type: integer
+                - description: 排序字段
+                  in: query
+                  name: sortField
+                  required: false
+                  type: string
+                - description: 排序方向：ascend 为升序，其余为降序
+                  in: query
+                  name: sortOrder
+                  required: false
+                  type: string
+                - description: Username
+                  in: query
+                  name: username
+                  required: false
+                  type: string
+                - description: Name
+                  in: query
+                  name: name
+                  required: false
+                  type: string
+                - description: Enabled
+                  in: query
+                  name: enabled
+                  required: false
+                  type: boolean
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/swagger.PageResponse'
+            security:
+                - BearerAuth: []
+            summary: 获取用户管理列表
+            tags:
+                - 用户管理
+        post:
+            description: 需要权限：system:admin_user:create
+            parameters:
+                - description: 创建参数
+                  in: body
+                  name: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/handler.createUserReq'
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/swagger.Response'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/model.AdminUser'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 创建用户管理
+            tags:
+                - 用户管理
+    /admin-users/{id}:
+        delete:
+            description: 需要权限：system:admin_user:delete
+            parameters:
+                - description: 记录 ID
+                  format: uint
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/swagger.Response'
+            security:
+                - BearerAuth: []
+            summary: 删除用户管理
+            tags:
+                - 用户管理
+        get:
+            description: 需要权限：system:admin_user:list
+            parameters:
+                - description: 记录 ID
+                  format: uint
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/swagger.Response'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/model.AdminUser'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 获取用户管理详情
+            tags:
+                - 用户管理
+        put:
+            description: 需要权限：system:admin_user:edit
+            parameters:
+                - description: 记录 ID
+                  format: uint
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+                - description: 更新参数
+                  in: body
+                  name: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/handler.updateUserReq'
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/swagger.Response'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/model.AdminUser'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 更新用户管理
+            tags:
+                - 用户管理
+    /app-config:
+        get:
+            description: 获取后台名称、Logo 和调试模式状态
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/handler.adminResponse'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/handler.appConfigDocResponse'
+                              type: object
+            summary: 获取应用配置
+            tags:
+                - 公共
+    /auth/avatar:
+        post:
+            consumes:
+                - multipart/form-data
+            description: 上传当前用户头像文件
+            parameters:
+                - description: 头像文件
+                  in: formData
+                  name: avatar
+                  required: true
+                  type: file
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/handler.adminResponse'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/handler.uploadResponse'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 上传头像
+            tags:
+                - 认证
+    /auth/current-user:
+        get:
+            description: 获取当前登录用户资料和权限
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/handler.adminResponse'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/handler.currentUserDocResponse'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 获取当前用户
+            tags:
+                - 认证
+    /auth/login:
+        post:
+            consumes:
+                - application/json
+            description: 使用账号、密码和验证码换取登录 token
+            parameters:
+                - description: 登录参数
+                  in: body
+                  name: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/handler.loginRequest'
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/handler.adminResponse'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/handler.loginDocResponse'
+                              type: object
+            summary: 登录
+            tags:
+                - 认证
+    /auth/logout:
+        post:
+            description: 将当前 token 加入黑名单
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/handler.adminResponse'
+            security:
+                - BearerAuth: []
+            summary: 退出登录
+            tags:
+                - 认证
+    /auth/password:
+        put:
+            consumes:
+                - application/json
+            description: 修改当前登录用户密码
+            parameters:
+                - description: 密码参数
+                  in: body
+                  name: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/service.ChangePasswordRequest'
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/handler.adminResponse'
+            security:
+                - BearerAuth: []
+            summary: 修改密码
+            tags:
+                - 认证
+    /auth/profile:
+        put:
+            consumes:
+                - application/json
+            description: 更新当前登录用户的名称和头像
+            parameters:
+                - description: 个人资料
+                  in: body
+                  name: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/service.UpdateProfileRequest'
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/handler.adminResponse'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/handler.currentUserDocResponse'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 更新个人资料
+            tags:
+                - 认证
+    /captcha:
+        get:
+            description: 生成登录验证码
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/handler.adminResponse'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/handler.captchaResponse'
+                              type: object
+            summary: 获取验证码
+            tags:
+                - 认证
+    /dashboard/overview:
+        get:
+            description: 获取服务器、运行时、数据库和监控指标概览
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/handler.adminResponse'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/handler.DashboardOverview'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 获取工作台概览
+            tags:
+                - 工作台
+    /demo/excel/export:
+        get:
+            description: 导出示例 Excel 文件
+            produces:
+                - application/octet-stream
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        type: file
+            security:
+                - BearerAuth: []
+            summary: 导出 Excel
+            tags:
+                - 示例
+    /demo/excel/import:
+        post:
+            consumes:
+                - multipart/form-data
+            description: 上传并解析示例 Excel 文件
+            parameters:
+                - description: Excel 或 CSV 文件
+                  in: formData
+                  name: file
+                  required: true
+                  type: file
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/handler.adminResponse'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/handler.demoExcelImportResponse'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 导入 Excel
+            tags:
+                - 示例
+    /demo/excel/template:
+        get:
+            description: 下载示例 Excel 模板文件
+            produces:
+                - application/octet-stream
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        type: file
+            security:
+                - BearerAuth: []
+            summary: 下载 Excel 导入模板
+            tags:
+                - 示例
+    /upload:
+        post:
+            consumes:
+                - multipart/form-data
+            description: 上传富文本图片或视频文件
+            parameters:
+                - description: 通用文件
+                  in: formData
+                  name: file
+                  type: file
+                - description: 图片文件
+                  in: formData
+                  name: image
+                  type: file
+                - description: 视频文件
+                  in: formData
+                  name: video
+                  type: file
+                - description: 上传类型，image 或 video
+                  in: formData
+                  name: type
+                  type: string
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/handler.adminResponse'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/handler.uploadResponse'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: 上传通用文件
+            tags:
+                - 上传
+securityDefinitions:
+    BearerAuth:
+        description: 'JWT 认证，格式: Bearer {token}'
+        in: header
+        name: Authorization
+        type: apiKey
+swagger: "2.0"

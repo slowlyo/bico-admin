@@ -28,14 +28,16 @@ func NewAuthHandler(authService service.IAuthService, uploader upload.Uploader, 
 }
 
 // Login 登录接口
+// @Summary 登录
+// @Description 使用账号、密码和验证码换取登录 token
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param body body loginRequest true "登录参数"
+// @Success 200 {object} adminResponse{data=loginDocResponse}
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req struct {
-		Username    string `json:"username" binding:"required"`
-		Password    string `json:"password" binding:"required"`
-		CaptchaID   string `json:"captchaId" binding:"required"`
-		CaptchaCode string `json:"captchaCode" binding:"required"`
-	}
-
+	var req loginRequest
 	if err := h.BindJSON(c, &req); err != nil {
 		return
 	}
@@ -61,6 +63,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 // Logout 退出登录接口
+// @Summary 退出登录
+// @Description 将当前 token 加入黑名单
+// @Tags 认证
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} adminResponse
+// @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	token := c.GetHeader("Authorization")
 	// Authorization 为 Bearer 时提取 token 正文。
@@ -73,6 +82,13 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 // CurrentUser 获取当前用户信息
+// @Summary 获取当前用户
+// @Description 获取当前登录用户资料和权限
+// @Tags 认证
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} adminResponse{data=currentUserDocResponse}
+// @Router /auth/current-user [get]
 func (h *AuthHandler) CurrentUser(c *gin.Context) {
 	userID, ok := h.mustUserID(c)
 	if !ok {
@@ -89,6 +105,15 @@ func (h *AuthHandler) CurrentUser(c *gin.Context) {
 }
 
 // UpdateProfile 更新用户资料
+// @Summary 更新个人资料
+// @Description 更新当前登录用户的名称和头像
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body service.UpdateProfileRequest true "个人资料"
+// @Success 200 {object} adminResponse{data=currentUserDocResponse}
+// @Router /auth/profile [put]
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	userID, ok := h.mustUserID(c)
 	if !ok {
@@ -110,6 +135,15 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 }
 
 // ChangePassword 修改密码
+// @Summary 修改密码
+// @Description 修改当前登录用户密码
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body service.ChangePasswordRequest true "密码参数"
+// @Success 200 {object} adminResponse
+// @Router /auth/password [put]
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	userID, ok := h.mustUserID(c)
 	if !ok {
@@ -131,6 +165,15 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 }
 
 // UploadAvatar 上传头像
+// @Summary 上传头像
+// @Description 上传当前用户头像文件
+// @Tags 认证
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param avatar formData file true "头像文件"
+// @Success 200 {object} adminResponse{data=uploadResponse}
+// @Router /auth/avatar [post]
 func (h *AuthHandler) UploadAvatar(c *gin.Context) {
 	_, ok := h.mustUserID(c)
 	if !ok {
@@ -153,6 +196,12 @@ func (h *AuthHandler) UploadAvatar(c *gin.Context) {
 }
 
 // GetCaptcha 获取验证码
+// @Summary 获取验证码
+// @Description 生成登录验证码
+// @Tags 认证
+// @Produce json
+// @Success 200 {object} adminResponse{data=captchaResponse}
+// @Router /captcha [get]
 func (h *AuthHandler) GetCaptcha(c *gin.Context) {
 	id, b64s, err := h.captcha.Generate()
 	if err != nil {

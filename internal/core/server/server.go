@@ -119,8 +119,9 @@ func RegisterCoreRoutes(engine *gin.Engine, cfg *config.Config, embedFS embed.FS
 		response.SuccessWithData(c, gin.H{"status": "ok"})
 	})
 
-	// Swagger 文档
-	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Swagger 文档，分别暴露对外 API 与后台管理 API。
+	engine.GET("/swagger/api/*any", ginSwagger.WrapHandler(swaggerFiles.NewHandler(), ginSwagger.InstanceName("api")))
+	engine.GET("/swagger/admin/*any", ginSwagger.WrapHandler(swaggerFiles.NewHandler(), ginSwagger.InstanceName("admin")))
 
 	// 静态文件服务（用于访问上传的文件）
 	if cfg.Upload.Driver == "local" {
