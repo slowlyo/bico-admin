@@ -3,7 +3,7 @@ import { buildApiUrl } from '../config';
 
 export type UploadType = 'image' | 'video';
 
-export interface WangEditorUploadResponse {
+export interface RichEditorUploadResponse {
   errno: number;
   message?: string;
   data?: {
@@ -19,7 +19,7 @@ export async function uploadForEditor(file: File, type: UploadType) {
   formData.append('file', file);
   formData.append('type', type);
 
-  return request<WangEditorUploadResponse>(buildApiUrl('/upload'), {
+  return request<RichEditorUploadResponse>(buildApiUrl('/upload'), {
     method: 'POST',
     data: formData,
   });

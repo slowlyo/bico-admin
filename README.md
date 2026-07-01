@@ -17,6 +17,7 @@
 - **[Ant Design Pro](https://pro.ant.design/)** - 企业级中后台解决方案
 - **[UmiJS 4](https://umijs.org/)** - 企业级前端框架
 - **[TypeScript](https://www.typescriptlang.org/)** - 类型安全
+- **[TipTap](https://tiptap.dev/)** - 富文本编辑器
 - **[Bun](https://bun.sh/)** - 包管理器
 
 ## 快速开始
