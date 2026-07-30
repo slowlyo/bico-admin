@@ -28,8 +28,8 @@
 # 修改配置文件
 vim config/config.yaml
 
-# 执行数据库迁移
-BICO_ADMIN_INITIAL_PASSWORD="本地初始密码" make migrate
+# 执行数据库迁移（默认管理员：admin / admin）
+make migrate
 
 # 启动服务
 make serve
@@ -164,7 +164,6 @@ make tidy      # 整理依赖
 
 ```bash
 export BICO_JWT_SECRET="至少32位的随机密钥"
-export BICO_ADMIN_INITIAL_PASSWORD="至少8位的初始密码"
 export MYSQL_ROOT_PASSWORD="数据库密码"
 
 # 首次部署先迁移，再启动服务
@@ -172,7 +171,7 @@ docker compose run --rm app ./bico-admin migrate
 docker compose up -d
 ```
 
-首次迁移后可移除 `BICO_ADMIN_INITIAL_PASSWORD`。生产配置默认使用 MySQL、Redis 和 release 模式。
+首次迁移会自动创建 `admin/admin` 管理员账户，请登录后立即修改密码。生产配置默认使用 MySQL、Redis 和 release 模式。
 
 ## License
 

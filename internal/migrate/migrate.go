@@ -2,9 +2,6 @@ package migrate
 
 import (
 	"fmt"
-	"os"
-	"strings"
-	"unicode/utf8"
 
 	adminModel "bico-admin/internal/admin/model"
 	"bico-admin/internal/core/logger"
@@ -75,7 +72,7 @@ func initSuperAdmin(db *gorm.DB, mode string) error {
 }
 
 // ensureInitialAdmin 确保空数据库拥有首个管理员账号。
-// 所有环境只接受环境变量密码，杜绝默认凭据进入数据库。
+// 初始账号沿用系统默认凭据，避免迁移依赖部署环境变量。
 func ensureInitialAdmin(db *gorm.DB, mode string) (*adminModel.AdminUser, error) {
 	var count int64
 	if err := db.Model(&adminModel.AdminUser{}).Count(&count).Error; err != nil {
@@ -94,17 +91,7 @@ func ensureInitialAdmin(db *gorm.DB, mode string) (*adminModel.AdminUser, error)
 		return &admin, nil
 	}
 
-	initialPassword := strings.TrimSpace(os.Getenv("BICO_ADMIN_INITIAL_PASSWORD"))
-	if initialPassword == "" {
-		// 所有环境都必须显式提供密码，杜绝可预测的默认凭据。
-		return nil, fmt.Errorf("首次迁移必须通过 BICO_ADMIN_INITIAL_PASSWORD 设置管理员密码")
-	}
-	if mode == "release" && utf8.RuneCountInString(initialPassword) < 8 {
-		// 与用户创建、密码修改接口保持一致，统一采用八位下限。
-		return nil, fmt.Errorf("生产管理员初始密码不得少于 8 位")
-	}
-
-	hashedPassword, err := password.Hash(initialPassword)
+	hashedPassword, err := password.Hash("admin")
 	if err != nil {
 		return nil, fmt.Errorf("密码加密失败: %w", err)
 	}
@@ -121,6 +108,6 @@ func ensureInitialAdmin(db *gorm.DB, mode string) (*adminModel.AdminUser, error)
 		return nil, fmt.Errorf("创建管理员失败: %w", err)
 	}
 
-	logger.Info("初始化管理员账户成功", zap.String("username", "admin"))
+	logger.Info("初始化管理员账户成功", zap.String("username", "admin"), zap.String("password", "admin"))
 	return &admin, nil
 }

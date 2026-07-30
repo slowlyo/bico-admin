@@ -1,17 +1,17 @@
 package migrate
 
 import (
-	"strings"
 	"testing"
 
 	adminModel "bico-admin/internal/admin/model"
+	"bico-admin/internal/pkg/password"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
-// TestAutoMigrateRequiresProductionAdminPassword 验证生产首迁移不存在默认密码。
-func TestAutoMigrateRequiresProductionAdminPassword(t *testing.T) {
+// TestAutoMigrateInitializesDefaultAdmin 验证首次迁移自动创建默认管理员。
+func TestAutoMigrateInitializesDefaultAdmin(t *testing.T) {
 	database, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		// 数据库不可用时无法验证初始化事务。
@@ -19,26 +19,19 @@ func TestAutoMigrateRequiresProductionAdminPassword(t *testing.T) {
 	}
 	t.Setenv("BICO_ADMIN_INITIAL_PASSWORD", "")
 
-	err = AutoMigrate(database, "release")
-	if err == nil || !strings.Contains(err.Error(), "BICO_ADMIN_INITIAL_PASSWORD") {
-		// 空密码必须阻断首个生产账号创建。
-		t.Fatalf("期望初始密码校验失败，实际错误: %v", err)
+	if err := AutoMigrate(database, "release"); err != nil {
+		// 初始密码不再依赖环境变量，生产迁移应能直接完成。
+		t.Fatalf("执行迁移失败: %v", err)
 	}
-}
 
-// TestAutoMigrateRejectsShortProductionPassword 验证生产初始密码遵守八位下限。
-func TestAutoMigrateRejectsShortProductionPassword(t *testing.T) {
-	database, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		// 数据库不可用时无法验证密码规则。
-		t.Fatalf("创建测试数据库失败: %v", err)
+	var admin adminModel.AdminUser
+	if err := database.Where("username = ?", "admin").First(&admin).Error; err != nil {
+		// 查询不到账号说明初始化没有实际落库。
+		t.Fatalf("查询默认管理员失败: %v", err)
 	}
-	t.Setenv("BICO_ADMIN_INITIAL_PASSWORD", "1234567")
-
-	err = AutoMigrate(database, "release")
-	if err == nil || !strings.Contains(err.Error(), "8 位") {
-		// 七位密码必须在账号创建前被拒绝。
-		t.Fatalf("期望短密码校验失败，实际错误: %v", err)
+	if !password.Verify(admin.Password, "admin") {
+		// 初始密码必须保持与系统默认登录凭据一致。
+		t.Fatal("默认管理员密码错误")
 	}
 }
 
@@ -49,8 +42,6 @@ func TestAutoMigrateAssignsSuperAdminRole(t *testing.T) {
 		// 数据库不可用时无法验证角色关系。
 		t.Fatalf("创建测试数据库失败: %v", err)
 	}
-	t.Setenv("BICO_ADMIN_INITIAL_PASSWORD", "strong-admin-password")
-
 	if err := AutoMigrate(database, "release"); err != nil {
 		// 合法初始密码应完成全部迁移。
 		t.Fatalf("执行迁移失败: %v", err)

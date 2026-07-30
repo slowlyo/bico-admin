@@ -10,7 +10,6 @@ services:
     environment:
       TZ: Asia/Shanghai
       BICO_JWT_SECRET: ${BICO_JWT_SECRET:?请设置 BICO_JWT_SECRET}
-      BICO_ADMIN_INITIAL_PASSWORD: ${BICO_ADMIN_INITIAL_PASSWORD:-}
       BICO_DATABASE_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请设置 MYSQL_ROOT_PASSWORD}
     depends_on:
       mysql:
