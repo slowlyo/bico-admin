@@ -52,7 +52,7 @@ var serveCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		server.RegisterCoreRoutes(ctx.Engine, ctx.Cfg, web.DistFS)
+		server.RegisterCoreRoutes(ctx.Engine, ctx.ConfigManager, web.DistFS)
 
 		if err := app.RegisterModules(
 			ctx,

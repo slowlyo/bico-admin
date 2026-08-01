@@ -1,6 +1,6 @@
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { ModalForm, ProForm, ProFormText } from '@ant-design/pro-components';
-import { useModel } from '@umijs/max';
+import { history, useModel } from '@umijs/max';
 import { App } from 'antd';
 import React, { useCallback } from 'react';
 import AvatarUpload from '@/components/AvatarUpload';
@@ -144,7 +144,7 @@ export const PasswordModal: React.FC<AccountModalProps> = ({ open, onOpenChange 
       window.setTimeout(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('currentUser');
-        window.location.href = '/auth/login';
+        history.replace('/auth/login');
       }, 1500);
       return true;
     } catch (error) {

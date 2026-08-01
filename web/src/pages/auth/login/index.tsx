@@ -39,7 +39,7 @@ const useStyles = createStyles(({ token }) => {
             flexDirection: "column",
             height: "100vh",
             overflow: "auto",
-            backgroundImage: "url('/login-bg.png')",
+            backgroundImage: "url('login-bg.png')",
             backgroundSize: "100% 100%",
         },
     };
@@ -81,7 +81,7 @@ const Login: React.FC = () => {
     const intl = useIntl();
     
     const appName = initialState?.appConfig?.name || 'Bico Admin';
-    const appLogo = initialState?.appConfig?.logo || '/logo.png';
+    const appLogo = initialState?.appConfig?.logo || 'logo.png';
 
     const getRedirectPath = () => getSafeRedirectFromSearch(history.location.search);
     

@@ -30,6 +30,23 @@ dev:
 	@echo "🚀 启动后端开发服务..."
 	@$(MAKE) air & \
 	backend_pid=$$!; \
+	frontend_pid=; \
+	watcher_pid=; \
+	stop_process_tree() { \
+		for child_pid in $$(pgrep -P $$1 2>/dev/null); do \
+			stop_process_tree $$child_pid; \
+		done; \
+		kill -TERM $$1 2>/dev/null || true; \
+	}; \
+	cleanup() { \
+		kill -TERM $$watcher_pid 2>/dev/null || true; \
+		wait $$watcher_pid 2>/dev/null || true; \
+		stop_process_tree $$frontend_pid; \
+		stop_process_tree $$backend_pid; \
+		wait $$backend_pid 2>/dev/null || true; \
+	}; \
+	trap cleanup EXIT; \
+	trap 'exit 130' INT TERM; \
 	echo "⏳ 等待后端服务就绪..."; \
 	while ! nc -z localhost 8080 2>/dev/null; do \
 		if ! kill -0 $$backend_pid 2>/dev/null; then \
@@ -37,9 +54,18 @@ dev:
 			exit 1; \
 		fi; \
 		sleep 0.5; \
-	done; \
+		done; \
 	echo "✅ 后端已就绪，启动前端..."; \
-	$(MAKE) web
+	$(MAKE) web & \
+	frontend_pid=$$!; \
+	watch_parent() { \
+		while kill -0 $$1 2>/dev/null; do sleep 1; done; \
+		stop_process_tree $$2; \
+		stop_process_tree $$3; \
+	}; \
+	watch_parent $$PPID $$backend_pid $$frontend_pid & \
+	watcher_pid=$$!; \
+	wait $$frontend_pid
 
 tidy:
 	@echo "📦 整理依赖..."

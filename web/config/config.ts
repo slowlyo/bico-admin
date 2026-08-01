@@ -31,7 +31,7 @@ const commitHash =
  * @description 部署时的路径，如果部署在非根目录下，需要配置这个变量
  * @doc https://umijs.org/docs/api/config#publicpath
  */
-const PUBLIC_PATH: string = '/';
+const PUBLIC_PATH: string = process.env.NODE_ENV === 'production' ? './' : '/';
 
 export default defineConfig({
   alias: {
@@ -45,6 +45,14 @@ export default defineConfig({
   hash: true,
 
   publicPath: PUBLIC_PATH,
+
+  // 相对资源路径由入口脚本所在目录推导，避免将 admin_path 固化到构建产物中。
+  runtimePublicPath: {},
+
+  // 使用 Hash 路由保证后台入口可由服务端配置动态切换，不将入口路径编译进前端产物。
+  history: {
+    type: 'hash',
+  },
 
   /**
    * @name 兼容性设置
@@ -186,6 +194,8 @@ export default defineConfig({
    * @description 配置 <head> 中额外的 script
    */
   headScripts: [
+    // 先根据当前后台入口设置异步分包地址，路径变化后无需重新构建前端。
+    { src: join(PUBLIC_PATH, 'scripts/runtime-public-path.js') },
     // 解决首次加载时白屏的问题
     { src: join(PUBLIC_PATH, 'scripts/loading.js'), async: true },
   ],

@@ -109,7 +109,7 @@ export async function getInitialState(): Promise<{
     };
 
     // 获取当前页面路径，用于判断初始化时是否需要拉取用户信息
-    const { pathname } = window.location;
+    const { pathname } = history.location;
     let appConfig: API.AppConfig | undefined;
     let currentUser: API.CurrentUser | undefined;
 
@@ -218,19 +218,19 @@ export const layout: RunTimeLayoutConfig = ({
         },
         bgLayoutImgList: [
             {
-                src: "/bg1.png",
+                src: "bg1.png",
                 left: 85,
                 bottom: 100,
                 height: "303px",
             },
             {
-                src: "/bg2.png",
+                src: "bg2.png",
                 bottom: -68,
                 right: -45,
                 height: "303px",
             },
             {
-                src: "/bg3.png",
+                src: "bg3.png",
                 bottom: 0,
                 left: 0,
                 width: "331px",

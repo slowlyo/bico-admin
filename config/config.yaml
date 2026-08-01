@@ -8,7 +8,7 @@ server:
 
 app:
   name: Bico Admin
-  logo: /logo.png
+  logo: logo.png
 
 database:
   driver: sqlite  # 支持 sqlite / mysql / postgres

@@ -110,10 +110,10 @@ func zapRecovery(logger *zap.Logger) gin.HandlerFunc {
 	}
 }
 
-// RegisterCoreRoutes 注册框架级路由
+// RegisterCoreRoutes 注册框架级路由。
 //
-// 说明：业务路由由各模块自行注册，core 只处理健康检查/Swagger/静态资源等框架能力。
-func RegisterCoreRoutes(engine *gin.Engine, cfg *config.Config, embedFS embed.FS) {
+// 说明：静态后台入口通过配置管理器按请求读取，修改 admin_path 后无需重启服务。
+func RegisterCoreRoutes(engine *gin.Engine, configManager *config.ConfigManager, embedFS embed.FS) {
 	// 健康检查
 	engine.GET("/health", func(c *gin.Context) {
 		response.SuccessWithData(c, gin.H{"status": "ok"})
@@ -124,34 +124,27 @@ func RegisterCoreRoutes(engine *gin.Engine, cfg *config.Config, embedFS embed.FS
 	engine.GET("/swagger/admin/*any", ginSwagger.WrapHandler(swaggerFiles.NewHandler(), ginSwagger.InstanceName("admin")))
 
 	// 静态文件服务（用于访问上传的文件）
+	cfg := configManager.GetConfig()
 	if cfg.Upload.Driver == "local" {
 		engine.Static(cfg.Upload.Local.ServePath, cfg.Upload.Local.BasePath)
 	}
 
 	// 前端静态文件服务
 	if cfg.Server.EmbedStatic {
-		serveEmbedStatic(engine, cfg.Server.AdminPath, embedFS)
+		serveEmbedStatic(engine, configManager, embedFS)
 	}
 }
 
-// serveEmbedStatic 服务嵌入的前端静态文件
-func serveEmbedStatic(engine *gin.Engine, adminPath string, embedFS embed.FS) {
-	if adminPath == "" {
-		adminPath = "/"
-	}
-
+// serveEmbedStatic 服务嵌入的前端静态文件。
+//
+// 说明：Gin 的路由表无法在运行时增删，因此通过 NoRoute 分发后台入口并在每次请求时读取最新路径。
+func serveEmbedStatic(engine *gin.Engine, configManager *config.ConfigManager, embedFS embed.FS) {
 	subFS, err := fs.Sub(embedFS, "dist")
 	if err != nil {
 		panic("failed to create sub filesystem: " + err.Error())
 	}
 
-	// 统一前缀格式：确保以 / 开头，且不以 / 结尾
-	prefix := "/" + strings.Trim(adminPath, "/")
-	if prefix == "/" {
-		prefix = ""
-	}
-
-	// 定义处理函数
+	// 未命中业务路由时才进入静态资源分发，避免覆盖 API、上传和 Swagger 路由。
 	handler := func(c *gin.Context) {
 		// 强制不缓存，解决开发/调试期间的 301 缓存问题
 		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
@@ -160,32 +153,39 @@ func serveEmbedStatic(engine *gin.Engine, adminPath string, embedFS embed.FS) {
 		c.Header("X-Bico-Debug", "v2-fixed-redirects")
 
 		path := c.Request.URL.Path
+		prefix := normalizeAdminPath(configManager.GetConfig().Server.AdminPath)
 
-		// 1. API 路由直接跳过（理论上路由匹配不会进到这里，但做个兜底）
+		// API 未命中时保持 404，避免被 SPA 回退页掩盖接口错误。
 		if strings.HasPrefix(path, "/admin-api") || strings.HasPrefix(path, "/api") {
-			c.Next()
+			response.NotFound(c, "资源不存在")
 			return
 		}
 
-		// 2. 处理前缀跳转 (如访问 /admin 跳转到 /admin/)
+		// 仅当前配置的入口及其子路径可以访问后台，旧入口在热更新后立即失效。
+		if prefix != "" && path != prefix && !strings.HasPrefix(path, prefix+"/") {
+			response.NotFound(c, "资源不存在")
+			return
+		}
+
+		// 访问入口根路径时补齐斜杠，使相对资源始终以后台目录为基准解析。
 		if prefix != "" && path == prefix {
 			c.Redirect(http.StatusFound, prefix+"/")
 			return
 		}
 
-		// 3. 计算相对文件路径
+		// 移除后台入口前缀后，才能从嵌入的 dist 目录读取对应资源。
 		filePath := path
 		if prefix != "" && strings.HasPrefix(path, prefix+"/") {
 			filePath = strings.TrimPrefix(path, prefix)
 		}
 		filePath = strings.TrimPrefix(filePath, "/")
 
-		// 4. 目录或空路径指向 index.html
+		// 目录或空路径指向 index.html，由前端 Hash 路由继续处理页面切换。
 		if filePath == "" || strings.HasSuffix(filePath, "/") {
 			filePath = "index.html"
 		}
 
-		// 5. 尝试打开文件
+		// 优先读取静态文件；没有扩展名的路径按 SPA 入口回退。
 		f, err := subFS.Open(filePath)
 		if err != nil {
 			// 如果是带后缀的静态资源（如 .js, .css），文件不存在则直接 404
@@ -208,7 +208,7 @@ func serveEmbedStatic(engine *gin.Engine, adminPath string, embedFS embed.FS) {
 			filePath = "index.html"
 		}
 
-		// 6. 响应内容
+		// index.html 手动输出，避免 FileServer 对入口文件触发 301。
 		// 对于 index.html，必须手动读取并返回，绝对不能使用 http.FileServer 或 c.FileFromFS
 		// 因为它们检测到 index.html 时会尝试做 301 重定向，这是导致死循环的根源
 		if strings.HasSuffix(filePath, "index.html") {
@@ -225,13 +225,17 @@ func serveEmbedStatic(engine *gin.Engine, adminPath string, embedFS embed.FS) {
 		c.FileFromFS(filePath, http.FS(subFS))
 	}
 
-	// 注册路由
-	if prefix != "" {
-		// 注册前缀路由及其子路由
-		engine.GET(prefix, handler)
-		engine.GET(prefix+"/*any", handler)
-	} else {
-		// 注册根路径通配
-		engine.NoRoute(handler)
+	engine.NoRoute(handler)
+}
+
+// normalizeAdminPath 统一后台入口格式。
+//
+// 说明：空值与根路径使用空前缀，其他值确保仅保留一个前导斜杠且没有尾随斜杠。
+func normalizeAdminPath(adminPath string) string {
+	path := strings.Trim(adminPath, "/")
+	if path == "" {
+		return ""
 	}
+
+	return "/" + path
 }

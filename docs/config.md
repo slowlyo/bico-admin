@@ -66,10 +66,11 @@ server:
   port: 8080
   mode: debug  # debug/release
   embed_static: false
+  admin_path: /admin
 
 app:
   name: Bico Admin
-  logo: /logo.png
+  logo: logo.png
 
 database:
   driver: sqlite  # sqlite/mysql
@@ -119,6 +120,17 @@ upload:
     serve_path: /uploads
     url_prefix: http://localhost:8080/uploads
 ```
+
+### 后台入口热更新
+
+保存配置文件后，`admin_path` 会自动生效，无需重启服务：
+
+```yaml
+server:
+  admin_path: /manage
+```
+
+新入口为 `/manage/#/auth/login`；已打开的后台页面需刷新，新旧入口不会同时保留。
 
 ## 环境配置
 

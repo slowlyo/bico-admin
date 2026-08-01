@@ -1,4 +1,4 @@
-import { getIntl } from '@umijs/max';
+import { getIntl, history } from '@umijs/max';
 import { Button, Card, Result } from 'antd';
 import React from 'react';
 
@@ -65,7 +65,7 @@ function renderErrorFallback(
               defaultMessage: 'Reload Page',
             })}
           </Button>,
-          <Button href="/" key="home">
+          <Button key="home" onClick={() => history.push('/')}>
             {intl.formatMessage({
               id: 'app.error.home',
               defaultMessage: 'Back Home',
