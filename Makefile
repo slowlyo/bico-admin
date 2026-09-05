@@ -1,4 +1,4 @@
-.PHONY: help serve air dev tidy install migrate build web build-web package package-win clean swagger
+.PHONY: help serve air dev tidy install migrate build web build-web package package-win clean swagger init
 
 export GOROOT :=
 
@@ -15,6 +15,7 @@ help:
 	@echo "  make install     - 安装前端依赖"
 	@echo "  make migrate   - 执行数据库迁移"
 	@echo "  make swagger   - 生成 Swagger 文档"
+	@echo "  make init      - 拷贝本仓后清名（INITFLAGS 传参）"
 	@echo "  make tidy      - 整理后端依赖"
 	@echo "  make clean     - 清理构建产物"
 
@@ -79,6 +80,9 @@ install:
 
 migrate:
 	@go run cmd/main.go migrate
+
+init:
+	@go run ./cmd init $(INITFLAGS)
 
 swagger:
 	@echo "📝 生成 Swagger 文档..."

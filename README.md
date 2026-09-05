@@ -20,6 +20,18 @@
 - **[TipTap](https://tiptap.dev/)** - 富文本编辑器
 - **[pnpm](https://pnpm.io/)** - 包管理器
 
+## 初始化新项目
+
+拷贝本仓库后，在项目根目录把残留的 `bico-admin` 身份替换成你的应用名：
+
+```bash
+go run ./cmd init --module github.com/acme/foo --name foo --title "Foo Admin"
+# 或
+make init INITFLAGS='--module github.com/acme/foo --name foo --title "Foo Admin" --yes'
+```
+
+`--dry-run` 只打印将改路径，不写盘；`--yes` 跳过确认。缺 flag 时可交互补齐。`init` 会生成新的 `jwt.secret`，不要沿用模板密钥。
+
 ## 快速开始
 
 ### 后端
