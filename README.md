@@ -162,6 +162,7 @@ make tidy      # 整理依赖
 - [缓存机制](./docs/cache.md)
 - [限流中间件](./docs/rate-limit.md)
 - [配置热更新](./docs/config-hot-reload.md)
+- [插件系统设计（设计稿）](./docs/plugin-system.md)
 
 ## 开发环境
 

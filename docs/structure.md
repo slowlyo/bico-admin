@@ -109,6 +109,7 @@ bico-admin/
 │   ├── job.md               # 定时任务文档
 │   ├── auth-api.md          # 认证API文档
 │   ├── cache.md             # 缓存模块文档
+│   ├── plugin-system.md     # 插件系统设计（设计稿）
 │   └── improvements.md      # 优化建议
 │
 ├── go.mod                    # Go 模块定义
