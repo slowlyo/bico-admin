@@ -1,7 +1,7 @@
 # Bico Admin 插件系统设计
 
 > **状态**：设计稿（待评审）  
-> **版本**：v0.2  
+> **版本**：v0.3  
 > **关联文档**：[项目结构](./structure.md) · [CRUD 包](./crud-pkg.md) · [AI Agent 说明](./AGENTS.md)
 
 本文描述 Bico Admin 的**可选能力插件化**方案：审计日志、登录会话、系统配置 UI、任务管理 UI、CRUD 代码生成、数据字典等以插件交付，核心仓库保持精简。第一期采用**编译期内置插件**（Go module 同仓或子目录），不实现 `.so` 动态加载。
@@ -19,12 +19,14 @@
 | **复用现有栈** | 继续用 `crud.Module`、`AppContext` DI、`/admin-api` 分组与 JWT/权限中间件链 |
 | **可安装 / 可卸载** | 插件以「安装」进入环境（建表、登记、权限入树）；「卸载」从环境移除（停任务、清权限绑定、可选删表） |
 | **可软禁用** | 已安装但 **禁用** 时无路由/任务，**保留数据与安装记录** |
+| **Admin UI 一等公民** | 系统管理内 **插件管理页**：在后台完成 list / install / uninstall / enable / disable（CLI 为补充，非主路径） |
 | **可演进** | 契约预留扩展点；第三期再接远程包 / 动态 `.so`，不推翻安装模型 |
 
 ### 1.2 非目标（第一期）
 
 - Go `plugin` 包或任意 **运行时加载 `.so`**
-- 插件市场、独立版本号、跨主版本 ABI 兼容
+- **远程插件市场**（浏览/下载第三方制品）；本地 Catalog 管理 UI 属于 Phase 1
+- 跨主版本 ABI 兼容、插件独立发版流水线（仅记录 `Meta().Version`）
 - 插件沙箱（进程隔离）；第一期与主程序**同进程、同 DB**
 - 替换核心：`admin` 用户/角色/认证、Dashboard、`api` 模块**不**改为插件
 - 前端微前端（qiankun 等）；第一期仍为 Umi 单仓构建，仅路由/菜单聚合
@@ -78,7 +80,7 @@ BuildContext
   → Run（OnStart） / 关闭（OnStop）
 ```
 
-**安装 / 卸载** 由 `PluginManager`（CLI 与后续 Admin API）写 DB 并触发迁移或清理，**不要求改 config.yaml**（yaml 仅保留插件默认配置模板，见 §9）。
+**安装 / 卸载 / 启停** 由 core `PluginManager` 写 **`plugin_installations`（唯一真相源）**，主要由 **Admin UI + `/admin-api/system/plugins`** 触发；CLI 与之共用同一服务层。**不要求改 config.yaml**（yaml 仅默认配置模板，见 §9）。
 
 `app.Module` 接口不变（`Name()` + `Register(*AppContext)`），见 `internal/core/app/context.go`。
 
@@ -93,7 +95,11 @@ flowchart TB
   end
   subgraph admin_core [admin 核心]
     AUTH[auth / users / roles]
+    PMUI[系统 / 插件管理页]
+    PAPI["/admin-api/system/plugins"]
   end
+  PMUI --> PAPI
+  PAPI --> REG
   subgraph plugins_layer [plugins.Module]
     REG[PluginRegistry]
     P1[audit-log]
@@ -159,16 +165,18 @@ stateDiagram-v2
 | **Register** | `plugins.Module.Register` | 仅 **installed ∧ enabled**：权限入树、路由、任务 |
 | **Start / Stop** | `Run` / 优雅关闭 | 仅 enabled 插件 `OnStart` / `OnStop` |
 
-### 4.3 安装 / 卸载（运维动作，可在线触发后重启或热生效）
+### 4.3 运维动作：UI 操作、DB 状态与进程内路由
 
-| 动作 | 典型步骤 | 是否需要重启 |
-|------|----------|----------------|
-| **install** | 校验 Catalog → 写 DB → `AutoMigrate` 插件表 → `OnInstall` 种子数据 → 默认 `enabled=true` | 建议重启或 Phase 1 文档要求重启后生效 |
-| **enable** | `enabled=true` | 重启后注册路由（Phase 1）；Phase 2 可热挂载 |
-| **disable** | `enabled=false` | 重启后不再注册 |
-| **uninstall** | `OnStop` → 从 Scheduler 移除（重启兜底）→ 清理 `admin_role_permissions` → 删安装记录 → 可选 `DropTables` | 必须重启；带 `--purge-data` 时不可逆 |
+所有 install / uninstall / enable / disable **先写 DB**（`plugin_installations`），Admin UI **立即刷新列表/开关**（以 API 返回为准）。与 **当前 `serve` 进程内已注册路由/任务** 是否一致，见 §9.8。
 
-禁用插件时：**不** `Register` / **不** `OnStart`；权限树**不展示**该插件节点（角色分配 UI）；已绑定到角色的 plugin 权限键在 DB 中可保留但**无路由可达**（见 §9.3）。
+| 动作 | DB（立即） | UI（Phase 1） | 进程内路由/任务（Phase 1 默认） |
+|------|------------|---------------|----------------------------------|
+| **install** | 插入记录 + migrate 表 | 状态变「已安装」；可显示 **需重启** 提示 | **下次 `serve` 启动** 后注册 |
+| **enable** | `enabled=true` | 开关打开；插件菜单按 `installed` 接口**立即显示/隐藏** | 路由/任务：**重启后**生效；*Stretch*：热摘挂 |
+| **disable** | `enabled=false` | 开关关闭；菜单立即隐藏 | 路由/任务：重启前**可能仍可访问**（见 §9.8 风险） |
+| **uninstall** | 删记录、清权限、可选 purge | 回到「未安装」；purge 二次确认 Modal | **下次重启** 后确保无路由/任务 |
+
+禁用插件时：**不** `Register` / **不** `OnStart`（针对**新启动**的进程）；权限树 API 仅包含 **installed ∧ enabled** 的插件节点（角色分配 UI 与菜单过滤一致，见 §9.3）。
 
 ---
 
@@ -337,7 +345,8 @@ export interface PluginManifest {
 ### 6.2 聚合
 
 - `web/src/plugins/registry.ts`：合并**全部 Catalog** 插件的 manifest（代码仍在构建产物中）。
-- **菜单可见性**：`app.tsx` 拉取 `GET /admin-api/plugins/installed`（或并入 `current-user` 扩展字段），仅对 `installed && enabled` 的 id 注入动态路由/菜单（Phase 1 最小方案见 §9.5）。
+- **菜单可见性**：`app.tsx` 拉取 `GET /admin-api/system/plugins`（或 `current-user` 携带 `plugins` 摘要），仅对 `installed && enabled` 的 id 展示插件菜单（§9.6）。
+- **插件管理页**（core）：`web/src/pages/system/plugins/`，路由 `access: system:plugin:menu`（§9.5–§9.6）。
 - `web/config/routes.ts` 末尾：
 
   ```ts
@@ -412,7 +421,9 @@ internal/
 │       ├── model/
 │       ├── handler/
 │       └── middleware/   # 可选审计中间件
-├── admin/                # 不变：核心后台
+├── admin/                # 核心后台 + 插件管理 API/UI 归属
+│   ├── handler/plugin_handler.go   # GET/POST system/plugins（core，非插件）
+│   └── ...
 ├── migrate/
 │   └── migrate.go        # 调用 registry 收集模型
 └── ...
@@ -426,7 +437,8 @@ web/src/
 │       ├── pages/
 │       ├── services/
 │       └── locales/
-└── pages/                # 核心页面
+├── pages/system/plugins/ # 插件管理页（Phase 1 必做）
+└── pages/                # 其他核心页面
 ```
 
 `cmd/main.go` 注册顺序建议：`admin` → `api` → `plugins` → `job`（若 job 依赖插件表，则 `plugins` 在 `job` 之前）。
@@ -457,8 +469,8 @@ web/src/
 2. 插入 `plugin_installations`：`plugin_id`、`version`（来自 `Meta().Version`）、`enabled=true`（可用 `--no-enable` 仅安装不启用）、`config_json`、`installed_at`、`installed_by`（CLI 为 0 或系统用户；API 为操作者 user_id）。
 3. `db.AutoMigrate(plugin.Models())`。
 4. `plugin.OnInstall(deps)`：种子数据、默认字典项等。
-5. 打审计日志（核心能力，非插件自举）。
-6. 提示：**重启 `serve`** 后路由与任务生效（Phase 1）。
+5. 打审计日志（核心 audit，非 audit-log 插件自举）。
+6. API 响应带 `needs_restart: true`（见 §9.8）；Admin UI **Toast + 可选 Modal** 提示运维重启 `serve`。
 
 **不做的事**：不修改 Go 源码、不重新编译前端；不自动给所有角色授予新权限（超管仍拥有全部 key；其他角色需管理员勾选）。
 
@@ -487,41 +499,124 @@ web/src/
 6. `opts.PurgeData == true`：`plugin.OnUninstall` + 框架 `DropTables(plugin.Models())`。
 7. `opts.PurgeData == false`：**保留**插件表与数据；仅移除运行时与安装记录（便于误删后重装接续数据）。
 
-**不可逆警告**（CLI 与 API 必须二次确认）：
+**不可逆警告**（Admin UI 确认框与 CLI 必须二次确认）：
 
 - `--purge-data`：**永久删除**插件业务表数据，无法通过「再安装」恢复。
 - 不 purge 时：重装后数据仍在，但卸载期间权限绑定已清，需重新分配角色权限。
 
 **不做的事**：不从二进制移除代码；不删 `web` 内 manifest 文件（仅运行时不再展示）。
 
-### 9.5 CLI 与 Admin API（提议）
+### 9.5 Admin API（core，Phase 1 必做）
 
-**CLI**（Cobra 子命令，Phase 1 必做）：
+实现位置：**`internal/admin`**（如 `handler/plugin_handler.go` + `service/plugin_service.go`），**不得**放在某个业务插件内，避免 bootstrap 悖论。路由挂在现有 `/admin-api` 认证链下。
+
+**基础路径**：`/admin-api/system/plugins`
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/admin-api/system/plugins` | `system:plugin:list` | **Catalog ∪ 安装状态** 合并列表（见响应结构） |
+| GET | `/admin-api/system/plugins/:id` | `system:plugin:list` | 单插件详情：版本、依赖、错误、配置摘要 |
+| POST | `/admin-api/system/plugins/:id/install` | `system:plugin:install` | body 可选 `config`、`enable`（默认 true） |
+| POST | `/admin-api/system/plugins/:id/uninstall` | `system:plugin:uninstall` | body `{ "purge_data": false }` |
+| POST | `/admin-api/system/plugins/:id/enable` | `system:plugin:enable` | |
+| POST | `/admin-api/system/plugins/:id/disable` | `system:plugin:disable` | |
+
+**权限树（core）**（挂于 `system:manage` 下）：
+
+| Key | 用途 |
+|-----|------|
+| `system:plugin:menu` | 插件管理页菜单 |
+| `system:plugin:list` | 查看列表/详情 |
+| `system:plugin:install` | 安装 |
+| `system:plugin:uninstall` | 卸载（含 purge） |
+| `system:plugin:enable` | 启用 |
+| `system:plugin:disable` | 禁用 |
+
+`PluginManager` 为唯一实现入口；HTTP 与 CLI **共用**该服务，保证 UI 与命令行行为一致。
+
+**GET `/admin-api/system/plugins` 响应项（示例字段）**：
+
+```json
+{
+  "id": "audit-log",
+  "name": "审计日志",
+  "catalog_version": "1.0.0",
+  "installed": true,
+  "enabled": true,
+  "installed_version": "1.0.0",
+  "dependencies": [],
+  "dependencies_satisfied": true,
+  "installed_at": "2026-01-01T00:00:00Z",
+  "last_error": "",
+  "needs_restart": true
+}
+```
+
+- `last_error`：最近一次 install/uninstall 失败原因（成功则空）。
+- `needs_restart`：DB 状态与**当前进程**已加载插件集合不一致时为 `true`（§9.8）。
+
+### 9.6 Admin UI：插件管理页（Phase 1 必做）
+
+**路由**（`web/config/routes.ts`，挂在「系统管理」下）：
+
+```ts
+{
+  path: '/system/plugins',
+  name: 'plugins',
+  component: './system/plugins',
+  access: 'system:plugin:menu',
+}
+```
+
+**页面能力**（单页 ProTable + 行操作，或卡片列表）：
+
+| 能力 | 说明 |
+|------|------|
+| **Catalog 列表** | 展示二进制内全部可安装插件（含未安装行） |
+| **状态列** | 未安装 / 已安装+启用 / 已安装+禁用；徽章区分 |
+| **版本** | `catalog_version` vs `installed_version`；不一致时警告升级（Phase 2 `upgrade`） |
+| **依赖** | 展示 `dependencies`；未满足时禁用「安装」并 tooltip 原因 |
+| **安装** | 按钮 → 确认 → `POST .../install` → 刷新列表 |
+| **卸载** | 按钮 → Modal：是否 **purge 数据**（危险样式 + 文案）→ `POST .../uninstall` |
+| **启用/禁用** | `Switch`，直连 `enable` / `disable` API |
+| **错误** | `last_error` 列或 Alert |
+| **重启提示** | 任意操作返回 `needs_restart: true` 时，页顶 `Alert`：「配置已保存，请重启服务后 API/定时任务生效」 |
+
+**与业务插件菜单**：管理页是 core 页面；`audit-log` 等业务菜单仍由 manifest + `installed && enabled` 过滤（§6.2）。
+
+**远程市场**：浏览外部制品、上传 zip、一键拉取 — **Phase 3**；Phase 1 UI 仅针对 **本地 Catalog**。
+
+### 9.7 CLI（补充，Phase 1 可选但建议）
+
+与 `PluginManager` 共用逻辑，供 CI/运维脚本；**不作为主交互**。
 
 ```bash
-bico-admin plugin list              # Catalog + 安装状态 + enabled
+bico-admin plugin list
 bico-admin plugin install <id>      # [--no-enable] [--config key=val]
 bico-admin plugin uninstall <id>    # [--purge-data] [--yes]
 bico-admin plugin enable <id>
 bico-admin plugin disable <id>
 ```
 
-**Admin API**（Phase 1 最小集或 Phase 2 完整 UI，设计先定契约）：
+### 9.8 重启、热生效与 Stretch
 
-| 方法 | 路径 | 权限建议 | 说明 |
-|------|------|----------|------|
-| GET | `/admin-api/plugins/catalog` | `system:plugin:menu` 或超管 | 可安装列表 + 元数据 |
-| GET | `/admin-api/plugins/installed` | 同上 | 已安装列表（含 enabled） |
-| POST | `/admin-api/plugins/:id/install` | `system:plugin:install` | 同 CLI install |
-| POST | `/admin-api/plugins/:id/uninstall` | `system:plugin:uninstall` | body: `{ "purge_data": false }` |
-| POST | `/admin-api/plugins/:id/enable` | `system:plugin:enable` | |
-| POST | `/admin-api/plugins/:id/disable` | `system:plugin:disable` | |
+**Phase 1 既定行为（优先满足「在 UI 里管插件」）**：
 
-插件管理本身可作为 **core admin** 能力（非插件），避免「插件管理插件」.bootstrap 问题。
+1. **DB 立即更新**：所有 install/uninstall/enable/disable 成功即持久化到 `plugin_installations`。
+2. **UI 立即反映**：列表、Switch、安装状态以 GET `/admin-api/system/plugins` 为准；业务插件**菜单**随 `enabled` 过滤立即显隐。
+3. **后端路由与定时任务**：在**当前进程**内于启动时注册；Phase 1 **不保证** install/disable 后立刻摘挂 Gin 路由与 cron。
+4. **`needs_restart`**：服务在启动时记录 `process_started_at`；若安装记录的 `updated_at` 晚于该时间，则 API 返回 `needs_restart: true`，UI 提示重启。
 
-**前端**：Phase 2「插件中心」页调用上述 API；Phase 1 可用 CLI + `installed` 接口驱动菜单过滤。
+**权衡**：
 
-### 9.6 数据库：`plugin_installations`
+| 方案 | 优点 | 缺点 |
+|------|------|------|
+| Phase 1 仅 DB + 提示重启 | 实现简单、与现有 `RegisterModules` 一致 | disable 后重启前，旧路由**可能仍可调用**（安全敏感环境需尽快重启） |
+| Stretch：热 `PluginRuntime.Reload()` | enable/disable/install 后路由与任务即时一致 | 需可逆注册、与 Swagger/权限树同步、测试成本高 |
+
+**Stretch（Phase 1 不阻塞发版）**：对 **enable/disable** 调用 `PluginRuntime` 热摘挂路由与 Scheduler；install/uninstall 仍建议全量重启。若 Stretch 未做，文档与 UI 必须保留重启提示。
+
+### 9.9 数据库：`plugin_installations`
 
 ```text
 plugin_installations
@@ -531,11 +626,13 @@ plugin_installations
   config_json    text # 运行期配置
   installed_at   datetime
   installed_by   uint nullable
+  updated_at          # 任意 install/enable/disable/uninstall 更新；供 needs_restart 判断
+  last_error     text nullable
 ```
 
 可选审计：`plugin_install_events`（install/uninstall/purge 谁何时操作）——Phase 2。
 
-### 9.7 config.yaml 的角色
+### 9.10 config.yaml 的角色
 
 - **不再**用 `plugins.enabled` 列表驱动运行时（v0.1 草案废弃）。
 - yaml 仅保留 `plugins.defaults.<id>` 作为安装默认配置。
@@ -576,20 +673,23 @@ plugin_installations
 
 ### 11.3 前端要点
 
-- `manifest.ts` 单菜单「审计日志」。
+- **插件管理页**：在 `/system/plugins` 对 `audit-log` 执行安装/启停/卸载（见 §9.6）。
+- `manifest.ts` 单菜单「审计日志」（仅 installed ∧ enabled 时出现）。
 - ProTable 列表 + 详情抽屉，调用 `services/audit-log.ts`。
 
 ### 11.4 验收标准（实现阶段）
 
 | 场景 | 预期 |
 |------|------|
-| **未安装** | `plugin list` 显示 catalog 有 `audit-log`、状态未安装；无 `plugin_audit_logs` 表（全新库）；无菜单/API |
-| **install audit-log** | 建表；DB 有安装记录且默认 enabled；重启后 `/admin-api/audit-logs` 可访问（有权限）；权限树含 `plugin:audit_log:*` |
-| **disable** | 重启后无路由/任务；表与历史审计数据仍在；菜单不可见 |
-| **enable** | 恢复路由/任务/菜单，无需重新 install |
-| **uninstall（不 purge）** | 安装记录删除；角色上该插件 permission 行清除；表**保留**；再 install 可看到旧数据 |
-| **uninstall --purge-data** | 表删除；二次确认文案；再 install 为空库状态 |
-| **依赖** | 若 B 依赖 A，未装 A 时 install B 失败 |
+| **未安装** | 插件管理页显示 `audit-log` 为未安装；无业务菜单；无 `plugin_audit_logs`（新库） |
+| **UI install** | 管理页点安装 → 列表变已安装+启用；`needs_restart` 提示；重启后 `/admin-api/audit-logs` 可访问；权限树含 `plugin:audit_log:*` |
+| **UI disable** | Switch 关 → 列表与 GET plugins 立即 `enabled=false`；业务菜单隐藏；重启后无后端路由/任务 |
+| **UI enable** | Switch 开 → 菜单恢复；无需 reinstall |
+| **UI uninstall（不 purge）** | Modal 不勾选 purge → 记录删除；角色 plugin 权限清；表保留；可 UI 再安装接续数据 |
+| **UI uninstall + purge** | 危险确认文案；表删；再安装为空 |
+| **依赖** | UI 安装按钮禁用 + 依赖未满足说明 |
+| **权限** | 无 `system:plugin:install` 的用户看不到安装按钮或接口 403 |
+| **CLI 等价** | 与 UI 相同 DB 结果（若实现 CLI） |
 
 ---
 
@@ -610,33 +710,34 @@ plugin_installations
 
 ## 13. 分阶段路线图
 
-### Phase 1 — 契约 + 安装模型 + 样本（本设计评审目标）
+### Phase 1 — 契约 + DB 安装模型 + **Admin UI** + 样本
 
-**必须交付（否则「安装/卸载」不成立）**：
+**必须交付**：
 
-- [ ] `plugin_installations` 表 + `PluginStore` / `PluginManager`
-- [ ] CLI：`plugin list | install | uninstall | enable | disable`（含 `--purge-data` 确认）
-- [ ] `internal/pkg/plugin` 接口（含 `OnInstall` / `OnUninstall` / `PermissionKeys`）
-- [ ] Catalog `registry.All()` + `plugins.Module` 仅加载 **installed ∧ enabled**
-- [ ] `migrate`：core + **已安装**插件模型；install 时单插件 migrate
-- [ ] 卸载：清 `admin_role_permissions`、删安装记录、可选 purge
-- [ ] 前端：`GET installed` 驱动菜单过滤 + `audit-log` manifest/pages
-- [ ] 样本 `audit-log` 走完整 install → 使用 → disable → uninstall 流程
+- [ ] `plugin_installations`（含 `updated_at` / `last_error`）+ `PluginStore` / `PluginManager`
+- [ ] **Admin API**：`/admin-api/system/plugins` 全量操作 + `system:plugin:*` 权限
+- [ ] **Admin UI**：`web/src/pages/system/plugins`（列表、安装、卸载+purge 确认、启停 Switch、版本/依赖/错误、`needs_restart` Alert）
+- [ ] `internal/pkg/plugin` 接口（`OnInstall` / `OnUninstall` / `PermissionKeys`）
+- [ ] Catalog + `plugins.Module` 仅 **installed ∧ enabled**（启动时）
+- [ ] `migrate`：core + 已安装插件；install API 单插件 migrate
+- [ ] 卸载清 `admin_role_permissions`、可选 purge
+- [ ] 前端：`GET /admin-api/system/plugins` 驱动业务插件菜单过滤 + `audit-log` manifest/pages
+- [ ] **E2E**：插件管理页完成 audit-log 安装 → 使用 → disable → uninstall（含 purge 路径）
 
 **Phase 1 明确不做**：
 
-- 远程下载插件包、动态 `.so`
-- 插件中心 Admin UI（可用 CLI；API 可只做 `installed` 只读）
-- 热加载路由（install 后统一要求重启 `serve`）
+- 远程插件市场、动态 `.so`
+- 路由/任务 **热重载**（仅 Stretch；默认重启提示，§9.8）
 - build tag 裁剪二进制
 
-### Phase 2 — 更多插件 + 运维体验
+**Phase 1 建议（非阻塞）**：CLI 与 `PluginManager` 共用；`PluginRuntime` 热 enable/disable
 
-- 登录会话、字典、系统配置 UI、任务管理 UI、CRUD codegen 等拆为可安装插件
-- Admin **插件中心** UI（install/uninstall/enable/disable、purge 确认）
-- 完整 Admin API + `plugin_install_events` 审计
-- 审计全局中间件；`plugin repair`；Config 热更新与任务 cron 重载
-- 独立 Go module 插件仓 import 进 Catalog
+### Phase 2 — 更多业务插件 + 运维增强
+
+- 登录会话、字典、系统配置 UI、任务管理 UI、CRUD codegen 等可安装插件
+- `plugin_install_events` 审计、`plugin upgrade` / `repair`
+- Config 热更新与 cron 重载；独立 Go module 插件仓 import 进 Catalog
+- 审计全局中间件
 
 ### Phase 3 — 远程包与动态加载（调研）
 
@@ -650,10 +751,10 @@ plugin_installations
 
 1. **插件 ID 命名**：kebab-case（`audit-log`）与 permission 中 snake（`audit_log`）是否接受本文约定？
 2. **路由前缀**：统一 `/admin-api/...`  vs  插件专属 `/admin-api/plugins/<id>/...`？
-3. **前端菜单挂载点**：顶级「扩展」分组 vs 挂在「系统管理」下？
+3. **前端菜单挂载点**：插件管理页默认在「系统管理」下；业务插件菜单用顶级「扩展」还是「系统管理」子级？
 4. **~~禁用后数据~~（已收敛）**：**Disable** = 保留表与安装记录；**Uninstall** = 默认保留表，**仅 `--purge-data` 删表**。是否同意「disable 不清角色权限、uninstall 清权限绑定」？
 5. **卸载后保留表**：无 purge 的 uninstall 后，表留在库中但无安装记录——是否允许 `plugin install` 自动 `AutoMigrate` 接续（不 truncate）？还是强制 purge？
-6. **install 生效**：Phase 1 是否接受「必须重启 serve」？还是 Phase 1 就要热注册路由？
+6. **~~install 生效~~（已收敛）**：Phase 1 **DB + UI 立即更新**；路由/任务 **重启后生效**，UI 展示 `needs_restart`；热摘挂为 Stretch。是否接受 disable 后重启前旧路由仍可访问的风险？
 7. **独立仓库**：插件是否计划拆到 `bico-admin-plugins` 多 module，仍通过 Catalog import？
 8. **审计范围**：全量 `/admin-api` 还是可配置 path 前缀？请求体是否默认关闭？
 9. **与 `job` 模块**：是否长期保留 `internal/job` 仅核心任务，插件任务随 install/uninstall 注册？
@@ -676,6 +777,8 @@ plugin_installations
 | [job.md](./job.md) Scheduler | `RegisterJobs` |
 | `internal/migrate/migrate.go` | core + **已安装**插件 `Models()` |
 | （新增）`plugin_installations` | Install/Enable/Disable/Uninstall 唯一真相源 |
+| （新增）`/admin-api/system/plugins` | core Admin UI 与 CLI 共用 `PluginManager` |
+| `web/src/pages/system/plugins` | Phase 1 插件管理主界面 |
 
 ---
 
