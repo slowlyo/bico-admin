@@ -1,7 +1,7 @@
 # Bico Admin 插件系统设计
 
 > **状态**：设计稿（待评审）  
-> **版本**：v0.1  
+> **版本**：v0.2  
 > **关联文档**：[项目结构](./structure.md) · [CRUD 包](./crud-pkg.md) · [AI Agent 说明](./AGENTS.md)
 
 本文描述 Bico Admin 的**可选能力插件化**方案：审计日志、登录会话、系统配置 UI、任务管理 UI、CRUD 代码生成、数据字典等以插件交付，核心仓库保持精简。第一期采用**编译期内置插件**（Go module 同仓或子目录），不实现 `.so` 动态加载。
@@ -17,8 +17,9 @@
 | **可选功能解耦** | 非所有部署都需要的能力（如审计日志）不挤在 `internal/admin/handler` 根目录 |
 | **统一契约** | 后端：路由、权限、迁移、定时任务、菜单元数据；前端：路由、菜单、`access` 与后端 permission key 对齐 |
 | **复用现有栈** | 继续用 `crud.Module`、`AppContext` DI、`/admin-api` 分组与 JWT/权限中间件链 |
-| **可开关** | 通过 `config.yaml`（及后续 DB）启用/禁用插件，禁用时无路由、无迁移表、无任务 |
-| **可演进** | 契约预留扩展点，第三期可接动态加载而不推翻第一期 API |
+| **可安装 / 可卸载** | 插件以「安装」进入环境（建表、登记、权限入树）；「卸载」从环境移除（停任务、清权限绑定、可选删表） |
+| **可软禁用** | 已安装但 **禁用** 时无路由/任务，**保留数据与安装记录** |
+| **可演进** | 契约预留扩展点；第三期再接远程包 / 动态 `.so`，不推翻安装模型 |
 
 ### 1.2 非目标（第一期）
 
@@ -40,7 +41,7 @@
 |------|----------------------|------|
 | **归属** | 代码落在 `internal/admin`，与核心混排 | `internal/plugins/<id>/` 边界清晰 |
 | **交付** | 改主仓、全量发版 | 可独立目录/未来独立仓库，主仓只保留 registry |
-| **启用** | 编译即存在 | `plugins.enabled` 关闭后零路由、零表 |
+| **生命周期** | 编译即存在 | **未安装** 无表无路由；**安装** 建表；**禁用** 软关；**卸载** 硬移除 |
 | **横切能力** | 审计、会话等多处 hook，难用单 Handler 表达 | 插件可暴露 `Hooks` + 独立 CRUD UI |
 | **前端** | 手改 `web/config/routes.ts` | 插件自带 `manifest` 与页面 chunk |
 | **权限树** | 仍走 `crud.AddPermissions` | 相同机制，由插件注册器统一收集 |
@@ -63,17 +64,21 @@ BuildContext → (可选) AutoMigrate → RegisterCoreRoutes → RegisterModules
 
 ```
 BuildContext
-  → 读取 plugins 配置，构建 PluginRegistry（仅 enabled）
-  → Migrate：core migrate + 各 enabled 插件 Models
+  → 构建 Catalog（编译期 registry.All()：本二进制「可安装」列表）
+  → 从 DB 读取 plugin_installations（已安装 + enabled 状态）
+  → Migrate（serve 启动 / migrate 命令）：
+        core 模型 + 已安装插件 Models（禁用插件仍迁移/保留表，见 §9）
   → RegisterCoreRoutes
   → RegisterModules(
-        admin,   // 核心：auth、用户、角色、dashboard…
+        admin,
         api,
-        plugins.NewModule(registry),  // 聚合所有 enabled 插件
-        job,     // 核心任务；插件任务在 plugins.Module 内注册到同一 Scheduler
+        plugins.NewModule(catalog, store),  // 仅 enabled ∧ installed 插件注册路由/任务
+        job,
     )
   → Run（OnStart） / 关闭（OnStop）
 ```
+
+**安装 / 卸载** 由 `PluginManager`（CLI 与后续 Admin API）写 DB 并触发迁移或清理，**不要求改 config.yaml**（yaml 仅保留插件默认配置模板，见 §9）。
 
 `app.Module` 接口不变（`Name()` + `Register(*AppContext)`），见 `internal/core/app/context.go`。
 
@@ -118,18 +123,52 @@ flowchart TB
 
 ---
 
-## 4. 插件生命周期
+## 4. 插件生命周期与状态机
+
+### 4.1 四个概念：Catalog / Install / Enable / Uninstall
+
+| 概念 | 含义 | 持久化 |
+|------|------|--------|
+| **Catalog（目录）** | 当前二进制**能提供**的插件，来自编译期 `registry.All()` | 无（随版本发布变化） |
+| **Install（安装）** | 某 Catalog 插件**加入本环境**：建表、写安装记录、默认配置 | `plugin_installations` 行 |
+| **Enable（启用）** | 已安装插件**参与运行时**：路由、任务、权限树节点 | 同表 `enabled = true` |
+| **Disable（禁用）** | 已安装但**不注册**路由/任务；数据与安装记录保留 | 同表 `enabled = false` |
+| **Uninstall（卸载）** | 从环境**移除**安装记录；停任务；清理角色权限；可选删表 | 删除行或 `status=uninstalled`（见 §9） |
+
+```mermaid
+stateDiagram-v2
+  [*] --> NotInstalled: 仅在 Catalog
+  NotInstalled --> InstalledEnabled: install
+  InstalledEnabled --> InstalledDisabled: disable
+  InstalledDisabled --> InstalledEnabled: enable
+  InstalledEnabled --> NotInstalled: uninstall
+  InstalledDisabled --> NotInstalled: uninstall
+```
+
+- **未安装（Not installed）**：DB 无记录 → 无插件表（除非曾卸载且保留数据，见 §9.4）、无路由、权限树无该插件节点。
+- **已安装 + 启用**：完整能力。
+- **已安装 + 禁用**：软关闭；表与业务数据保留；下次 `enable` 无需再 migrate（表已存在）。
+
+### 4.2 运行时阶段（每次 `serve`）
 
 | 阶段 | 时机 | 行为 |
 |------|------|------|
-| **Discover** | 编译期 | 插件在 `internal/plugins/registry.go`（或 `plugins/all` 包）显式注册；第一期不做目录扫描 |
-| **Configure** | `BuildContext` 之后 | 根据 `config.plugins` 过滤 enabled；未知 id 打 warn 并跳过 |
-| **Migrate** | `migrate` 命令 / `database.auto_migrate` 启动迁移 | 仅 enabled 插件的 `Models()` 并入 `AutoMigrate`；顺序：core → 插件按 `Meta().Order` |
-| **Register** | `plugins.Module.Register` | 向 `crud` 注册权限树；向 admin 路由组挂载 CRUD/自定义路由；向 `Scheduler` 注册任务 |
-| **Start** | `app.Run` 成功后 | 可选 `OnStart`（预热缓存、订阅事件等） |
-| **Stop** | 优雅关闭 | 可选 `OnStop`（刷写缓冲、取消订阅） |
+| **Discover** | 编译期 | `registry.All()` 注册构造器；不做目录扫描 |
+| **LoadState** | `BuildContext` 之后 | 读 `plugin_installations`；与 Catalog 求交，丢弃「DB 有但二进制无」的脏数据并打 warn |
+| **Migrate** | `migrate` / `auto_migrate` | core + **所有已安装**（含 disabled）插件的 `Models()`，保证禁用仍保留表结构 |
+| **Register** | `plugins.Module.Register` | 仅 **installed ∧ enabled**：权限入树、路由、任务 |
+| **Start / Stop** | `Run` / 优雅关闭 | 仅 enabled 插件 `OnStart` / `OnStop` |
 
-禁用插件时：**不**调用 `Register` / `Migrate` / `OnStart`，权限树中也不出现该插件节点。
+### 4.3 安装 / 卸载（运维动作，可在线触发后重启或热生效）
+
+| 动作 | 典型步骤 | 是否需要重启 |
+|------|----------|----------------|
+| **install** | 校验 Catalog → 写 DB → `AutoMigrate` 插件表 → `OnInstall` 种子数据 → 默认 `enabled=true` | 建议重启或 Phase 1 文档要求重启后生效 |
+| **enable** | `enabled=true` | 重启后注册路由（Phase 1）；Phase 2 可热挂载 |
+| **disable** | `enabled=false` | 重启后不再注册 |
+| **uninstall** | `OnStop` → 从 Scheduler 移除（重启兜底）→ 清理 `admin_role_permissions` → 删安装记录 → 可选 `DropTables` | 必须重启；带 `--purge-data` 时不可逆 |
+
+禁用插件时：**不** `Register` / **不** `OnStart`；权限树**不展示**该插件节点（角色分配 UI）；已绑定到角色的 plugin 权限键在 DB 中可保留但**无路由可达**（见 §9.3）。
 
 ---
 
@@ -174,8 +213,21 @@ type Plugin interface {
     // 配置片段：映射到 config 中 plugins.<id> 或独立 yaml key
     BindConfig(cfg *config.Config) error
 
+    // 安装/卸载钩子（写 DB 种子、清理插件私有缓存等；删表由框架按 PurgeData 调用）
+    OnInstall(deps *Deps) error
+    OnUninstall(deps *Deps, opts UninstallOptions) error
+
+    // 供卸载时从 admin_role_permissions 批量删除，避免残留死权限
+    PermissionKeys() []string
+
     OnStart(deps *Deps) error
     OnStop(deps *Deps) error
+}
+```
+
+```go
+type UninstallOptions struct {
+    PurgeData bool // true：DROP 插件表；false：保留表与数据，仅移除安装记录与运行时
 }
 ```
 
@@ -207,28 +259,30 @@ type Plugin interface {
 ### 5.4 迁移
 
 - 第一期不引入独立 migration 文件引擎；继续使用 **GORM `AutoMigrate`**，与 `internal/migrate/migrate.go` 一致。
-- `migrate.AutoMigrate` 调整为：core 模型 + `registry.EnabledModels()`。
+- `migrate.AutoMigrate` 调整为：core 模型 + **`store.InstalledModels()`**（含 disabled 的已安装插件）。
+- **install** 命令单独对目标插件执行一次 `AutoMigrate`，不必等全量 migrate。
 - 插件表名建议带前缀或插件专属 schema 命名，如 `plugin_audit_logs`，降低冲突。
 
 ### 5.5 定时任务
 
 - 通过 `ctx.Scheduler` 注册，表达式格式与 [job.md](./job.md) 相同（6 位 cron）。
 - 任务名建议 `plugin:<id>:<task>`，便于日志过滤。
-- 禁用插件时不注册任务。
+- **已安装且 enabled** 才注册任务；disable / uninstall 后不注册（uninstall 另见 §9）。
 
 ### 5.6 配置 Hook
 
 ```yaml
+# 仅插件默认配置模板；「装不装、开不开」以 DB 为准
 plugins:
-  enabled:
-    - audit-log
-  audit-log:
-    retention_days: 90
-    capture_request_body: false
+  defaults:
+    audit-log:
+      retention_days: 90
+      capture_request_body: false
 ```
 
-- `BindConfig` 将 `cfg.Plugins.AuditLog` 解析到插件私有 struct。
-- 与 `ConfigManager` 热更新联动为第二期可选（见开放问题）。
+- 安装时：将 `defaults` 与 `plugin_installations.config_json` 合并写入 DB。
+- 运行期：`BindConfig` 优先读 **安装记录中的 config_json**，再回退 yaml defaults。
+- 与 `ConfigManager` 热更新联动为第二期可选（见 §14）。
 
 ### 5.7 事件 / 横切 Hook（审计类插件）
 
@@ -282,7 +336,8 @@ export interface PluginManifest {
 
 ### 6.2 聚合
 
-- `web/src/plugins/registry.ts`：根据构建时常量或 `config/config` 中的 `PLUGIN_IDS` 合并 `routes`。
+- `web/src/plugins/registry.ts`：合并**全部 Catalog** 插件的 manifest（代码仍在构建产物中）。
+- **菜单可见性**：`app.tsx` 拉取 `GET /admin-api/plugins/installed`（或并入 `current-user` 扩展字段），仅对 `installed && enabled` 的 id 注入动态路由/菜单（Phase 1 最小方案见 §9.5）。
 - `web/config/routes.ts` 末尾：
 
   ```ts
@@ -296,7 +351,7 @@ export interface PluginManifest {
 ### 6.3 懒加载
 
 - Umi `component: './plugins/audit-log/pages/list'` 天然 code-split。
-- 禁用插件时：构建期不 import 该 manifest（tree-shaking），或 runtime 空数组。
+- **未安装 / 已禁用**：runtime 不展示菜单（动态过滤）；chunk 仍可存在于构建产物（Phase 1）。
 
 ### 6.4 权限对齐
 
@@ -349,7 +404,9 @@ internal/
 ├── pkg/
 │   └── plugin/           # 契约：Plugin、Meta、Registry、AdminDeps
 ├── plugins/
-│   ├── registry.go       # 所有插件构造器列表 + Enabled(registry, cfg)
+│   ├── registry.go       # Catalog：All() 构造器列表
+│   ├── store.go          # 读写 plugin_installations
+│   ├── manager.go        # Install / Uninstall / Enable / Disable
 │   └── auditlog/         # 样本插件
 │       ├── plugin.go
 │       ├── model/
@@ -376,25 +433,113 @@ web/src/
 
 ---
 
-## 9. 启用 / 禁用配置
+## 9. 安装、启用、禁用、卸载
 
-### 9.1 config.yaml（第一期）
+本节定义用户要求的 **Install / Uninstall** 模型；**Disable** 为软操作，与 **Uninstall** 严格区分。
 
-```yaml
-plugins:
-  enabled: []          # 空 = 不加载任何插件
-  # enabled: ["audit-log"]
-  audit-log:
-    retention_days: 90
+### 9.1 插件从何而来（Catalog vs 包）
+
+| 来源 | Phase | 说明 |
+|------|-------|------|
+| **Builtin Catalog** | 1 | `internal/plugins/registry.go` 中 `All()`；与主程序**同二进制、同版本** |
+| **Go module 依赖** | 2 | 独立仓库 `github.com/.../bico-plugin-audit` 被主仓 import 后注册进 Catalog；安装语义不变 |
+| **远程包 / `.so`** | 3 | 下载制品并校验签名后加入 Catalog 或动态加载；**不改变** `plugin_installations` 表语义 |
+
+**安装**永远针对 Catalog 中的 `plugin_id`；第一期不存在「从未编入二进制的插件 ID」的安装成功路径。
+
+### 9.2 安装（Install）做什么
+
+**前置**：`plugin_id ∈ Catalog`；依赖插件已安装（`Meta().Dependencies`）。
+
+**顺序**（`PluginManager.Install`）：
+
+1. 若已安装 → 返回明确错误（或提示先 uninstall）。
+2. 插入 `plugin_installations`：`plugin_id`、`version`（来自 `Meta().Version`）、`enabled=true`（可用 `--no-enable` 仅安装不启用）、`config_json`、`installed_at`、`installed_by`（CLI 为 0 或系统用户；API 为操作者 user_id）。
+3. `db.AutoMigrate(plugin.Models())`。
+4. `plugin.OnInstall(deps)`：种子数据、默认字典项等。
+5. 打审计日志（核心能力，非插件自举）。
+6. 提示：**重启 `serve`** 后路由与任务生效（Phase 1）。
+
+**不做的事**：不修改 Go 源码、不重新编译前端；不自动给所有角色授予新权限（超管仍拥有全部 key；其他角色需管理员勾选）。
+
+### 9.3 启用 vs 安装 vs 禁用
+
+| 状态 | DB | 表结构 | 路由/任务 | 权限树（角色配置 UI） | 角色已绑定的 plugin 权限键 |
+|------|-----|--------|-----------|------------------------|----------------------------|
+| 未安装 | 无行 | 无（或 uninstall 保留表时仍存在） | 无 | 无节点 | 应在 uninstall 时清掉 |
+| 已安装 + **禁用** | `enabled=false` | 保留 | 无 | **隐藏**节点 | 可保留在 DB，接口不可达 |
+| 已安装 + **启用** | `enabled=true` | 保留 | 有 | 展示 | 按角色生效 |
+
+- **Disable**：`UPDATE enabled=false`；软操作，可逆；**不**删表、**不**删安装记录、**不**删角色权限绑定（避免误操作后大规模改角色）。
+- **Enable**：`UPDATE enabled=true`；若表已被手动删掉，启动 migrate 或 `plugin repair`（Phase 2）补表。
+
+### 9.4 卸载（Uninstall）做什么
+
+**前置**：插件已安装；若有依赖方插件，需先卸载依赖方或报错。
+
+**顺序**（`PluginManager.Uninstall(id, opts)`）：
+
+1. 若当前 enabled → 逻辑等同先 **disable**（文档化：卸载前自动 disable）。
+2. `plugin.OnStop`（进程内若正在运行）。
+3. 从 Scheduler 移除该插件任务（Phase 1 依赖**重启**保证干净；实现时记录 task name）。
+4. **权限清理**：`DELETE FROM admin_role_permissions WHERE permission IN (plugin.PermissionKeys())`。
+5. 删除 `plugin_installations` 行（或写入 `uninstalled_at` 审计表后删主行——实现二选一，默认删主行）。
+6. `opts.PurgeData == true`：`plugin.OnUninstall` + 框架 `DropTables(plugin.Models())`。
+7. `opts.PurgeData == false`：**保留**插件表与数据；仅移除运行时与安装记录（便于误删后重装接续数据）。
+
+**不可逆警告**（CLI 与 API 必须二次确认）：
+
+- `--purge-data`：**永久删除**插件业务表数据，无法通过「再安装」恢复。
+- 不 purge 时：重装后数据仍在，但卸载期间权限绑定已清，需重新分配角色权限。
+
+**不做的事**：不从二进制移除代码；不删 `web` 内 manifest 文件（仅运行时不再展示）。
+
+### 9.5 CLI 与 Admin API（提议）
+
+**CLI**（Cobra 子命令，Phase 1 必做）：
+
+```bash
+bico-admin plugin list              # Catalog + 安装状态 + enabled
+bico-admin plugin install <id>      # [--no-enable] [--config key=val]
+bico-admin plugin uninstall <id>    # [--purge-data] [--yes]
+bico-admin plugin enable <id>
+bico-admin plugin disable <id>
 ```
 
-- 配置结构体挂在 `internal/core/config`，与 [config.md](./config.md) 风格一致。
-- **编译仍包含**插件代码；仅运行时跳过注册。若需「裁剪二进制」，用 build tag（第二期）。
+**Admin API**（Phase 1 最小集或 Phase 2 完整 UI，设计先定契约）：
 
-### 9.2 数据库开关（可选，第二期）
+| 方法 | 路径 | 权限建议 | 说明 |
+|------|------|----------|------|
+| GET | `/admin-api/plugins/catalog` | `system:plugin:menu` 或超管 | 可安装列表 + 元数据 |
+| GET | `/admin-api/plugins/installed` | 同上 | 已安装列表（含 enabled） |
+| POST | `/admin-api/plugins/:id/install` | `system:plugin:install` | 同 CLI install |
+| POST | `/admin-api/plugins/:id/uninstall` | `system:plugin:uninstall` | body: `{ "purge_data": false }` |
+| POST | `/admin-api/plugins/:id/enable` | `system:plugin:enable` | |
+| POST | `/admin-api/plugins/:id/disable` | `system:plugin:disable` | |
 
-- 表 `plugin_settings (id, enabled, config_json)` + 超管 UI。
-- 启动时 DB 覆盖 yaml 的 enabled 列表；需处理「关闭插件后表已存在」的运维策略。
+插件管理本身可作为 **core admin** 能力（非插件），避免「插件管理插件」.bootstrap 问题。
+
+**前端**：Phase 2「插件中心」页调用上述 API；Phase 1 可用 CLI + `installed` 接口驱动菜单过滤。
+
+### 9.6 数据库：`plugin_installations`
+
+```text
+plugin_installations
+  plugin_id      PK   # 与 Meta().ID 一致，如 audit-log
+  version             # 安装时 Catalog 版本
+  enabled        bool
+  config_json    text # 运行期配置
+  installed_at   datetime
+  installed_by   uint nullable
+```
+
+可选审计：`plugin_install_events`（install/uninstall/purge 谁何时操作）——Phase 2。
+
+### 9.7 config.yaml 的角色
+
+- **不再**用 `plugins.enabled` 列表驱动运行时（v0.1 草案废弃）。
+- yaml 仅保留 `plugins.defaults.<id>` 作为安装默认配置。
+- 若需「全新环境预装插件」，可用 **迁移种子** 或 `make init` 钩子插入 `plugin_installations`（等价于自动化 install），仍走同一套模型。
 
 ---
 
@@ -402,10 +547,11 @@ plugins:
 
 1. **默认拒绝**：所有 Admin 插件路由走 JWT + 权限中间件，无 `Public: true` 除非明确需求。
 2. **权限命名**：建议 `plugin:<resource>:<action>`，与核心 `system:*`、`dashboard:*` 区分。
-3. **超级管理员**：继续通过 `SuperAdminRoleCode` 拥有全部 permission keys（`GetAllPermissionKeys` 含插件键）。
-4. **输入校验**：插件 Handler 复用 `crud.BaseHandler` 绑定与校验；禁止在审计日志中记录密码、token 明文。
-5. **依赖安全**：第一期无第三方插件加载；未来动态加载需签名与 allowlist。
-6. **CSRF / CORS**：沿用 core 中间件，插件不单独放宽。
+3. **超级管理员**：继续通过 `SuperAdminRoleCode` 拥有全部 permission keys；**仅已安装且 enabled** 的插件键进入运行时权限树，避免未安装插件出现在角色配置中。
+4. **安装/卸载权限**：管理插件的 `system:plugin:*` 仅授予可信管理员；`uninstall` + `purge_data` 需强确认。
+5. **输入校验**：插件 Handler 复用 `crud.BaseHandler` 绑定与校验；禁止在审计日志中记录密码、token 明文。
+6. **依赖安全**：第一期无第三方插件加载；未来动态加载需签名与 allowlist。
+7. **CSRF / CORS**：沿用 core 中间件，插件不单独放宽。
 
 ---
 
@@ -435,8 +581,15 @@ plugins:
 
 ### 11.4 验收标准（实现阶段）
 
-- `plugins.enabled` 含 `audit-log` 时：迁移建表、菜单可见、有权限可列表。
-- 关闭后：无菜单、无 API、迁移命令不建插件表（或跳过插件模型）。
+| 场景 | 预期 |
+|------|------|
+| **未安装** | `plugin list` 显示 catalog 有 `audit-log`、状态未安装；无 `plugin_audit_logs` 表（全新库）；无菜单/API |
+| **install audit-log** | 建表；DB 有安装记录且默认 enabled；重启后 `/admin-api/audit-logs` 可访问（有权限）；权限树含 `plugin:audit_log:*` |
+| **disable** | 重启后无路由/任务；表与历史审计数据仍在；菜单不可见 |
+| **enable** | 恢复路由/任务/菜单，无需重新 install |
+| **uninstall（不 purge）** | 安装记录删除；角色上该插件 permission 行清除；表**保留**；再 install 可看到旧数据 |
+| **uninstall --purge-data** | 表删除；二次确认文案；再 install 为空库状态 |
+| **依赖** | 若 B 依赖 A，未装 A 时 install B 失败 |
 
 ---
 
@@ -457,27 +610,39 @@ plugins:
 
 ## 13. 分阶段路线图
 
-### Phase 1 — 契约 + 样本（本设计评审目标）
+### Phase 1 — 契约 + 安装模型 + 样本（本设计评审目标）
 
-- [ ] `internal/pkg/plugin` 接口与 `PluginRegistry`
-- [ ] `plugins.Module` 接入 `cmd/main.go`
-- [ ] `migrate` 支持插件模型
-- [ ] `config.plugins.enabled`
-- [ ] 前端 `plugins/registry` + types
-- [ ] 样本 `audit-log` 端到端
+**必须交付（否则「安装/卸载」不成立）**：
 
-### Phase 2 — 可选功能插件化
+- [ ] `plugin_installations` 表 + `PluginStore` / `PluginManager`
+- [ ] CLI：`plugin list | install | uninstall | enable | disable`（含 `--purge-data` 确认）
+- [ ] `internal/pkg/plugin` 接口（含 `OnInstall` / `OnUninstall` / `PermissionKeys`）
+- [ ] Catalog `registry.All()` + `plugins.Module` 仅加载 **installed ∧ enabled**
+- [ ] `migrate`：core + **已安装**插件模型；install 时单插件 migrate
+- [ ] 卸载：清 `admin_role_permissions`、删安装记录、可选 purge
+- [ ] 前端：`GET installed` 驱动菜单过滤 + `audit-log` manifest/pages
+- [ ] 样本 `audit-log` 走完整 install → 使用 → disable → uninstall 流程
 
-- 登录会话、系统配置 UI、任务管理 UI、字典、CRUD codegen 等按优先级拆插件
-- 审计全局中间件与核心路由挂钩
-- 可选 DB 级启用开关
-- build tag 裁剪未使用插件
+**Phase 1 明确不做**：
 
-### Phase 3 — 动态加载（调研）
+- 远程下载插件包、动态 `.so`
+- 插件中心 Admin UI（可用 CLI；API 可只做 `installed` 只读）
+- 热加载路由（install 后统一要求重启 `serve`）
+- build tag 裁剪二进制
 
-- Go plugin / 独立进程 sidecar / WASM 等方案对比
-- 版本兼容、签名分发、热加载风险说明
-- **不承诺** Phase 3 时间表
+### Phase 2 — 更多插件 + 运维体验
+
+- 登录会话、字典、系统配置 UI、任务管理 UI、CRUD codegen 等拆为可安装插件
+- Admin **插件中心** UI（install/uninstall/enable/disable、purge 确认）
+- 完整 Admin API + `plugin_install_events` 审计
+- 审计全局中间件；`plugin repair`；Config 热更新与任务 cron 重载
+- 独立 Go module 插件仓 import 进 Catalog
+
+### Phase 3 — 远程包与动态加载（调研）
+
+- 制品仓库、签名校验、版本与主程序兼容性矩阵
+- Go plugin / sidecar / WASM 等；**安装记录与 DB 模型延续 Phase 1**
+- **不承诺**时间表
 
 ---
 
@@ -486,13 +651,17 @@ plugins:
 1. **插件 ID 命名**：kebab-case（`audit-log`）与 permission 中 snake（`audit_log`）是否接受本文约定？
 2. **路由前缀**：统一 `/admin-api/...`  vs  插件专属 `/admin-api/plugins/<id>/...`？
 3. **前端菜单挂载点**：顶级「扩展」分组 vs 挂在「系统管理」下？
-4. **禁用插件后数据**：保留表仅隐藏 UI，还是提供 uninstall 迁移？
-5. **独立仓库**：插件是否计划拆到 `bico-admin-plugins` 同组织多 module，第一期仍 vendor 进主仓？
-6. **审计范围**：全量 `/admin-api` 还是可配置 path 前缀？请求体是否默认关闭？
-7. **与 `job` 模块合并**：是否长期保留 `internal/job` 仅放核心任务，插件任务全部进插件？
-8. **Config 热更新**：插件配置变更是否需要监听 `ConfigManager` 并重载任务 cron？
-9. **国际化**：插件 locale 是否必须同时提供 `zh-CN` / `en-US`？
-10. **Codegen 插件**：生成代码写回主仓还是生成到 `plugins/<id>/` 临时目录？
+4. **~~禁用后数据~~（已收敛）**：**Disable** = 保留表与安装记录；**Uninstall** = 默认保留表，**仅 `--purge-data` 删表**。是否同意「disable 不清角色权限、uninstall 清权限绑定」？
+5. **卸载后保留表**：无 purge 的 uninstall 后，表留在库中但无安装记录——是否允许 `plugin install` 自动 `AutoMigrate` 接续（不 truncate）？还是强制 purge？
+6. **install 生效**：Phase 1 是否接受「必须重启 serve」？还是 Phase 1 就要热注册路由？
+7. **独立仓库**：插件是否计划拆到 `bico-admin-plugins` 多 module，仍通过 Catalog import？
+8. **审计范围**：全量 `/admin-api` 还是可配置 path 前缀？请求体是否默认关闭？
+9. **与 `job` 模块**：是否长期保留 `internal/job` 仅核心任务，插件任务随 install/uninstall 注册？
+10. **Config 热更新**：安装后改 `config_json` 是否监听 `ConfigManager` 并重载 cron？
+11. **国际化**：插件 locale 是否必须同时提供 `zh-CN` / `en-US`？
+12. **Codegen 插件**：生成代码写回主仓还是生成到 `plugins/<id>/` 临时目录？
+13. **插件管理权限**：`system:plugin:*` 是否仅超管角色可持，还是可下放给运维角色？
+14. **版本升级**：主程序升级后 Catalog `version` 变化，已安装行是否触发 `plugin upgrade <id>` 迁移流程？
 
 ---
 
@@ -505,7 +674,8 @@ plugins:
 | [crud-pkg.md](./crud-pkg.md) `AddPermissions` | 插件 `MenuPermissions` + 注册器调用 |
 | [AGENTS.md](./AGENTS.md) 权限前后端对齐 | manifest `access` = 后端 permission key |
 | [job.md](./job.md) Scheduler | `RegisterJobs` |
-| `internal/migrate/migrate.go` | 合并 `Plugin.Models()` |
+| `internal/migrate/migrate.go` | core + **已安装**插件 `Models()` |
+| （新增）`plugin_installations` | Install/Enable/Disable/Uninstall 唯一真相源 |
 
 ---
 
@@ -520,10 +690,11 @@ func All() []plugin.Plugin {
     }
 }
 
-func Enabled(cfg *config.Config) []plugin.Plugin {
+func Active(store PluginStore) []plugin.Plugin {
     var out []plugin.Plugin
     for _, p := range All() {
-        if cfg.Plugins.IsEnabled(p.Meta().ID) {
+        rec, ok := store.Get(p.Meta().ID)
+        if ok && rec.Enabled {
             out = append(out, p)
         }
     }
@@ -536,7 +707,7 @@ func Enabled(cfg *config.Config) []plugin.Plugin {
 func (m *Module) Register(ctx *app.AppContext) error {
     deps := buildAdminDeps(ctx) // 与 admin 共享中间件实例的方案见开放问题
     group := ctx.Engine.Group("/admin-api", deps.JWTAuth, deps.UserStatus.Check())
-    for _, p := range m.registry.Enabled() {
+    for _, p := range m.registry.Active(store) {
         crud.AddPermissions(p.Meta().ParentPermKey(), p.MenuPermissions())
         router := crud.NewModuleRouter(deps.JWTAuth, deps.PermMiddleware, deps.UserStatus)
         for _, mod := range p.AdminCRUDModules(deps) {
