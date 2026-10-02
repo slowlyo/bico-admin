@@ -92,6 +92,14 @@ func (r *RedisCache) Clear() error {
 	return r.client.FlushDB(r.ctx).Err()
 }
 
+// Ping 用请求上下文探测 Redis，避免健康检查被已取消的请求拖住。
+func (r *RedisCache) Ping(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return r.client.Ping(ctx).Err()
+}
+
 // Close 关闭Redis连接
 func (r *RedisCache) Close() error {
 	return r.client.Close()

@@ -8,10 +8,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Session 一次读取到的账号状态，供同一次请求里的后续中间件复用。
+type Session struct {
+	Found     bool
+	Enabled   bool
+	VersionOK bool
+}
+
+// CtxUserEnabled 标记本次请求已经确认账号启用，避免状态中间件再查一次。
+const CtxUserEnabled = "user_enabled"
+
+// CtxUserPermissions 保存本次请求的权限集合。
+const CtxUserPermissions = "user_permissions"
+
 // JWTAuth JWT认证中间件
 func JWTAuth(jwtManager *jwt.JWTManager, authService interface {
 	IsTokenBlacklisted(token string) bool
-	IsTokenVersionValid(userID uint, version uint) bool
+	LoadSession(userID uint, version uint) (Session, error)
 }) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 获取 Authorization header
@@ -45,16 +58,38 @@ func JWTAuth(jwtManager *jwt.JWTManager, authService interface {
 			c.Abort()
 			return
 		}
-		if authService.IsTokenBlacklisted(token) || !authService.IsTokenVersionValid(claims.UserID, claims.Version) {
-			// 黑名单和用户令牌版本共同控制主动失效。
+		if authService.IsTokenBlacklisted(token) {
 			response.ErrorWithCode(c, 401, "token 已失效")
 			c.Abort()
 			return
 		}
 
-		// 将用户信息存入上下文
+		session, err := authService.LoadSession(claims.UserID, claims.Version)
+		if err != nil {
+			response.ErrorWithCode(c, 500, "鉴权失败")
+			c.Abort()
+			return
+		}
+		// 用户已删除与令牌被主动作废要分开，避免把不存在的账号说成令牌过期。
+		if !session.Found {
+			response.ErrorWithCode(c, 401, "用户不存在")
+			c.Abort()
+			return
+		}
+		if !session.VersionOK {
+			response.ErrorWithCode(c, 401, "token 已失效")
+			c.Abort()
+			return
+		}
+		if !session.Enabled {
+			response.ErrorWithCode(c, 401, "账户已被禁用")
+			c.Abort()
+			return
+		}
+
 		c.Set("user_id", claims.UserID)
 		c.Set("username", claims.Username)
+		c.Set(CtxUserEnabled, true)
 
 		c.Next()
 	}

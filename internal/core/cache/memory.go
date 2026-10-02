@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
@@ -113,6 +114,11 @@ func (m *MemoryCache) Clear() error {
 	defer m.mu.Unlock()
 
 	m.items = make(map[string]memoryItem)
+	return nil
+}
+
+// Ping 内存缓存没有外部连接，直接视为可用。
+func (m *MemoryCache) Ping(context.Context) error {
 	return nil
 }
 

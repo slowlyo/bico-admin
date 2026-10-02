@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
@@ -31,9 +32,18 @@ func (s *Scheduler) Start() {
 	s.cron.Start()
 }
 
-// Stop 停止调度器
+// Stop 停止调度器，并等待正在执行的任务结束。
+//
+// 说明：先停调度再关数据库，未结束的任务仍要查库。超过 5 秒不再阻塞退出。
 func (s *Scheduler) Stop() {
-	s.cron.Stop()
+	ctx := s.cron.Stop()
+	timer := time.NewTimer(5 * time.Second)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+	case <-timer.C:
+		s.logger.Warn("定时任务未在时限内结束")
+	}
 }
 
 // AddTask 添加定时任务

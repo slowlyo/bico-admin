@@ -64,6 +64,66 @@ func TestChangePasswordInvalidatesExistingTokens(t *testing.T) {
 		// 旧版本仍有效会让泄露令牌继续访问系统。
 		t.Fatalf("修改密码后旧令牌仍有效")
 	}
+	session, err := service.LoadSession(user.ID, claims.Version)
+	if err != nil {
+		t.Fatalf("读取会话失败: %v", err)
+	}
+	if session.VersionOK {
+		t.Fatalf("修改密码后会话版本仍有效")
+	}
+}
+
+// TestLoadSessionUsesOneRow 验证版本和启用状态能从同一条用户记录读出。
+func TestLoadSessionUsesOneRow(t *testing.T) {
+	database, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("创建测试数据库失败: %v", err)
+	}
+	if err := database.AutoMigrate(&model.AdminUser{}); err != nil {
+		t.Fatalf("迁移测试数据库失败: %v", err)
+	}
+
+	hashed, err := password.Hash("password")
+	if err != nil {
+		t.Fatalf("生成密码哈希失败: %v", err)
+	}
+	user := model.AdminUser{Username: "session-user", Password: hashed, Enabled: true}
+	if err := database.Create(&user).Error; err != nil {
+		t.Fatalf("创建测试用户失败: %v", err)
+	}
+
+	memoryCache := cache.NewMemoryCache()
+	defer memoryCache.Close()
+	manager := jwt.NewJWTManager("0123456789abcdef0123456789abcdef", 1)
+	authService := NewAuthService(database, manager, memoryCache)
+	login, err := authService.Login(&LoginRequest{Username: user.Username, Password: "password"})
+	if err != nil {
+		t.Fatalf("登录失败: %v", err)
+	}
+	claims, err := manager.ParseToken(login.Token)
+	if err != nil {
+		t.Fatalf("解析令牌失败: %v", err)
+	}
+
+	session, err := authService.LoadSession(user.ID, claims.Version)
+	if err != nil {
+		t.Fatalf("读取会话失败: %v", err)
+	}
+	if !session.Found || !session.Enabled || !session.VersionOK {
+		t.Fatalf("有效用户会话不正确: %+v", session)
+	}
+
+	if err := database.Model(&model.AdminUser{}).Where("id = ?", user.ID).Update("enabled", false).Error; err != nil {
+		t.Fatalf("禁用用户失败: %v", err)
+	}
+	authService.InvalidateUserStatusCache(user.ID)
+	session, err = authService.LoadSession(user.ID, claims.Version)
+	if err != nil {
+		t.Fatalf("刷新会话失败: %v", err)
+	}
+	if !session.Found || session.Enabled || !session.VersionOK {
+		t.Fatalf("禁用后会话不正确: %+v", session)
+	}
 }
 
 // TestUpdateProfileUsername 验证用户名可修改且不允许重复。

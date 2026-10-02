@@ -88,7 +88,8 @@ func QueryListWithHook(
 	pg := h.GetPagination(c)
 
 	var total int64
-	if err := query.Count(&total).Error; err != nil {
+	// Count 会改写当前 Statement 的 SELECT，先复制一份再计数，列表查询仍按原字段取出。
+	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
 		h.Error(c, err.Error())
 		return
 	}

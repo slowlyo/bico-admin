@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"math"
 
 	"bico-admin/internal/core/cache"
 	"bico-admin/internal/core/config"
@@ -45,12 +44,21 @@ type Module interface {
 	Register(ctx *AppContext) error
 }
 
-const disabledRateLimitMaxIntValue = math.MaxInt32
-
-// BuildContext 构建应用运行时上下文
+// BuildContext 构建应用运行时上下文。
 //
 // 说明：此处仅负责基础设施的创建与装配，业务依赖必须由模块自行处理。
-func BuildContext(configPath string) (*AppContext, error) {
+// 中途失败时按打开的逆序释放已创建的连接，避免进程继续持有数据库和缓存。
+func BuildContext(configPath string) (ctx *AppContext, err error) {
+	var closers []func()
+	defer func() {
+		if err == nil {
+			return
+		}
+		for i := len(closers) - 1; i >= 0; i-- {
+			closers[i]()
+		}
+	}()
+
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		return nil, err
@@ -60,6 +68,7 @@ func BuildContext(configPath string) (*AppContext, error) {
 	if err != nil {
 		return nil, err
 	}
+	closers = append(closers, func() { _ = zapLogger.Sync() })
 
 	cm, err := config.NewConfigManager(configPath, zapLogger)
 	if err != nil {
@@ -71,11 +80,18 @@ func BuildContext(configPath string) (*AppContext, error) {
 	if err != nil {
 		return nil, err
 	}
+	closers = append(closers, func() {
+		sqlDB, dbErr := database.DB()
+		if dbErr == nil {
+			_ = sqlDB.Close()
+		}
+	})
 
 	cacheInstance, err := cache.NewCache(&cfg.Cache)
 	if err != nil {
 		return nil, err
 	}
+	closers = append(closers, func() { _ = cacheInstance.Close() })
 
 	jwtManager := jwt.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpireHours)
 
@@ -105,12 +121,14 @@ func BuildContext(configPath string) (*AppContext, error) {
 	}, nil
 }
 
+// buildRateLimiter 按当前配置创建限流器。
+//
+// 说明：每次请求再读配置，关闭或调整限流后不必重启进程。
 func buildRateLimiter(cm *config.ConfigManager) *middleware.RateLimiter {
-	cfg := cm.GetConfig()
-	if !cfg.RateLimit.Enabled {
-		return middleware.NewRateLimiter(disabledRateLimitMaxIntValue, disabledRateLimitMaxIntValue)
-	}
-	return middleware.NewRateLimiter(cfg.RateLimit.RPS, cfg.RateLimit.Burst)
+	return middleware.NewRateLimiter(func() (bool, int, int) {
+		cfg := cm.GetRateLimitConfig()
+		return cfg.Enabled, cfg.RPS, cfg.Burst
+	})
 }
 
 // RegisterModules 批量注册模块

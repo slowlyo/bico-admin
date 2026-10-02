@@ -1,13 +1,17 @@
 package server
 
 import (
+	"context"
 	"embed"
+	"errors"
 	"io/fs"
 	"net/http"
+	"regexp"
 	"runtime/debug"
 	"strings"
 	"time"
 
+	"bico-admin/internal/core/cache"
 	"bico-admin/internal/core/config"
 	"bico-admin/internal/core/middleware"
 	"bico-admin/internal/pkg/response"
@@ -16,7 +20,11 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
+
+// hashedAsset 匹配前端构建产物里的内容哈希，例如 umi.8f3a1c2d.js。
+var hashedAsset = regexp.MustCompile(`\.[a-f0-9]{8,}\.`)
 
 // NewServer 创建 Gin 服务器
 func NewServer(cfg *config.ServerConfig, rateLimiter *middleware.RateLimiter, zapLogger *zap.Logger) *gin.Engine {
@@ -113,9 +121,12 @@ func zapRecovery(logger *zap.Logger) gin.HandlerFunc {
 // RegisterCoreRoutes 注册框架级路由。
 //
 // 说明：静态后台入口通过配置管理器按请求读取，修改 admin_path 后无需重启服务。
-func RegisterCoreRoutes(engine *gin.Engine, configManager *config.ConfigManager, embedFS embed.FS) {
-	// 健康检查
+func RegisterCoreRoutes(engine *gin.Engine, configManager *config.ConfigManager, database *gorm.DB, store cache.Cache, embedFS embed.FS) {
 	engine.GET("/health", func(c *gin.Context) {
+		if err := pingDependencies(c.Request.Context(), database, store); err != nil {
+			response.ErrorWithStatus(c, http.StatusServiceUnavailable, 503, err.Error())
+			return
+		}
 		response.SuccessWithData(c, gin.H{"status": "ok"})
 	})
 
@@ -143,15 +154,14 @@ func serveEmbedStatic(engine *gin.Engine, configManager *config.ConfigManager, e
 	if err != nil {
 		panic("failed to create sub filesystem: " + err.Error())
 	}
+	// 入口文件随二进制固定，启动时读入内存，避免每次 SPA 回退都读盘。
+	indexHTML, err := fs.ReadFile(subFS, "index.html")
+	if err != nil {
+		panic("failed to read index.html: " + err.Error())
+	}
 
 	// 未命中业务路由时才进入静态资源分发，避免覆盖 API、上传和 Swagger 路由。
 	handler := func(c *gin.Context) {
-		// 强制不缓存，解决开发/调试期间的 301 缓存问题
-		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
-		c.Header("Pragma", "no-cache")
-		c.Header("Expires", "0")
-		c.Header("X-Bico-Debug", "v2-fixed-redirects")
-
 		path := c.Request.URL.Path
 		prefix := normalizeAdminPath(configManager.GetConfig().Server.AdminPath)
 
@@ -169,6 +179,8 @@ func serveEmbedStatic(engine *gin.Engine, configManager *config.ConfigManager, e
 
 		// 访问入口根路径时补齐斜杠，使相对资源始终以后台目录为基准解析。
 		if prefix != "" && path == prefix {
+			// 跳转本身不能被缓存，否则改后台入口后浏览器仍会沿用旧 301。
+			c.Header("Cache-Control", "no-store")
 			c.Redirect(http.StatusFound, prefix+"/")
 			return
 		}
@@ -181,25 +193,23 @@ func serveEmbedStatic(engine *gin.Engine, configManager *config.ConfigManager, e
 		filePath = strings.TrimPrefix(filePath, "/")
 
 		// 目录或空路径指向 index.html，由前端 Hash 路由继续处理页面切换。
-		if filePath == "" || strings.HasSuffix(filePath, "/") {
-			filePath = "index.html"
+		if filePath == "" || strings.HasSuffix(filePath, "/") || filePath == "index.html" {
+			c.Header("Cache-Control", "no-cache")
+			c.Data(http.StatusOK, "text/html; charset=utf-8", indexHTML)
+			return
 		}
 
 		// 优先读取静态文件；没有扩展名的路径按 SPA 入口回退。
 		f, err := subFS.Open(filePath)
 		if err != nil {
-			// 如果是带后缀的静态资源（如 .js, .css），文件不存在则直接 404
+			// 带后缀的静态资源缺失就是 404，不能回退成页面。
 			if strings.Contains(filePath, ".") && !strings.HasSuffix(filePath, "index.html") {
 				response.NotFound(c, "资源不存在")
 				return
 			}
-			// 否则作为 SPA 路由，返回 index.html
-			filePath = "index.html"
-			f, err = subFS.Open(filePath)
-			if err != nil {
-				response.NotFound(c, "入口文件不存在")
-				return
-			}
+			c.Header("Cache-Control", "no-cache")
+			c.Data(http.StatusOK, "text/html; charset=utf-8", indexHTML)
+			return
 		}
 		defer f.Close()
 
@@ -212,20 +222,37 @@ func serveEmbedStatic(engine *gin.Engine, configManager *config.ConfigManager, e
 		// 对于 index.html，必须手动读取并返回，绝对不能使用 http.FileServer 或 c.FileFromFS
 		// 因为它们检测到 index.html 时会尝试做 301 重定向，这是导致死循环的根源
 		if strings.HasSuffix(filePath, "index.html") {
-			content, err := fs.ReadFile(subFS, "index.html")
-			if err != nil {
-				response.NotFound(c, "读取入口文件失败")
-				return
-			}
-			c.Data(http.StatusOK, "text/html; charset=utf-8", content)
+			c.Header("Cache-Control", "no-cache")
+			c.Data(http.StatusOK, "text/html; charset=utf-8", indexHTML)
 			return
 		}
 
-		// 其他普通资源使用 FileFromFS
+		// 带内容哈希的文件可以长期缓存；favicon 这类无哈希文件仍每次校验。
+		if hashedAsset.MatchString(filePath) {
+			c.Header("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			c.Header("Cache-Control", "no-cache")
+		}
 		c.FileFromFS(filePath, http.FS(subFS))
 	}
 
 	engine.NoRoute(handler)
+}
+
+// pingDependencies 确认数据库和缓存都能响应。
+//
+// 说明：只返回固定文案，避免把驱动错误里的连接信息写进健康检查响应。
+func pingDependencies(ctx context.Context, database *gorm.DB, store cache.Cache) error {
+	if database != nil {
+		sqlDB, err := database.DB()
+		if err != nil || sqlDB.PingContext(ctx) != nil {
+			return errors.New("数据库不可用")
+		}
+	}
+	if store != nil && store.Ping(ctx) != nil {
+		return errors.New("缓存不可用")
+	}
+	return nil
 }
 
 // normalizeAdminPath 统一后台入口格式。
