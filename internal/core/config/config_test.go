@@ -5,6 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/fsnotify/fsnotify"
+	"go.uber.org/zap"
 )
 
 // TestLoadConfigRejectsWeakReleaseSecret 验证生产模式拒绝示例密钥。
@@ -32,6 +35,28 @@ func TestLoadConfigReadsJWTSecretFromEnvironment(t *testing.T) {
 	if cfg.JWT.Secret != secret {
 		// 密钥未覆盖说明生产仍会读取文件中的敏感值。
 		t.Fatalf("环境变量未生效")
+	}
+}
+
+// TestSetOnChangeRunsAfterReload 验证配置重载后会通知外部回调。
+func TestSetOnChangeRunsAfterReload(t *testing.T) {
+	configPath := writeTestConfig(t, "debug", "dev-secret")
+	cm, err := NewConfigManager(configPath, zap.NewNop())
+	if err != nil {
+		t.Fatalf("创建配置管理器失败: %v", err)
+	}
+
+	called := false
+	cm.SetOnChange(func(cfg *Config) {
+		// 回调应看到已经换上的配置，而不是重载前的旧值。
+		if cfg.Server.Mode != "debug" {
+			t.Fatalf("回调收到的模式不正确: %s", cfg.Server.Mode)
+		}
+		called = true
+	})
+	cm.onConfigChange(fsnotify.Event{Name: configPath})
+	if !called {
+		t.Fatalf("配置重载后未触发回调")
 	}
 }
 

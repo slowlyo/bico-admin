@@ -14,11 +14,12 @@
 - 服务器端口配置 (`server.port`)
 - JWT 密钥 (`jwt.secret`)
 - 上传驱动配置 (`upload.driver`)
+- 缓存驱动与连接 (`cache`)
 
 ### 2. 动态配置（支持热更新）
 这些配置可以通过 `ConfigManager` 动态获取，支持热更新：
-- 限流参数 (`rate_limit.rps`, `rate_limit.burst`)
-- 日志级别 (`log.level`) - 需要应用层实现
+- 限流参数 (`rate_limit`)
+- 日志级别 (`log.level`)
 - 业务相关配置
 
 ## 使用方法
@@ -67,8 +68,8 @@ func (h *MyHandler) HandleRequest(c *gin.Context) {
 当前支持热更新的配置：
 - ✅ 限流配置（`rate_limit`）
 - ✅ 日志级别（`log.level`）
-- ✅ 缓存配置（`cache`）
 - ⚠️ 数据库连接（需重启）
+- ⚠️ 缓存驱动（需重启）
 - ⚠️ 服务器端口（需重启）
 
 ## 使用方法
@@ -291,6 +292,12 @@ rate_limit:
    ```yaml
    server:
      embed_static: true  # 修改需重启
+   ```
+
+4. **缓存驱动**
+   ```yaml
+   cache:
+     driver: redis  # 修改需重启
    ```
 
 ### 多实例部署

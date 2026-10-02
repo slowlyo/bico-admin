@@ -74,6 +74,9 @@ func BuildContext(configPath string) (ctx *AppContext, err error) {
 	if err != nil {
 		return nil, err
 	}
+	cm.SetOnChange(func(next *config.Config) {
+		logger.SetLevel(next.Log.Level)
+	})
 
 	isDebug := cfg.Server.Mode == "debug"
 	database, err := db.InitDB(&cfg.Database, zapLogger, isDebug)

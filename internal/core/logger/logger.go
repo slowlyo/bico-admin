@@ -13,10 +13,12 @@ import (
 // Logger 全局日志实例
 var Logger *zap.Logger
 
+// level 保存可调整的日志级别，配置热更新时只改它，不重建 logger。
+var level zap.AtomicLevel
+
 // InitLogger 初始化日志
 func InitLogger(cfg *config.LogConfig) (*zap.Logger, error) {
-	// 解析日志级别
-	level := parseLevel(cfg.Level)
+	level = zap.NewAtomicLevelAt(parseLevel(cfg.Level))
 
 	// 解析日志格式
 	encoderConfig := zapcore.EncoderConfig{
@@ -54,6 +56,16 @@ func InitLogger(cfg *config.LogConfig) (*zap.Logger, error) {
 	Logger = logger
 
 	return logger, nil
+}
+
+// SetLevel 调整当前进程的日志级别。
+//
+// 说明：logger 尚未初始化时没有可调整的核心，直接返回。
+func SetLevel(levelStr string) {
+	if Logger == nil {
+		return
+	}
+	level.SetLevel(parseLevel(levelStr))
 }
 
 func humanTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {

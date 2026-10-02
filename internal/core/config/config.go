@@ -184,10 +184,11 @@ func (r *RedisConfig) GetDB() int {
 
 // ConfigManager 配置管理器（支持热更新）
 type ConfigManager struct {
-	config *Config
-	mu     sync.RWMutex
-	viper  *viper.Viper
-	logger *zap.Logger
+	config   *Config
+	mu       sync.RWMutex
+	viper    *viper.Viper
+	logger   *zap.Logger
+	onChange func(*Config)
 }
 
 // NewConfigManager 创建配置管理器
@@ -235,9 +236,24 @@ func (cm *ConfigManager) onConfigChange(e fsnotify.Event) {
 
 	cm.mu.Lock()
 	cm.config = newConfig
+	hook := cm.onChange
 	cm.mu.Unlock()
 
+	// 先更新内存配置，再通知外部。通知里可以读到新配置。
+	if hook != nil {
+		hook(newConfig)
+	}
+
 	cm.logger.Info("配置已热更新")
+}
+
+// SetOnChange 注册配置重载后的回调。
+//
+// 说明：只保留最后一个回调。用于把日志级别这类不能靠再次读取配置生效的项接进来。
+func (cm *ConfigManager) SetOnChange(fn func(*Config)) {
+	cm.mu.Lock()
+	cm.onChange = fn
+	cm.mu.Unlock()
 }
 
 // GetConfig 获取当前配置（线程安全）
