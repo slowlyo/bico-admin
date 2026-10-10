@@ -8,6 +8,9 @@ export default defineConfig(async () => {
         // 产物落到 web/dist。Go 嵌入时按 dist 这个目录名读取，不能放在应用目录里。
         emptyOutDir: true,
         outDir: '../../dist',
+        // 依赖 @v-c/mini-decimal 使用了 BigInt 字面量，es2015 无法表达会产生转换警告；
+        // es2020 是所有现代浏览器的共同基线，对后台管理系统足够。
+        target: 'es2020',
       },
       server: {
         proxy: {

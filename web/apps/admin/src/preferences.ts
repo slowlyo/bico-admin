@@ -14,7 +14,8 @@ export const overridesPreferences = defineOverridesPreferences({
   },
   // 登录页和侧边栏共用这一张图。
   logo: {
-    source: '/logo.png',
+    // 跟随 VITE_BASE：嵌入部署在 /admin/ 下时是相对路径，开发环境是根路径。
+    source: `${import.meta.env.BASE_URL}logo.png`,
   },
   copyright: {
     companyName: 'Bico Admin',
