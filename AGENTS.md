@@ -4,7 +4,7 @@ Go (Gin + GORM) 后端 + Vue 3 (Vben Admin + antdv-next + vxe-table) 前端的�
 
 ## 验证
 
-改完代码执行 `make check`（gofmt、后端 build/vet/test、前端 `vue-tsc`），失败即未完成。前端依赖用 `pnpm`，目录是 `web/`，管理后台应用在 `web/apps/admin/`。
+改完代码执行 `make check`（gofmt、后端 build/vet/test、前端 `vue-tsc` 与 vitest），失败即未完成。前端依赖用 `pnpm`，目录是 `web/`，管理后台应用在 `web/apps/admin/`。
 
 ## 新增标准 CRUD 模块
 

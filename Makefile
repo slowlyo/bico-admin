@@ -16,7 +16,7 @@ help:
 	@echo "  make migrate   - 执行数据库迁移"
 	@echo "  make swagger   - 生成 Swagger 文档"
 	@echo "  make web-types - 由 Swagger 生成前端类型（先 make swagger）"
-	@echo "  make check     - 后端 build/vet/test 与前端类型检查"
+	@echo "  make check     - gofmt、后端 build/vet/test、前端类型检查与单测"
 	@echo "  make gen       - 生成 CRUD 模块，见 docs/crud-pkg.md"
 	@echo "  make tidy      - 整理后端依赖"
 	@echo "  make clean     - 清理构建产物"
@@ -102,6 +102,7 @@ check:
 	@go vet ./...
 	@go test ./...
 	@cd web/apps/admin && pnpm run typecheck
+	@cd web && pnpm exec vitest run --dom apps/admin/src
 	@echo "✅ 检查通过"
 
 # 生成标准 CRUD 模块并刷新文档和前端类型。
