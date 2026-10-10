@@ -84,7 +84,14 @@ func buildSQLiteDialector(cfg *config.DatabaseConfig, zapLogger *zap.Logger) gor
 		}
 	}
 
-	return sqlite.Open(dbPath)
+	return sqlite.Open(sqliteDSN(dbPath))
+}
+
+// sqliteDSN 给 SQLite 打开 WAL，并在锁冲突时等待而不是立刻失败。
+//
+// 说明：后台请求和定时任务会同时写库，默认回滚日志在并发写时容易报 database is locked。
+func sqliteDSN(path string) string {
+	return "file:" + filepath.ToSlash(path) + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"
 }
 
 // buildMySQLDialector 构建 MySQL 驱动配置

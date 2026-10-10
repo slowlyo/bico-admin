@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bico-admin/internal/admin/service"
+	"bico-admin/internal/core/middleware"
 	"bico-admin/internal/pkg/response"
 	"errors"
 
@@ -25,6 +26,17 @@ func NewUserStatusMiddleware(userService interface {
 // Check 检查用户是否被禁用
 func (m *UserStatusMiddleware) Check() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if enabled, ok := c.Get(middleware.CtxUserEnabled); ok {
+			// JWT 已确认启用时不再查库；值为 false 说明账号在本次请求中被判定禁用。
+			if allowed, isBool := enabled.(bool); isBool && allowed {
+				c.Next()
+				return
+			}
+			response.ErrorWithCode(c, 401, "账户已被禁用")
+			c.Abort()
+			return
+		}
+
 		userID, exists := c.Get("user_id")
 		// 未登录请求直接放行，由后续鉴权中间件处理。
 		if !exists {

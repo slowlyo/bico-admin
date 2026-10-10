@@ -1,6 +1,9 @@
 package cache
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // Cache 缓存接口
 type Cache interface {
@@ -24,4 +27,7 @@ type Cache interface {
 
 	// Close 关闭缓存连接
 	Close() error
+
+	// Ping 确认缓存进程可达。内存实现不访问外部服务。
+	Ping(ctx context.Context) error
 }

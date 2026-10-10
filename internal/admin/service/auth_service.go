@@ -9,6 +9,7 @@ import (
 
 	"bico-admin/internal/admin/model"
 	"bico-admin/internal/core/cache"
+	"bico-admin/internal/core/middleware"
 	"bico-admin/internal/pkg/crud"
 	"bico-admin/internal/pkg/jwt"
 	"bico-admin/internal/pkg/password"
@@ -237,23 +238,69 @@ func (s *AuthService) IsTokenBlacklisted(token string) bool {
 // IsTokenVersionValid 校验令牌版本是否仍与用户一致。
 // 修改密码会递增数据库版本，从而立即废弃该用户此前签发的全部令牌。
 func (s *AuthService) IsTokenVersionValid(userID uint, version uint) bool {
-	cacheKey := tokenVersionCacheKey(userID)
-	if value, err := s.cache.Get(cacheKey); err == nil {
-		// 内存缓存保存 uint，Redis 反序列化后可能成为 float64。
-		switch cached := value.(type) {
-		case uint:
-			return cached == version
-		case float64:
-			return uint(cached) == version
-		}
+	if cached, ok := s.cachedTokenVersion(userID); ok {
+		return cached == version
 	}
 
 	var currentVersion uint
 	if err := s.db.Model(&model.AdminUser{}).Where("id = ?", userID).Pluck("token_version", &currentVersion).Error; err != nil {
 		return false
 	}
-	_ = s.cache.Set(cacheKey, currentVersion, tokenVersionCacheTTL)
+	_ = s.cache.Set(tokenVersionCacheKey(userID), currentVersion, tokenVersionCacheTTL)
 	return currentVersion == version
+}
+
+// LoadSession 一次读出令牌版本和启用状态。
+//
+// 说明：两个缓存都命中时不再查库；任一未命中时用一条查询补齐，避免鉴权链路连续打两次用户表。
+func (s *AuthService) LoadSession(userID uint, version uint) (middleware.Session, error) {
+	if cached, ok := s.cachedTokenVersion(userID); ok {
+		// 版本已经对不上时不必再读启用状态。
+		if cached != version {
+			return middleware.Session{Found: true, VersionOK: false}, nil
+		}
+		if enabled, enabledOK := s.getUserStatusCache(userID); enabledOK {
+			return middleware.Session{Found: true, Enabled: enabled, VersionOK: true}, nil
+		}
+	}
+
+	var row struct {
+		Enabled      bool
+		TokenVersion uint
+	}
+	err := s.db.Model(&model.AdminUser{}).Select("enabled", "token_version").Where("id = ?", userID).Take(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return middleware.Session{}, nil
+	}
+	if err != nil {
+		return middleware.Session{}, err
+	}
+
+	s.setUserStatusCache(userID, row.Enabled)
+	_ = s.cache.Set(tokenVersionCacheKey(userID), row.TokenVersion, tokenVersionCacheTTL)
+	return middleware.Session{
+		Found:     true,
+		Enabled:   row.Enabled,
+		VersionOK: row.TokenVersion == version,
+	}, nil
+}
+
+// cachedTokenVersion 读取令牌版本缓存。
+//
+// 说明：内存缓存保存 uint，Redis JSON 反序列化后数字会变成 float64。
+func (s *AuthService) cachedTokenVersion(userID uint) (uint, bool) {
+	value, err := s.cache.Get(tokenVersionCacheKey(userID))
+	if err != nil {
+		return 0, false
+	}
+	switch cached := value.(type) {
+	case uint:
+		return cached, true
+	case float64:
+		return uint(cached), true
+	default:
+		return 0, false
+	}
 }
 
 // GetUserByID 根据用户ID获取用户信息
