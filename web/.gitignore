@@ -1,54 +1,61 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-**/node_modules
-# roadhog-api-doc ignore
-/src/utils/request-temp.js
-_roadhog-api-doc
-
-# production
-/dist
-
-# misc
+node_modules
 .DS_Store
-npm-debug.log*
-yarn-error.log
-
-/coverage
-.idea
+dist
+dist-ssr
+dist.zip
+dist.tar
+dist.war
+.nitro
+.output
+*-dist.zip
+*-dist.tar
+*-dist.war
+coverage
+*.local
+**/.vitepress/cache
+.cache
+.turbo
+.temp
+dev-dist
+.stylelintcache
 yarn.lock
-*bak
-.vscode
+package-lock.json
+.VSCodeCounter
+**/backend-mock/data
+.omx
+# local env files
+.env.local
+.env.*.local
+.eslintcache
 
-
-# visual studio code
-.history
+logs
 *.log
-functions/*
-.temp/**
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+vite.config.mts.*
+vite.config.mjs.*
+vite.config.js.*
+vite.config.ts.*
 
-# claude code local settings
-.claude/settings.local.json
+# Editor directories and files
+.idea
+# .vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.history
+.cursor
 
-# umi
-.umi
-.umi-production
-.umi-test
-.umi-undefined
-.turbopack
-
-# screenshot
-screenshot
-.firebase
-
-build
-
-# worktrees
-.worktrees
-
-# superpowers docs
-docs/superpowers
-
-# cloudflare wrangler
-.wrangler
-requestRecord.mock.js
+# AI
+.agent
+.agents
+.claude
+.codex
+skills-lock.json
+.atomcode
+datalog

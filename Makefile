@@ -114,5 +114,5 @@ package-win: build-web
 
 clean:
 	@echo "🧹 清理构建产物..."
-	@rm -rf bin/ web/dist/ web/node_modules/.cache
+	@rm -rf bin/ web/dist/ web/.turbo web/node_modules/.cache
 	@echo "✅ 清理完成"

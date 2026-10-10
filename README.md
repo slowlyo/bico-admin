@@ -1,8 +1,8 @@
 # Bico Admin
 
-<img src="./web/public/logo.png" width="200" />
+<img src="./web/apps/admin/public/logo.png" width="200" />
 
-基于 Go + React 构建的现代化后台管理系统。
+基于 Go + Vue 构建的现代化后台管理系统。
 
 ## 技术栈
 
@@ -13,11 +13,11 @@
 - **[Cobra](https://github.com/spf13/cobra)** - 命令行框架
 
 ### 前端
-- **[React 19](https://react.dev/)** - UI 框架
-- **[Ant Design Pro](https://pro.ant.design/)** - 企业级中后台解决方案
-- **[UmiJS 4](https://umijs.org/)** - 企业级前端框架
+- **[Vue 3](https://vuejs.org/)** - UI 框架
+- **[Vben Admin](https://doc.vben.pro/)** - 中后台框架
+- **[antdv-next](https://github.com/antdv-next/antdv-next)** - 组件库
+- **[Vite](https://vite.dev/)** - 构建工具
 - **[TypeScript](https://www.typescriptlang.org/)** - 类型安全
-- **[TipTap](https://tiptap.dev/)** - 富文本编辑器
 - **[pnpm](https://pnpm.io/)** - 包管理器
 
 ## 快速开始
@@ -118,16 +118,7 @@ return []crud.Module{
 
 ### 前端路由
 
-在 `web/config/routes.ts` 配置：
-
-```ts
-{
-  path: "/system/articles",
-  name: "articles",
-  component: "./system/articles",
-  access: "system:article:menu"
-}
-```
+在 `web/apps/admin/src/router/routes/modules/` 增加路由，页面放在 `web/apps/admin/src/views/`。
 
 ## 常用命令
 

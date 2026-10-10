@@ -6,6 +6,10 @@ WORKDIR /app/web
 RUN corepack enable
 
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
+COPY web/apps/admin/package.json ./apps/admin/package.json
+COPY web/internal ./internal
+COPY web/packages ./packages
+COPY web/scripts ./scripts
 RUN pnpm install --frozen-lockfile --registry=https://registry.npmmirror.com
 
 COPY web/ ./

@@ -12,8 +12,9 @@
 bin/
 web/dist/
 web/node_modules/
-web/.turbopack/
-web/.umi/
+web/**/node_modules
+web/.turbo
+web/**/.turbo
 storage/
 
 # Logs

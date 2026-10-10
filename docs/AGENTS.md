@@ -6,7 +6,7 @@
 
 **Bico Admin** 是一个前后端分离的现代化后台管理系统：
 - **后端**: Go + Gin + GORM（模块内显式装配依赖）
-- **前端**: React 19 + Ant Design Pro + UmiJS 4 + TypeScript
+- **前端**: Vue 3 + Vben Admin + antdv-next + TypeScript
 - **数据库**: SQLite（开发）/ MySQL（生产）
 - **缓存**: Memory / Redis
 
@@ -58,23 +58,14 @@
 
 ```
 web/
-├── config/         # 配置文件
-│   ├── routes.ts   # 路由配置（含权限）
-│   ├── config.ts   # 构建配置
-│   └── proxy.ts    # 代理配置
-│
-├── src/
-│   ├── app.tsx           # 应用入口（初始化、布局）
-│   ├── access.ts         # 权限控制
-│   ├── requestErrorConfig.ts  # 请求错误处理
-│   ├── components/       # 公共组件
-│   ├── pages/           # 页面组件
-│   │   ├── auth/        # 认证页面
-│   │   ├── Dashboard/   # 工作台
-│   │   └── system/      # 系统管理
-│   ├── services/        # API服务
-│   └── locales/         # 国际化
-│
+├── apps/admin/     # 后台应用
+│   └── src/
+│       ├── router/routes/modules/  # 路由
+│       ├── views/                  # 页面
+│       ├── api/                    # 接口
+│       └── layouts/                # 布局
+├── packages/       # Vben 框架包
+├── embed.go        # 生产构建嵌入 web/dist
 └── package.json
 ```
 
@@ -142,13 +133,16 @@ var AllPermissions = []Permission{
 users.GET("", r.permMiddleware.RequirePermission(consts.PermUserList), r.userHandler.List)
 ```
 
-**前端** (`web/config/routes.ts`):
+**前端** (`web/apps/admin/src/router/routes/modules/`):
 ```ts
 {
-  path: "/system/users",
-  name: "users",
-  component: "./system/users",
-  access: "system:admin_user:menu"  // 对应后端权限key
+  name: 'AdminUsers',
+  path: '/system/users',
+  component: () => import('#/views/system/users/index.vue'),
+  meta: {
+    authority: ['system:admin_user:menu'],
+    title: '管理员',
+  },
 }
 ```
 
@@ -367,54 +361,24 @@ func Migrate(db *gorm.DB) error {
 }
 ```
 
-#### 4. 前端路由 (`web/config/routes.ts`)
+#### 4. 前端路由 (`web/apps/admin/src/router/routes/modules/articles.ts`)
 
 ```ts
 {
-    path: "/content",
-    name: "content",
-    icon: "book",
-    access: "content:manage",
-    routes: [
-        {
-            path: "/content/articles",
-            name: "articles",
-            component: "./content/articles",
-            access: "content:article:menu",
-        },
-    ],
+  meta: {
+    authority: ['content:article:menu'],
+    icon: 'lucide:file-text',
+    title: '文章管理',
+  },
+  name: 'Articles',
+  path: '/content/articles',
+  component: () => import('#/views/content/articles/index.vue'),
 }
 ```
 
-#### 9. 前端页面 (`web/src/pages/content/articles/index.tsx`)
+#### 5. 前端页面 (`web/apps/admin/src/views/content/articles/index.vue`)
 
-```tsx
-import { ProTable } from '@ant-design/pro-components';
-import { useAccess } from '@umijs/max';
-
-export default function ArticleList() {
-    const access = useAccess();
-    
-    return (
-        <ProTable
-            columns={columns}
-            request={async (params) => {
-                const res = await getArticles(params);
-                return {
-                    data: res.data.list,
-                    total: res.data.total,
-                    success: res.code === 0,
-                };
-            }}
-            toolBarRender={() => [
-                access['content:article:create'] && (
-                    <Button type="primary">新建</Button>
-                ),
-            ]}
-        />
-    );
-}
-```
+页面用 Vue 单文件组件，放在 `web/apps/admin/src/views`。
 
 ### 运行和测试
 
@@ -436,8 +400,8 @@ curl http://localhost:8080/admin-api/articles \
 
 ### 配置文件
 - `config/config.yaml` - 主配置文件
-- `web/config/routes.ts` - 前端路由配置
-- `web/config/proxy.ts` - 开发代理配置
+- `web/apps/admin/src/router/routes/modules/` - 前端路由
+- `web/apps/admin/vite.config.ts` - 开发代理配置
 
 ### 核心文件
 - `internal/core/app/context.go` - AppContext 构建 + 模块注册
@@ -451,9 +415,9 @@ curl http://localhost:8080/admin-api/articles \
 - `internal/admin/middleware/user_status.go` - 用户状态检查
 
 ### 前端核心
-- `web/src/app.tsx` - 应用初始化
-- `web/src/access.ts` - 权限控制
-- `web/src/requestErrorConfig.ts` - 请求拦截器
+- `web/apps/admin/src/main.ts` - 应用入口
+- `web/apps/admin/src/router/access.ts` - 权限控制
+- `web/apps/admin/src/api/request.ts` - 请求拦截器
 
 ## 编码规范
 

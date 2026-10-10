@@ -89,18 +89,10 @@ bico-admin/
 │   └── migrate/             # 数据库迁移
 │       └── migrate.go       # 统一管理所有模型的 AutoMigrate
 │
-├── web/                      # 前端项目
-│   ├── config/              # 配置文件
-│   │   ├── routes.ts        # 路由配置
-│   │   ├── config.ts        # 构建配置
-│   │   └── proxy.ts         # 代理配置
-│   ├── src/                 # 源代码
-│   │   ├── app.tsx          # 应用入口
-│   │   ├── access.ts        # 权限控制
-│   │   ├── components/      # 公共组件
-│   │   ├── pages/          # 页面组件
-│   │   ├── services/       # API服务
-│   │   └── locales/        # 国际化
+├── web/                      # 前端（Vben + antdv-next）
+│   ├── apps/admin/          # 后台应用
+│   ├── packages/            # 框架包
+│   ├── embed.go             # 生产构建嵌入 dist
 │   └── package.json
 │
 ├── docs/                     # 项目文档

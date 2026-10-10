@@ -1,87 +1,84 @@
 {
-  "name": "ant-design-pro",
-  "version": "6.0.2",
+  "name": "vben-admin-monorepo",
+  "version": "5.7.0",
   "private": true,
-  "packageManager": "pnpm@11.5.1",
-  "description": "An out-of-box UI solution for enterprise applications",
-  "repository": "git@github.com:ant-design/ant-design-pro.git",
-  "scripts": {
-    "build": "max build",
-    "dev": "cross-env UMI_ENV=dev MOCK=none max dev",
-    "lint": "tsc --noEmit",
-    "start": "pnpm run dev",
-    "tsc": "tsc --noEmit"
-  },
-  "browserslist": [
-    "defaults"
+  "keywords": [
+    "monorepo",
+    "turbo",
+    "vben",
+    "vben admin",
+    "vben pro",
+    "vue",
+    "vue admin",
+    "vue vben admin",
+    "vue vben admin pro",
+    "vue3"
   ],
-  "dependencies": {
-    "@ant-design/icons": "^6.3.2",
-    "@ant-design/pro-components": "3.1.12-0",
-    "@tiptap/core": "^3.29.2",
-    "@tiptap/extension-image": "^3.29.2",
-    "@tiptap/extension-link": "^3.29.2",
-    "@tiptap/extension-placeholder": "^3.29.2",
-    "@tiptap/extension-text-align": "^3.29.2",
-    "@tiptap/extension-underline": "^3.29.2",
-    "@tiptap/react": "^3.29.2",
-    "@tiptap/starter-kit": "^3.29.2",
-    "antd": "^6.5.3",
-    "antd-style": "^4.1.0",
-    "classnames": "^2.5.1",
-    "clsx": "^2.1.1",
-    "dayjs": "^1.11.21",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "swagger-ui-dist": "^5.32.11"
+  "homepage": "https://github.com/vbenjs/vue-vben-admin",
+  "bugs": "https://github.com/vbenjs/vue-vben-admin/issues",
+  "repository": "vbenjs/vue-vben-admin.git",
+  "license": "MIT",
+  "author": {
+    "name": "vben",
+    "email": "ann.vben@gmail.com",
+    "url": "https://github.com/anncwb"
+  },
+  "type": "module",
+  "scripts": {
+    "bootstrap": "pnpm install",
+    "build": "pnpm -F @vben/admin run build",
+    "build:analyze": "pnpm -F @vben/admin run build:analyze",
+    "check": "pnpm run check:circular && pnpm run check:dep && pnpm run check:type && pnpm check:cspell",
+    "check:circular": "vsh check-circular",
+    "check:cspell": "cspell lint \"**/*.ts\" \"**/README.md\" --no-progress",
+    "check:dep": "vsh check-dep",
+    "check:type": "turbo run typecheck",
+    "clean": "node ./scripts/clean.mjs",
+    "commit": "czg",
+    "dev": "pnpm -F @vben/admin run dev",
+    "format": "vsh lint --format",
+    "lint": "vsh lint",
+    "postinstall": "pnpm -r run stub --if-present",
+    "preinstall": "npx only-allow pnpm",
+    "preview": "pnpm -F @vben/admin run preview",
+    "publint": "vsh publint",
+    "reinstall": "pnpm clean --del-lock && pnpm install",
+    "test:unit": "vitest run --dom",
+    "update:deps": "npx taze -r -w"
   },
   "devDependencies": {
-    "@types/node": "^26.1.2",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@types/react-helmet": "^6.1.11",
-    "@umijs/max": "^4.6.84",
-    "@umijs/max-plugin-openapi": "^2.0.3",
-    "@umijs/request-record": "^1.1.4",
-    "cross-env": "^10.1.0",
-    "tailwindcss": "^4.3.3",
-    "typescript": "^7.0.2"
-  },
-  "overrides": {
-    "@umijs/plugins": {
-      "@ant-design/pro-components": "$@ant-design/pro-components"
-    }
+    "@tsdown/css": "catalog:",
+    "@types/node": "catalog:",
+    "@vben/commitlint-config": "workspace:*",
+    "@vben/eslint-config": "workspace:*",
+    "@vben/oxfmt-config": "workspace:*",
+    "@vben/oxlint-config": "workspace:*",
+    "@vben/stylelint-config": "workspace:*",
+    "@vben/tailwind-config": "workspace:*",
+    "@vben/tsconfig": "workspace:*",
+    "@vben/vite-config": "workspace:*",
+    "@vben/vsh": "workspace:*",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vitejs/plugin-vue-jsx": "catalog:",
+    "cross-env": "catalog:",
+    "cspell": "catalog:",
+    "happy-dom": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "rimraf": "catalog:",
+    "tailwindcss": "catalog:",
+    "tsdown": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vue": "catalog:",
+    "vue-tsc": "catalog:"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": "^22.18.0 || ^24.0.0",
+    "pnpm": ">=10.0.0"
   },
-  "create-umi": {
-    "ignoreScript": [
-      "docker*",
-      "functions*",
-      "site",
-      "generateMock"
-    ],
-    "ignoreDependencies": [
-      "netlify*",
-      "serverless"
-    ],
-    "ignore": [
-      ".dockerignore",
-      ".git",
-      ".github",
-      ".gitpod.yml",
-      "CODE_OF_CONDUCT.md",
-      "Dockerfile",
-      "Dockerfile.*",
-      "lambda",
-      "LICENSE",
-      "netlify.toml",
-      "README.*.md",
-      "azure-pipelines.yml",
-      "docker",
-      "CNAME",
-      "create-umi"
-    ]
-  }
+  "packageManager": "pnpm@10.33.4"
 }

@@ -1,5 +1,7 @@
 # 前端 CRUD 开发指南
 
+> 本文档记录已移除的 React 前端 CRUD 写法。当前页面在 `web/apps/admin/src/views`。
+
 > 使用 `CrudTable` 和 `createCrudService`，一个页面只需 ~100 行代码。
 
 ## 快速开始
