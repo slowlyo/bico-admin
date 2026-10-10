@@ -37,7 +37,8 @@ func parseToken(tokenString, secret string) (*Claims, error) {
 	message := parts[0] + "." + parts[1]
 	signature := parts[2]
 	
-	if sign(message, secret) != signature {
+	// 使用常量时间比较签名，避免通过响应耗时逐字节猜出合法签名。
+	if !hmac.Equal([]byte(sign(message, secret)), []byte(signature)) {
 		return nil, ErrTokenInvalid
 	}
 	

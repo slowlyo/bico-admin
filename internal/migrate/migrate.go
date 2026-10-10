@@ -15,7 +15,6 @@ import (
 func AutoMigrate(db *gorm.DB, mode string) error {
 	// Admin 模块模型
 	if err := db.AutoMigrate(
-		&adminModel.Menu{},
 		&adminModel.AdminUser{},
 		&adminModel.AdminRole{},
 		&adminModel.AdminRolePermission{},

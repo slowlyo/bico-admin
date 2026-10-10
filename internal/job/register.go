@@ -23,11 +23,11 @@ func RegisterJobs(scheduler *scheduler.Scheduler, db *gorm.DB, cache cache.Cache
 		return err
 	}
 
-	// 注册同步任务（每小时执行一次）
-	syncTask := task.NewSyncTask(db, logger)
-	if err := scheduler.AddTask("0 0 * * * *", syncTask, "SyncTask"); err != nil {
-		return err
-	}
+	// SyncTask 仅作为示例，默认不注册；需要时取消注释（每小时执行一次）
+	// syncTask := task.NewSyncTask(db, logger)
+	// if err := scheduler.AddTask("0 0 * * * *", syncTask, "SyncTask"); err != nil {
+	// 	return err
+	// }
 
 	// 可以继续注册更多任务...
 
