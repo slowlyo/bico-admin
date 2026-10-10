@@ -52,5 +52,6 @@ func NewCRUDModules(db *gorm.DB, cacheInvalidator service.AuthCacheInvalidator) 
 	return []crud.Module{
 		handler.NewAdminUserHandler(db, cacheInvalidator),
 		handler.NewAdminRoleHandler(db, cacheInvalidator),
+		// gen:modules
 	}
 }

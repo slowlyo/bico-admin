@@ -1,18 +1,44 @@
 <script lang="ts" setup>
 import type { AdminUser } from '#/api/system/user';
 
-import { useVbenModal } from '@vben/common-ui';
-
 import { message } from 'antdv-next';
 
-import { useVbenForm, z } from '#/adapter/form';
-import AvatarUpload from '#/components/avatar-upload.vue';
+import { z } from '#/adapter/form';
 import { listAllAdminRolesApi } from '#/api/system/role';
-import { createAdminUserApi, updateAdminUserApi, uploadUserAvatarApi } from '#/api/system/user';
+import { adminUserApi, uploadUserAvatarApi } from '#/api/system/user';
+import AvatarUpload from '#/components/avatar-upload.vue';
+import { useCrudForm } from '#/hooks/use-crud-form';
 
 const emit = defineEmits<{ success: [] }>();
 
-const [Form, formApi] = useVbenForm({
+// 把表单值整理成后端载荷；密码单独处理，因为创建必填、编辑可留空。
+function toPayload(values: Record<string, any>) {
+  return {
+    avatar: values.avatar || '',
+    enabled: Boolean(values.enabled),
+    name: String(values.name || '').trim(),
+    role_ids: (values.role_ids || []) as number[],
+    username: String(values.username || '').trim(),
+  };
+}
+
+// 只拿上传地址。用户点确认时才随资料提交，不能顺手改掉当前登录用户。
+async function uploadAvatar(file: File) {
+  const uploaded = await uploadUserAvatarApi(file);
+  return uploaded.url;
+}
+
+const { Form, formApi, Modal } = useCrudForm<AdminUser>({
+  create: async (values) => {
+    const password = values.password ? String(values.password) : '';
+    if (!password) {
+      message.error('请输入密码');
+      return false;
+    }
+    return adminUserApi.create({ ...toPayload(values), password });
+  },
+  entityName: '用户',
+  onSuccess: () => emit('success'),
   schema: [
     {
       component: 'Switch',
@@ -81,73 +107,23 @@ const [Form, formApi] = useVbenForm({
       label: '状态',
     },
   ],
-  showDefaultActions: false,
-});
-
-// 只拿上传地址。用户点确认时才随资料提交，不能顺手改掉当前登录用户。
-async function uploadAvatar(file: File) {
-  const uploaded = await uploadUserAvatarApi(file);
-  return uploaded.url;
-}
-
-const [Modal, modalApi] = useVbenModal({
-  async onConfirm() {
-    const { valid } = await formApi.validate();
-    if (!valid) {
-      return;
-    }
-    const values = await formApi.getValues();
-    const editing = Boolean(values.editing);
-    // 编辑时密码留空表示不改，不能把空字符串传给最少 8 位校验。
-    const payload = {
-      avatar: values.avatar || '',
-      enabled: Boolean(values.enabled),
-      name: String(values.name || '').trim(),
-      role_ids: (values.role_ids || []) as number[],
-      username: String(values.username || '').trim(),
+  toValues: (row) => ({
+    avatar: row
+      ? row.avatar
+      : `https://api.dicebear.com/9.x/thumbs/png?seed=${Math.random()}`,
+    editing: Boolean(row),
+    enabled: row?.enabled ?? true,
+    name: row?.name ?? '',
+    password: '',
+    role_ids: row?.roles?.map((role) => role.id) ?? [],
+    username: row?.username ?? '',
+  }),
+  // 编辑时密码留空表示不改，不能把空字符串传给最少 8 位校验。
+  update: (row, values) =>
+    adminUserApi.update(row.id, {
+      ...toPayload(values),
       ...(values.password ? { password: String(values.password) } : {}),
-    };
-    if (!editing && !payload.password) {
-      message.error('请输入密码');
-      return;
-    }
-
-    modalApi.lock();
-    try {
-      const data = modalApi.getData<AdminUser>();
-      if (editing && data?.id) {
-        await updateAdminUserApi(data.id, payload);
-        message.success('更新成功');
-      } else {
-        await createAdminUserApi(payload);
-        message.success('创建成功');
-      }
-      emit('success');
-      modalApi.close();
-    } finally {
-      modalApi.unlock();
-    }
-  },
-  async onOpenChange(isOpen) {
-    if (!isOpen) {
-      return;
-    }
-    const data = modalApi.getData<AdminUser>();
-    const editing = Boolean(data?.id);
-    modalApi.setState({ title: editing ? '编辑用户' : '新建用户' });
-    await formApi.resetForm();
-    await formApi.setValues({
-      avatar: editing
-        ? data?.avatar
-        : `https://api.dicebear.com/9.x/thumbs/png?seed=${Math.random()}`,
-      editing,
-      enabled: data?.enabled ?? true,
-      name: data?.name ?? '',
-      password: '',
-      role_ids: data?.roles?.map((role) => role.id) ?? [],
-      username: data?.username ?? '',
-    });
-  },
+    }),
 });
 </script>
 

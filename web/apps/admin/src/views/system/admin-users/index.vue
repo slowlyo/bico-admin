@@ -1,17 +1,13 @@
 <script lang="ts" setup>
-import type { AdminUser } from '#/api/system/user';
+import type { AdminUser, AdminUserQuery } from '#/api/system/user';
 
 import { Page, useVbenModal } from '@vben/common-ui';
 
-import { Avatar, Button, Popconfirm, Tag, message } from 'antdv-next';
+import { Avatar, Button, Popconfirm, Tag } from 'antdv-next';
 
-import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { listAllAdminRolesApi } from '#/api/system/role';
-import {
-  deleteAdminUserApi,
-  deleteAdminUsersApi,
-  listAdminUsersApi,
-} from '#/api/system/user';
+import { adminUserApi } from '#/api/system/user';
+import { useCrudGrid } from '#/hooks/use-crud-grid';
 
 import UserForm from './modules/form.vue';
 
@@ -20,7 +16,12 @@ const [FormModal, formModalApi] = useVbenModal({
   destroyOnClose: true,
 });
 
-const [Grid, gridApi] = useVbenVxeGrid({
+const { Grid, gridApi, remove, removeSelected } = useCrudGrid<
+  AdminUser,
+  AdminUserQuery
+>({
+  api: adminUserApi,
+  entityName: '用户',
   formOptions: {
     schema: [
       {
@@ -60,7 +61,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
     showCollapseButton: true,
   },
   gridOptions: {
-    checkboxConfig: { highlight: true },
     columns: [
       { type: 'checkbox', width: 48 },
       { field: 'id', title: 'ID', width: 80 },
@@ -78,48 +78,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
         width: 140,
       },
     ],
-    height: 'auto',
-    proxyConfig: {
-      ajax: {
-        // vxe 读取 items/total，后台分页字段是 list/total。
-        query: async (
-          {
-            page,
-            sort,
-          }: {
-            page: { currentPage: number; pageSize: number };
-            sort?: { field?: string; order?: string };
-          },
-          formValues: Record<string, any>,
-        ) => {
-          const result = await listAdminUsersApi({
-            enabled:
-              formValues.enabled === 'true'
-                ? true
-                : formValues.enabled === 'false'
-                  ? false
-                  : undefined,
-            name: formValues.name || undefined,
-            page: page.currentPage,
-            pageSize: page.pageSize,
-            role_ids: Array.isArray(formValues.role_ids)
-              ? formValues.role_ids.join(',')
-              : undefined,
-            sortField: sort?.field || undefined,
-            sortOrder:
-              sort?.order === 'asc'
-                ? 'ascend'
-                : sort?.order === 'desc'
-                  ? 'descend'
-                  : undefined,
-            username: formValues.username || undefined,
-          });
-          return { items: result.list ?? [], total: result.total ?? 0 };
-        },
-      },
-    },
-    rowConfig: { keyField: 'id' },
-    toolbarConfig: { custom: true, refresh: true, search: true, zoom: true },
   },
 });
 
@@ -131,25 +89,6 @@ function openCreate() {
 // 编辑把当前行交给弹窗，角色 id 在表单里从 roles 取出。
 function openEdit(row: Record<string, any>) {
   formModalApi.setData(row).open();
-}
-
-// 删除后刷新当前查询条件。
-async function removeUser(row: Record<string, any>) {
-  await deleteAdminUserApi(row.id);
-  message.success('删除成功');
-  await gridApi.query();
-}
-
-// 批量删除只处理当前勾选行。
-async function removeSelected() {
-  const rows = (gridApi.grid?.getCheckboxRecords?.() ?? []) as AdminUser[];
-  if (rows.length === 0) {
-    message.warning('请选择用户');
-    return;
-  }
-  await deleteAdminUsersApi(rows.map((row) => row.id));
-  message.success('删除成功');
-  await gridApi.query();
 }
 </script>
 
@@ -195,7 +134,7 @@ async function removeSelected() {
         >
           编辑
         </Button>
-        <Popconfirm title="确认删除该用户？" @confirm="removeUser(row)">
+        <Popconfirm title="确认删除该用户？" @confirm="remove(row)">
           <Button
             v-access:code="'system:admin_user:delete'"
             danger

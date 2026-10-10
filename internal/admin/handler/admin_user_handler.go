@@ -5,7 +5,6 @@ import (
 	"bico-admin/internal/admin/service"
 	"bico-admin/internal/pkg/crud"
 	"bico-admin/internal/pkg/password"
-	"errors"
 	"strconv"
 	"strings"
 
@@ -21,10 +20,20 @@ type AdminUserHandler struct {
 	cacheInvalidator service.AuthCacheInvalidator
 }
 
+// NewAdminUserHandler 创建用户管理处理器。
+//
+// 说明：cacheInvalidator 为空时使用空实现，业务代码无需逐处判空。
 func NewAdminUserHandler(db *gorm.DB, cacheInvalidator service.AuthCacheInvalidator) *AdminUserHandler {
+	if cacheInvalidator == nil {
+		cacheInvalidator = service.NoopAuthCacheInvalidator{}
+	}
 	h := &AdminUserHandler{cacheInvalidator: cacheInvalidator}
 	h.DB = db
 	h.NotFoundMsg = "用户不存在"
+	// 不包含 password 等敏感列，避免按密码哈希排序推断其内容。
+	h.SortableFields = []string{"id", "username", "name", "enabled", "created_at", "updated_at"}
+	// 用户名是全局唯一的登录标识。
+	h.UniqueFields = []crud.Unique{{Column: "username", Err: service.ErrUsernameExists}}
 
 	h.BuildListQuery = func(db *gorm.DB, req *userListReq) *gorm.DB {
 		query := db.Model(&model.AdminUser{}).Preload("Roles")
@@ -48,6 +57,7 @@ func NewAdminUserHandler(db *gorm.DB, cacheInvalidator service.AuthCacheInvalida
 		return query
 	}
 
+	// 详情与写操作返回值都需要带 Roles。
 	h.BuildGetQuery = func(db *gorm.DB) *gorm.DB {
 		return db.Model(&model.AdminUser{}).Preload("Roles")
 	}
@@ -58,15 +68,6 @@ func NewAdminUserHandler(db *gorm.DB, cacheInvalidator service.AuthCacheInvalida
 			// 去除首尾空格后为空的用户名不能用于登录。
 			return nil, service.ErrUsernameRequired
 		}
-		exists, err := crud.Exists(db, &model.AdminUser{}, "username = ?", username)
-		if err != nil {
-			return nil, err
-		}
-		if exists {
-			// 用户名是全局唯一的登录标识。
-			return nil, service.ErrUsernameExists
-		}
-
 		hashed, err := password.Hash(req.Password)
 		if err != nil {
 			return nil, err
@@ -80,25 +81,11 @@ func NewAdminUserHandler(db *gorm.DB, cacheInvalidator service.AuthCacheInvalida
 			Enabled:  req.Enabled == nil || *req.Enabled,
 		}, nil
 	}
-
-	h.CreateInTx = func(tx *gorm.DB, item *model.AdminUser, req *createUserReq) error {
+	h.AfterCreate = func(tx *gorm.DB, item *model.AdminUser, req *createUserReq) error {
 		return h.syncRoles(tx, item, req.RoleIDs)
 	}
-	// 需要返回带 Roles 的用户数据
-	h.ReloadAfterCreate = func(tx *gorm.DB, id uint, item *model.AdminUser) error {
-		return tx.Preload("Roles").First(item, item.ID).Error
-	}
 
-	h.BuildUpdateQuery = func(tx *gorm.DB) *gorm.DB {
-		return tx.Model(&model.AdminUser{})
-	}
-	h.BuildUpdates = func(req *updateUserReq, existing *model.AdminUser) (map[string]interface{}, error) {
-		if req.Enabled != nil && !*req.Enabled {
-			// 至少保留一个启用的超级管理员，避免后台永久失去管理入口。
-			if err := h.ensureSuperAdminRemains(db, existing.ID); err != nil {
-				return nil, err
-			}
-		}
+	h.BuildUpdates = func(tx *gorm.DB, req *updateUserReq, existing *model.AdminUser) (map[string]interface{}, error) {
 		updates := map[string]interface{}{}
 		if req.Username != nil {
 			username := strings.TrimSpace(*req.Username)
@@ -106,19 +93,7 @@ func NewAdminUserHandler(db *gorm.DB, cacheInvalidator service.AuthCacheInvalida
 				// 显式提交空用户名时拒绝保存。
 				return nil, service.ErrUsernameRequired
 			}
-			if username != existing.Username {
-				// 查重时排除当前用户，允许保存未变更的用户名。
-				exists, err := crud.Exists(db, &model.AdminUser{}, "username = ? AND id <> ?", username, existing.ID)
-				if err != nil {
-					// 查重失败时不执行后续更新。
-					return nil, err
-				}
-				if exists {
-					// 重复用户名会导致登录身份不唯一。
-					return nil, service.ErrUsernameExists
-				}
-				updates["username"] = username
-			}
+			updates["username"] = username
 		}
 		if req.Name != "" {
 			updates["name"] = req.Name
@@ -139,66 +114,46 @@ func NewAdminUserHandler(db *gorm.DB, cacheInvalidator service.AuthCacheInvalida
 		}
 		return updates, nil
 	}
-	h.UpdateInTx = func(tx *gorm.DB, id uint, existing *model.AdminUser, req *updateUserReq) error {
-		// 角色发生变更时同步角色关联并失效权限缓存。
-		if req.RoleIDs == nil {
-			// 仅更新启用状态时失效状态缓存。
-			if req.Enabled != nil && h.cacheInvalidator != nil {
-				h.cacheInvalidator.InvalidateUserStatusCache(existing.ID)
-			}
-			return nil
-		}
-		if err := h.syncRoles(tx, existing, req.RoleIDs); err != nil {
-			return err
-		}
-		if h.cacheInvalidator != nil {
-			h.cacheInvalidator.InvalidateUserPermissionCache(existing.ID)
-			// 角色更新请求可能同时包含 enabled，统一失效状态缓存。
-			h.cacheInvalidator.InvalidateUserStatusCache(existing.ID)
+	h.BeforeUpdate = func(tx *gorm.DB, id uint, existing *model.AdminUser, req *updateUserReq, updates map[string]interface{}) error {
+		// 禁用账号前，至少保留一个启用的超级管理员，避免后台永久失去管理入口。
+		if enabled, ok := updates["enabled"].(bool); ok && !enabled {
+			return h.ensureSuperAdminRemains(tx, existing.ID)
 		}
 		return nil
 	}
-	h.AfterUpdateCommit = func(id uint, existing *model.AdminUser, req *updateUserReq) {
-		if req.Password != "" && h.cacheInvalidator != nil {
-			// 提交后清缓存，防止并发请求在提交前回填旧令牌版本。
+	h.AfterUpdate = func(tx *gorm.DB, id uint, existing *model.AdminUser, req *updateUserReq) error {
+		// 请求未携带角色时保持原有角色关联不变。
+		if req.RoleIDs == nil {
+			return nil
+		}
+		return h.syncRoles(tx, existing, req.RoleIDs)
+	}
+	h.AfterUpdateCommit = func(id uint, existing *model.AdminUser, req *updateUserReq, updates map[string]interface{}) {
+		// 提交后再清缓存，防止并发请求在提交前把旧值回填进缓存。
+		// 依据 updates 而不是 req 判断变更，这样 UpdateEnabled 路径也能正确失效。
+		_, enabledChanged := updates["enabled"]
+		if req.RoleIDs != nil {
+			h.cacheInvalidator.InvalidateUserPermissionCache(existing.ID)
+		}
+		// 角色或启用状态变化都会影响状态缓存。
+		if req.RoleIDs != nil || enabledChanged {
+			h.cacheInvalidator.InvalidateUserStatusCache(existing.ID)
+		}
+		if _, passwordChanged := updates["password"]; passwordChanged {
 			h.cacheInvalidator.InvalidateUserTokenVersionCache(existing.ID)
 		}
 	}
-	h.ReloadAfterUpdate = func(tx *gorm.DB, id uint, existing *model.AdminUser) error {
-		return tx.Preload("Roles").First(existing, id).Error
-	}
 
-	h.BeforeDeleteBatch = func(tx *gorm.DB, ids []uint) error {
-		return h.ensureSuperAdminsRemain(tx, ids)
+	h.BeforeDelete = func(tx *gorm.DB, ids []uint) error {
+		if err := h.ensureSuperAdminsRemain(tx, ids); err != nil {
+			return err
+		}
+		// 删除用户前先清理角色关联，后续任一步失败都会随事务回滚。
+		return tx.Where("user_id IN ?", ids).Delete(&model.AdminUserRole{}).Error
 	}
-	h.DeleteInTx = func(tx *gorm.DB, id uint) error {
-		var user model.AdminUser
-		if err := tx.First(&user, id).Error; err != nil {
-			return err
-		}
-		if err := h.ensureSuperAdminRemains(tx, user.ID); err != nil {
-			return err
-		}
-		// 删除用户前先清空角色关联，任一步失败都回滚。
-		if err := tx.Model(&user).Association("Roles").Clear(); err != nil {
-			return err
-		}
-		if h.cacheInvalidator != nil {
-			h.cacheInvalidator.InvalidateUserPermissionCache(user.ID)
-			h.cacheInvalidator.InvalidateUserStatusCache(user.ID)
-		}
-		return nil
-	}
-	h.DeleteBatchInTx = func(tx *gorm.DB, ids []uint) error {
-		// 批量删除前先清理用户角色关联，后续主记录删除失败时会随事务回滚。
-		if err := tx.Where("user_id IN ?", ids).Delete(&model.AdminUserRole{}).Error; err != nil {
-			return err
-		}
-		// 删除用户后批量失效权限与状态缓存。
-		if h.cacheInvalidator != nil {
-			h.cacheInvalidator.InvalidateUsersAuthCache(ids)
-		}
-		return nil
+	h.AfterDeleteCommit = func(ids []uint) {
+		// 删除提交后再批量失效权限与状态缓存，单个与批量删除共用。
+		h.cacheInvalidator.InvalidateUsersAuthCache(ids)
 	}
 
 	return h
@@ -290,7 +245,7 @@ func (h *AdminUserHandler) syncRoles(tx *gorm.DB, user *model.AdminUser, roleIDs
 	}
 	// 如果查询数量不一致，说明请求中存在无效角色 ID。
 	if len(roles) != len(uniqueRoleIDs) {
-		return errors.New("存在无效角色 ID")
+		return crud.NewBizError("存在无效角色 ID")
 	}
 	if err := tx.Model(user).Association("Roles").Append(roles); err != nil {
 		return err
@@ -355,7 +310,7 @@ func (h *AdminUserHandler) ensureSuperAdminsRemain(db *gorm.DB, excludedUserIDs 
 		return err
 	}
 	if remaining == 0 {
-		return errors.New("必须保留至少一个启用的超级管理员")
+		return crud.NewBizError("必须保留至少一个启用的超级管理员")
 	}
 	return nil
 }

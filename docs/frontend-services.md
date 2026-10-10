@@ -1,194 +1,85 @@
-# 前端服务层架构
+# 前端接口层
 
-> 本文档记录已移除的 React 前端服务层。当前接口在 `web/apps/admin/src/api`。
+> 接口调用统一放在 `web/apps/admin/src/api/`，基于 Vben 的 `RequestClient` 封装。
 
 ## 目录结构
 
-服务层按照**菜单层级**组织，结构清晰，便于维护：
-
 ```
-src/services/
-├── config.ts              # API配置（前缀、工具函数）
-├── auth/                  # 认证相关服务
-│   ├── index.ts          # 登录、登出、获取当前用户、验证码
-│   ├── profile.ts        # 个人资料、修改密码、上传头像
-│   └── types.ts          # 类型定义
-├── common/                # 公共服务
-│   ├── index.ts          # 应用配置
-│   └── types.ts          # 类型定义
-└── system/                # 系统管理模块
-    ├── admin-user/        # 管理员管理
-    │   ├── index.ts      # CRUD接口
-    │   └── types.ts      # 类型定义
-    └── admin-role/        # 角色管理
-        ├── index.ts      # CRUD接口、权限管理
-        └── types.ts      # 类型定义
+src/api/
+├── request.ts        # 请求客户端 + 拦截器
+├── index.ts          # 统一导出
+├── common.ts         # 通用接口（应用配置等）
+├── dashboard.ts      # 工作台
+├── core/             # 登录、用户信息、菜单
+│   ├── auth.ts
+│   ├── user.ts
+│   └── menu.ts
+├── system/           # 系统管理（用户、角色）
+│   ├── user.ts
+│   └── role.ts
+└── demo/             # 示例接口
 ```
 
-## API前缀配置
+按业务域分目录，一个资源一个文件，文件内同时放该资源的类型定义和接口函数。
 
-所有API请求前缀统一在 `config.ts` 中配置：
+## 请求客户端（request.ts）
 
-```typescript
-// src/services/config.ts
-export const API_PREFIX = '/admin-api';
+`requestClient` 是页面使用的客户端，`responseReturn: 'data'` 表示调用方直接拿到 `data` 字段。
 
-export function buildApiUrl(path: string): string {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${API_PREFIX}${normalizedPath}`;
-}
+拦截器处理：
+
+- 请求头：自动带上 `Authorization: Bearer {token}` 和 `Accept-Language`。
+- 响应格式：后端统一为 `{ code, msg, data }`，`code === 0` 视为成功。
+- 登录失效：401 时清除 token 并按偏好设置跳转登录或弹出登录框。
+- 错误提示：优先使用后端 `msg`，没有时按状态码提示。
+
+`baseRequestClient` 不带业务拦截器，仅用于刷新 token 等特殊场景。
+
+## 编写接口文件
+
+标准 CRUD 模块用 `createCrudApi`（`api/crud.ts`）一行生成 `list/create/update/remove/removeBatch`：
+
+```ts
+import type { Defined, PageQuery } from '#/api/crud';
+import type { definitions, paths } from '#/api/generated/schema';
+
+import { createCrudApi } from '#/api/crud';
+
+export type AdminUser = Defined<definitions['model.AdminUser']>;
+export type AdminUserQuery = NonNullable<paths['/admin-users']['get']['parameters']['query']> &
+  PageQuery;
+
+// 泛型依次为：行类型、列表查询参数、创建载荷、更新载荷（不传则与创建相同）。
+export const adminUserApi = createCrudApi<
+  AdminUser,
+  AdminUserQuery,
+  definitions['handler.createUserReq'],
+  definitions['handler.updateUserReq']
+>('/admin-users');
+
+// 使用
+adminUserApi.list({ page: 1, pageSize: 20 });
+adminUserApi.update(1, payload);
+adminUserApi.removeBatch([1, 2]); // DELETE /admin-users/batch，ids 放在请求体里
 ```
 
-### 使用方法
+非标准接口（如上传头像、权限树）仍写成独立函数，放在同一个文件里。
 
-```typescript
-import { buildApiUrl } from '@/services/config';
+实体、查询和载荷类型来自后端 Swagger 生成的 `api/generated/schema.d.ts`（禁止手改）。后端改了请求或响应结构后，执行 `make swagger web-types`，前端用到旧字段的地方会在 `vue-tsc` 中报错。
 
-// 构建完整的API路径
-const url = buildApiUrl('/auth/login');  // => '/admin-api/auth/login'
-```
+约定：
 
-## 模块说明
+- 标准 CRUD 用 `{资源}Api` 对象，其他接口用 `{动作}{资源}Api` 函数，如 `listAllAdminRolesApi`。
+- 路径不含 `/admin-api` 前缀，由 `apiURL` 统一提供。
+- 后端标准 CRUD 路由：`GET ""`、`GET /:id`、`POST ""`、`PUT /:id`、`DELETE /:id`、`DELETE /batch`。
+- 文件上传使用 `requestClient.upload(url, { file })`。
 
-### auth - 认证服务
+## 后端接口约定
 
-**index.ts** - 基础认证功能
-- `login()` - 用户登录
-- `logout()` - 退出登录
-- `getCurrentUser()` - 获取当前用户信息
-- `getCaptcha()` - 获取验证码
+| 类型 | 路径 | 说明 |
+| --- | --- | --- |
+| 公开 | `/admin-api/auth/login`、`/captcha`、`/app-config` | 无需登录 |
+| 登录后 | `/admin-api/auth/*`、`/upload`、`/dashboard/overview` | 需要 token |
+| CRUD 模块 | `/admin-api/admin-users`、`/admin-roles` | 需要 token 和对应权限 |
 
-**profile.ts** - 个人资料管理
-- `updateProfile()` - 更新个人资料
-- `changePassword()` - 修改密码
-- `uploadAvatar()` - 上传头像
-
-**types.ts** - 类型定义
-- `LoginParams`, `LoginResult`
-- `CurrentUser`
-- `UpdateProfileParams`, `ChangePasswordParams`
-- `CaptchaResult`
-
-### common - 公共服务
-
-**index.ts** - 应用级配置
-- `getAppConfig()` - 获取应用配置
-
-**types.ts** - 类型定义
-- `AppConfig`
-
-### system - 系统管理
-
-#### admin-user - 管理员管理
-
-**index.ts** - 管理员CRUD
-- `getAdminUserList()` - 获取管理员列表
-- `getAdminUser()` - 获取管理员详情
-- `createAdminUser()` - 创建管理员
-- `updateAdminUser()` - 更新管理员
-- `deleteAdminUser()` - 删除管理员
-
-**types.ts** - 类型定义
-- `AdminUser`, `AdminRole`
-- `AdminUserListParams`, `AdminUserCreateParams`, `AdminUserUpdateParams`
-
-#### admin-role - 角色管理
-
-**index.ts** - 角色CRUD及权限管理
-- `getAdminRoleList()` - 获取角色列表
-- `getAllAdminRoles()` - 获取所有角色（不分页）
-- `getAdminRole()` - 获取角色详情
-- `createAdminRole()` - 创建角色
-- `updateAdminRole()` - 更新角色
-- `deleteAdminRole()` - 删除角色
-- `updateRolePermissions()` - 更新角色权限
-- `getAllPermissions()` - 获取所有权限
-
-**types.ts** - 类型定义
-- `AdminRole`, `Permission`
-- `AdminRoleListParams`, `AdminRoleCreateParams`, `AdminRoleUpdateParams`
-- `UpdatePermissionsParams`
-
-## 最佳实践
-
-### 1. 导入规范
-
-推荐分别导入函数和类型：
-
-```typescript
-// ✅ 推荐
-import { getAdminUserList, createAdminUser } from '@/services/system/admin-user';
-import type { AdminUser, AdminUserCreateParams } from '@/services/system/admin-user/types';
-
-// ❌ 不推荐（类型和函数混在一起）
-import { getAdminUserList, type AdminUser } from '@/services/system/admin-user';
-```
-
-### 2. API路径使用
-
-禁止硬编码API路径，统一使用 `buildApiUrl` 函数：
-
-```typescript
-// ✅ 推荐
-import { buildApiUrl } from '@/services/config';
-const url = buildApiUrl('/auth/avatar');
-
-// ❌ 禁止（硬编码前缀）
-const url = '/admin-api/auth/avatar';
-```
-
-### 3. 类型安全
-
-所有接口调用必须使用TypeScript类型：
-
-```typescript
-import { createAdminUser } from '@/services/system/admin-user';
-import type { AdminUserCreateParams } from '@/services/system/admin-user/types';
-
-const handleCreate = async (values: AdminUserCreateParams) => {
-  const res = await createAdminUser(values);
-  // ...
-};
-```
-
-### 4. 模块组织原则
-
-- **按菜单层级组织**：services目录结构与路由菜单保持一致
-- **职责单一**：每个模块只负责对应功能的API调用
-- **类型分离**：types.ts 单独管理类型定义
-- **配置统一**：所有API配置在 config.ts 中集中管理
-
-## 新增模块步骤
-
-1. 在对应的菜单层级下创建目录（如 `services/system/xxx/`）
-2. 创建 `index.ts` - 编写API调用函数
-3. 创建 `types.ts` - 定义相关类型
-4. 使用 `buildApiUrl()` 构建API路径
-5. 在页面/组件中导入使用
-
-示例：
-
-```typescript
-// services/system/xxx/types.ts
-export interface XxxItem {
-  id: number;
-  name: string;
-}
-
-export interface XxxListParams {
-  page?: number;
-  pageSize?: number;
-}
-
-// services/system/xxx/index.ts
-import { request } from '@umijs/max';
-import { buildApiUrl } from '../../config';
-import type { XxxItem, XxxListParams } from './types';
-
-export async function getXxxList(params: XxxListParams) {
-  return request<API.Response<XxxItem[]>>(buildApiUrl('/xxx'), {
-    method: 'GET',
-    params,
-  });
-}
-```
+完整接口文档见 Swagger：`/swagger/admin/index.html`。

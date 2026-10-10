@@ -1,0 +1,17 @@
+package model
+
+import "bico-admin/internal/core/model"
+
+// [[.Pascal]] [[.Title]]模型
+type [[.Pascal]] struct {
+	model.BaseModel
+[[- range .Fields]]
+	[[.GoName]] [[.GoType]] `gorm:"[[.GormTag]]" json:"[[.Name]]"` // [[.Label]]
+[[- end]]
+	Enabled bool `gorm:"default:true" json:"enabled"`
+}
+
+// TableName 指定表名
+func ([[.Pascal]]) TableName() string {
+	return "[[.Table]]"
+}

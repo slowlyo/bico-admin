@@ -2,7 +2,9 @@ package handler
 
 import (
 	"bico-admin/internal/core/upload"
+	"bico-admin/internal/pkg/crud"
 	"bico-admin/internal/pkg/response"
+	"errors"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,6 +13,7 @@ import (
 //
 // 说明：用于富文本编辑器等通用场景上传图片/视频文件。
 type UploadHandler struct {
+	crud.BaseHandler
 	uploader upload.Uploader
 }
 
@@ -65,11 +68,30 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 
 	url, err := h.uploader.Upload(file, subPath)
 	if err != nil {
-		response.ErrorWithCode(c, 400, err.Error())
+		h.Fail(c, uploadBizError(err))
 		return
 	}
 
 	response.SuccessWithData(c, gin.H{
 		"url": url,
 	})
+}
+
+// uploadBizError 把上传校验类错误转成业务错误。
+//
+// 说明：文件过大、类型不支持等由用户操作引起，提示可以直接展示；
+// 其余错误（云存储 SDK、磁盘 IO 等）可能包含内部细节，保持原样交给 Fail 记录日志。
+func uploadBizError(err error) error {
+	for _, target := range []error{
+		upload.ErrFileTooLarge,
+		upload.ErrInvalidFileType,
+		upload.ErrEmptyFile,
+		upload.ErrInvalidPath,
+	} {
+		// 命中任一校验类错误即视为用户可见的业务错误。
+		if errors.Is(err, target) {
+			return crud.NewBizError(target.Error())
+		}
+	}
+	return err
 }

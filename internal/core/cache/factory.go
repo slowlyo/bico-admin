@@ -18,7 +18,7 @@ type Config interface {
 // NewCache 创建缓存实例工厂方法
 func NewCache(config Config) (Cache, error) {
 	driver := config.GetDriver()
-	
+
 	switch driver {
 	case "memory":
 		return NewMemoryCache(), nil

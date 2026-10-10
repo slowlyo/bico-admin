@@ -32,6 +32,7 @@ const routes: RouteRecordRaw[] = [
           title: '角色管理',
         },
       },
+      // gen:routes
     ],
   },
 ];

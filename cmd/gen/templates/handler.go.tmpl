@@ -1,0 +1,107 @@
+package handler
+
+import (
+	"bico-admin/internal/admin/model"
+	"bico-admin/internal/pkg/crud"
+
+	"gorm.io/gorm"
+)
+
+// [[.Camel]]Perms [[.Title]]的标准 CRUD 权限，权限码为 system:[[.Name]]:*。
+var [[.Camel]]Perms = crud.NewCRUDPerms("system", "[[.Name]]", "[[.Title]]")
+
+// [[.Pascal]]Handler [[.Title]]处理器
+type [[.Pascal]]Handler struct {
+	crud.CRUDHandler[model.[[.Pascal]], [[.Camel]]ListReq, create[[.Pascal]]Req, update[[.Pascal]]Req]
+}
+
+// New[[.Pascal]]Handler 创建[[.Title]]处理器，列表、详情、创建、更新、删除和启停由 CRUDHandler 提供。
+func New[[.Pascal]]Handler(db *gorm.DB) *[[.Pascal]]Handler {
+	h := &[[.Pascal]]Handler{}
+	h.DB = db
+	h.NotFoundMsg = "[[.Title]]不存在"
+	// 排序白名单，只放允许客户端排序的列。
+	h.SortableFields = []string{[[range $i, $c := .SortableColumns]][[if $i]], [[end]]"[[$c]]"[[end]]}
+
+	// 列表筛选：字符串字段模糊匹配，enabled 精确匹配。
+	h.BuildListQuery = func(db *gorm.DB, req *[[.Camel]]ListReq) *gorm.DB {
+		query := db.Model(&model.[[.Pascal]]{})
+[[- range .SearchFields]]
+		if req.[[.GoName]] != "" {
+			query = query.Where("[[.Name]] LIKE ?", "%"+req.[[.GoName]]+"%")
+		}
+[[- end]]
+		if req.Enabled != nil {
+			query = query.Where("enabled = ?", *req.Enabled)
+		}
+		return query
+	}
+
+	// 创建时 enabled 未传按启用处理。
+	h.NewModelFromCreate = func(req *create[[.Pascal]]Req) (*model.[[.Pascal]], error) {
+		return &model.[[.Pascal]]{
+[[- range .Fields]]
+			[[.GoName]]: req.[[.GoName]],
+[[- end]]
+			Enabled: req.Enabled == nil || *req.Enabled,
+		}, nil
+	}
+
+	// 更新字段都是指针，只有请求显式传入的字段才会写库，零值也能被保存。
+	h.BuildUpdates = func(tx *gorm.DB, req *update[[.Pascal]]Req, existing *model.[[.Pascal]]) (map[string]interface{}, error) {
+		updates := map[string]interface{}{}
+[[- range .Fields]]
+		if req.[[.GoName]] != nil {
+			updates["[[.Name]]"] = *req.[[.GoName]]
+		}
+[[- end]]
+		if req.Enabled != nil {
+			updates["enabled"] = *req.Enabled
+		}
+		return updates, nil
+	}
+
+	return h
+}
+
+// ModuleConfig 声明模块的路由、权限和 Swagger 类型，运行时注册与文档生成共用。
+func (h *[[.Pascal]]Handler) ModuleConfig() crud.ModuleConfig {
+	return crud.ModuleConfig{
+		Name:             "[[.Name]]",
+		Group:            "[[.Group]]",
+		Description:      "[[.Title]]",
+		ParentPermission: PermSystemManage,
+		Permissions:      [[.Camel]]Perms.Tree,
+		Routes:           [[.Camel]]Perms.Routes(),
+		Swagger: crud.SwaggerConfig{
+			Model:         model.[[.Pascal]]{},
+			ListRequest:   [[.Camel]]ListReq{},
+			CreateRequest: create[[.Pascal]]Req{},
+			UpdateRequest: update[[.Pascal]]Req{},
+		},
+	}
+}
+
+// 请求结构
+type (
+	[[.Camel]]ListReq struct {
+[[- range .SearchFields]]
+		[[.GoName]] string `form:"[[.Name]]"`
+[[- end]]
+		Enabled *bool `form:"enabled"`
+	}
+	create[[.Pascal]]Req struct {
+[[- range $i, $f := .Fields]]
+		[[$f.GoName]] [[$f.GoType]] `json:"[[$f.Name]]"[[if and (eq $i 0) (eq $f.Type "string")]] binding:"required"[[end]]`
+[[- end]]
+		Enabled *bool `json:"enabled"`
+	}
+	update[[.Pascal]]Req struct {
+[[- range .Fields]]
+		[[.GoName]] *[[.GoType]] `json:"[[.Name]]"`
+[[- end]]
+		Enabled *bool `json:"enabled"`
+	}
+)
+
+var _ crud.Module = (*[[.Pascal]]Handler)(nil)

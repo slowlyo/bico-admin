@@ -10,10 +10,10 @@
 
 - `handler/xxx_handler.go`
 - `service/xxx_service.go`
-- `consts/permissions.go` (修改)
-- `router.go` (修改)
+- 权限常量定义（修改）
+- `router.go`（逐条注册路由，修改）
 
-使用本框架后，**只需一个 handler 文件**，路由、权限、DI 全部自动处理。
+使用本框架后，**只需一个 handler 文件**，路由和权限树由 `ModuleConfig` 声明后自动注册；模块入口只需把 handler 加入 `NewCRUDModules` 列表。
 
 说明：当前项目采用“core 只装配基础设施、模块自管理 DI”的架构，CRUD 模块实例由模块入口（例如 `internal/admin/module.go`）显式装配并传入路由层。
 
@@ -91,18 +91,16 @@ func NewArticleHandler(db *gorm.DB) *ArticleHandler {
 	h.DB = db
 	h.NotFoundMsg = "文章不存在"
 
-	h.BuildListQuery = func(db *gorm.DB, req *articleListReq) *gorm.DB {
-		return db.Model(&model.Article{})
-	}
+	h.SortableFields = []string{"id", "title", "created_at"}
 
 	h.NewModelFromCreate = func(req *articleCreateReq) (*model.Article, error) {
 		if req.Title == "" {
-			return nil, errors.New("标题不能为空")
+			return nil, crud.NewBizError("标题不能为空")
 		}
 		return &model.Article{Title: req.Title}, nil
 	}
 
-	h.BuildUpdates = func(req *articleUpdateReq, existing *model.Article) (map[string]interface{}, error) {
+	h.BuildUpdates = func(tx *gorm.DB, req *articleUpdateReq, existing *model.Article) (map[string]interface{}, error) {
 		updates := map[string]interface{}{}
 		if req.Title != "" {
 			updates["title"] = req.Title
@@ -128,14 +126,16 @@ var _ crud.Module = (*ArticleHandler)(nil)
 
 说明：示例为突出 `CRUDHandler` 的配置方式，省略了请求结构体定义与完整校验。
 
-完成！接下来在模块入口（例如 `internal/admin/module.go`）把该模块加入模块列表：
+完成！接下来在 `internal/admin/module.go` 的 `NewCRUDModules` 中把该模块加入列表（运行时路由注册与 Swagger 文档生成共用这份列表，避免接口与文档漂移）：
 
 ```go
 return []crud.Module{
     // ... 其他模块
-    NewArticleHandler(db),
+    handler.NewArticleHandler(db),
 }
 ```
+
+注意：路由通过反射按 `Route.Handler` 的名字查找 handler 方法，方法必须是导出方法且签名为 `func(*gin.Context)`；名字写错会在启动注册路由时直接 panic。
 
 ---
 
@@ -190,8 +190,19 @@ type ModuleConfig struct {
     ParentPermission string       // 父级权限 key
     Permissions      []Permission // 权限树
     Routes           []Route      // 路由配置
+    Swagger          SwaggerConfig // Swagger 类型信息（可选）
+}
+
+// SwaggerConfig 仅用于文档生成，不参与运行时请求处理
+type SwaggerConfig struct {
+    Model         interface{} // 模型
+    ListRequest   interface{} // 列表查询参数
+    CreateRequest interface{} // 创建请求体
+    UpdateRequest interface{} // 更新请求体
 }
 ```
+
+填写 `Swagger` 后，`make swagger` 会通过 `cmd/swagger-enhance` 为该模块的标准 CRUD 路由补全文档。
 
 ### Permission 结构
 
@@ -244,8 +255,10 @@ type Route struct {
 
 | 方法 | 说明 |
 |------|------|
-| `QueryList(c, query, &dest)` | 通用分页查询，自动处理 count/order/offset/limit |
-| `crud.QueryListWithHook(&h.BaseHandler, c, query, &dest, after)` | 通用分页查询 + 结果二次处理（例如补充权限、统计字段） |
+| `QueryList(c, query, &dest)` | 通用分页查询，自动处理 count/offset/limit，只使用默认排序（`created_at DESC`） |
+| `crud.QueryListWithHook(&h.BaseHandler, c, query, &dest, order, after)` | 通用分页查询 + 排序白名单（`crud.ListOrder`） + 结果二次处理（例如补充权限、统计字段） |
+
+客户端排序（`sortField`、`sortOrder`）必须在 `ListOrder.Sortable` 白名单内才生效，否则忽略并使用 `ListOrder.Default`。不要把密码等敏感列放进白名单。
 | `QueryOne(c, query, &dest, notFoundMsg)` | 通用单条查询，返回 bool 表示是否找到 |
 | `ExecDelete(c, db, model, id)` | 通用删除操作 |
 | `ExecTx(c, db, fn, successMsg, data)` | 通用事务操作 |
@@ -275,7 +288,8 @@ func (h *ArticleHandler) ListWithExtra(c *gin.Context) {
     query := h.db.Model(&model.Article{})
 
     var articles []model.Article
-    crud.QueryListWithHook(&h.BaseHandler, c, query, &articles, func(items []model.Article) error {
+    order := crud.ListOrder{Sortable: []string{"id", "title", "created_at"}}
+    crud.QueryListWithHook(&h.BaseHandler, c, query, &articles, order, func(items []model.Article) error {
         // 这里做 items 的二次处理，例如：补充统计字段、聚合关联数据等
         // 返回 error 会自动转为统一错误响应
         return nil
@@ -330,7 +344,7 @@ var perms = crud.NewCRUDPerms("system", "article", "文章管理")
 perms.Tree  // []Permission，包含菜单和子权限
 
 // 生成标准路由
-perms.Routes()  // GET /, GET /:id, POST /, PUT /:id, DELETE /:id
+perms.Routes()  // GET /, GET /:id, POST /, PUT /:id, DELETE /batch, DELETE /:id
 ```
 
 ### 添加额外权限
@@ -416,23 +430,54 @@ crud.GetAllPermissionKeys()  // []string
 | `CreateSuccessMsg` / `UpdateSuccessMsg` / `DeleteSuccessMsg` | 成功提示文案（不配默认“创建成功/更新成功/删除成功”） |
 | `EnabledField` | 启用字段名（默认 `enabled`） |
 | `EnabledSuccessMsg` | 启用/禁用成功提示（默认“更新成功”） |
+| `SortableFields` | 允许客户端排序的列名白名单；为空则忽略 `sortField`，只用默认排序 |
+| `DefaultOrder` | 默认排序子句，如 `"sort ASC, id DESC"`；为空时使用 `created_at DESC`（表没有该列时必须配置） |
+| `UniqueFields` | 需要全表唯一的列，如 `[]crud.Unique{{Column: "username", Err: ErrUsernameExists}}`；创建与更新时在事务内自动查重（更新时排除自身），数据库仍应建唯一索引兜底并发 |
 
-### 常用 hook（按使用频率）
+### hook 一览
 
-| hook | 说明 |
-|------|------|
-| `BuildListQuery(db, req)` | 构建列表查询（必填） |
-| `BuildGetQuery(db)` | 构建详情查询（可选，常用于 `Preload`） |
-| `NewModelFromCreate(req)` | Create 请求转模型 + 业务校验（必填） |
-| `BuildUpdates(req, existing)` | Update 请求转 `updates map` + 业务校验（必填） |
-| `CreateInTx(tx, item, req)` | 创建事务内扩展逻辑（写关联表等） |
-| `UpdateInTx(tx, id, existing, req)` | 更新事务内扩展逻辑（同步关联表等） |
-| `DeleteInTx(tx, id)` | 删除事务内扩展逻辑（清理关联表） |
-| `AfterList(items)` | 列表返回前二次处理（回填权限、统计字段等） |
-| `AfterGet(item)` | 详情返回前二次处理 |
-| `ReloadAfterCreate(tx, id, item)` | 创建后重新加载（需要 preload 返回） |
-| `ReloadAfterUpdate(tx, id, existing)` | 更新后重新加载（需要 preload 返回） |
-| `DeleteBatchInTx(tx, ids)` | 批量删除事务内扩展逻辑（可选，避免循环 I/O） |
+执行顺序：`Before*` 与 `After*` 都在**同一个事务内**，`*Commit` 在事务提交之后。
+
+| 阶段 | hook | 说明 |
+|------|------|------|
+| 列表 | `BuildListQuery(db, req)` | 构建列表查询（可选，不配则查询整张表） |
+| | `AfterList(items)` | 列表返回前二次处理（回填权限、统计字段等） |
+| 详情 | `BuildGetQuery(db)` | 构建详情查询（可选，常用于 `Preload`） |
+| | `AfterGet(item)` | 详情返回前二次处理 |
+| 创建 | `NewModelFromCreate(req)` | 请求转模型（必填，在事务之外执行，不要在这里查库） |
+| | `BeforeCreate(tx, item, req)` | 插入前校验、补字段 |
+| | `AfterCreate(tx, item, req)` | 插入后逻辑，如写关联表 |
+| | `AfterCreateCommit(item, req)` | 提交后执行，适合缓存失效等外部副作用 |
+| 更新 | `BuildUpdateQuery(tx)` | 更新时的查询（可选，用于 `Preload` 或加锁） |
+| | `BuildUpdates(tx, req, existing)` | 请求转 `updates map`（必填，运行在事务内） |
+| | `BeforeUpdate(tx, id, existing, req, updates)` | 更新前校验，可改写 `updates` |
+| | `AfterUpdate(tx, id, existing, req)` | 更新后逻辑，如同步关联表 |
+| | `AfterUpdateCommit(id, existing, req, updates)` | 提交后执行；`updates` 是实际写入的字段 |
+| 删除 | `BeforeDelete(tx, ids)` | 删除前校验与关联清理，单个与批量共用 |
+| | `AfterDelete(tx, ids)` | 删除后逻辑 |
+| | `AfterDeleteCommit(ids)` | 提交后执行，单个删除时 `ids` 只有一个元素 |
+
+### 返回值与详情一致
+
+只要配置了 `BuildGetQuery` 或 `AfterGet`，创建和更新成功后会在提交之后按同一口径重新加载记录再返回，无需再写“重新加载”的 hook。未配置时直接返回内存中的记录。
+
+### 错误处理
+
+hook 与 `NewModelFromCreate`、`BuildUpdates` 返回的错误按类型处理：
+
+- `crud.NewBizError("提示")`：业务错误，消息原样返回给前端。
+- 其他错误（数据库驱动错误等）：只记日志，前端收到统一的“服务器内部错误”，避免泄露 SQL、表名和约束名。
+
+```go
+var ErrNameExists = crud.NewBizError("名称已存在") // 可作为哨兵错误，errors.Is 按指针比较
+```
+
+### 注意事项
+
+- **缓存失效放在提交后**：事务提交前失效缓存，并发请求可能把旧值回填进去。依据 `updates` 而不是 `req` 判断变更，这样 `UpdateEnabled` 路径（`req` 为零值）也能正确失效。
+- **查重用 `UniqueFields`**：不要在 `NewModelFromCreate` 里查库（它在事务之外）；声明 `UniqueFields` 即可在事务内自动查重。
+- **保护性校验放在 `BeforeUpdate`**：`UpdateEnabled` 不会调用 `BuildUpdates`，只调用 `BeforeUpdate`。“内置记录不可修改”之类的保护写在 `BuildUpdates` 里会被 `UpdateEnabled` 绕过。
+- **提交后钩子拿不到事务内数据**：删除后关联表已清理，无法再据此定位受影响的对象。需要先查再删的失效逻辑（例如按角色定位用户）只能留在 `BeforeDelete` 的事务内，参考 `admin_role_handler.go`。
 
 ### 扩展方法
 
@@ -456,13 +501,10 @@ crud.Route{Method: "PATCH", Path: "/:id/enabled", Handler: "UpdateEnabled", Perm
 
 - 请求体：`{"ids": [1,2,3]}`
 - 自动去重
-- 可通过 `DeleteBatchInTx` 统一清理关联表（避免循环中执行 I/O）
+- 要求所有 id 都存在，否则整体回滚并返回不存在
+- 与单个删除共用 `BeforeDelete` / `AfterDelete` / `AfterDeleteCommit`，在其中按 `ids` 统一清理关联表（避免循环中执行 I/O）
 
-路由示例：
-
-```go
-crud.Route{Method: "DELETE", Path: "/batch", Handler: "DeleteBatch", Permission: perms.Delete}
-```
+`perms.Routes()` 已包含该路由，无需手动添加。
 
 ### Exists（通用存在性判断）
 
@@ -471,7 +513,7 @@ crud.Route{Method: "DELETE", Path: "/batch", Handler: "DeleteBatch", Permission:
 ```go
 exists, err := crud.Exists(db, &model.AdminUser{}, "username = ?", req.Username)
 if err != nil { return nil, err }
-if exists { return nil, errors.New("用户名已存在") }
+if exists { return nil, crud.NewBizError("用户名已存在") }
 ```
 
 ```go
@@ -481,7 +523,6 @@ import (
 	"bico-admin/internal/admin/model"
 	"bico-admin/internal/pkg/crud"
 	"bico-admin/internal/pkg/password"
-	"errors"
 
 	"gorm.io/gorm"
 )
@@ -492,10 +533,14 @@ type AdminUserHandler struct {
 	crud.CRUDHandler[model.AdminUser, userListReq, createUserReq, updateUserReq]
 }
 
+// 真实代码还会注入 service.AuthCacheInvalidator（传 nil 时使用 NoopAuthCacheInvalidator），
+// 并在 AfterUpdateCommit / AfterDeleteCommit 中失效鉴权缓存。
 func NewAdminUserHandler(db *gorm.DB) *AdminUserHandler {
 	h := &AdminUserHandler{}
 	h.DB = db
 	h.NotFoundMsg = "用户不存在"
+	h.SortableFields = []string{"id", "username", "name", "enabled", "created_at", "updated_at"}
+	h.UniqueFields = []crud.Unique{{Column: "username", Err: crud.NewBizError("用户名已存在")}}
 
 	h.BuildListQuery = func(db *gorm.DB, req *userListReq) *gorm.DB {
 		query := db.Model(&model.AdminUser{}).Preload("Roles")
@@ -516,14 +561,6 @@ func NewAdminUserHandler(db *gorm.DB) *AdminUserHandler {
 	}
 
 	h.NewModelFromCreate = func(req *createUserReq) (*model.AdminUser, error) {
-		exists, err := crud.Exists(db, &model.AdminUser{}, "username = ?", req.Username)
-		if err != nil {
-			return nil, err
-		}
-		if exists {
-			return nil, errors.New("用户名已存在")
-		}
-
 		hashed, err := password.Hash(req.Password)
 		if err != nil {
 			return nil, err
@@ -552,13 +589,31 @@ var _ crud.Module = (*AdminUserHandler)(nil)
 
 ---
 
+## 代码生成器
+
+标准 CRUD 模块可以一条命令生成前后端样板：
+
+```bash
+make gen NAME=article TITLE=文章 FIELDS="title:string:标题,content:text:内容,sort:int:排序"
+```
+
+- `NAME`：下划线单数名，路由分组为 `/{kebab}s`，表名为 `{name}s`，权限码为 `system:{name}:*`。
+- `FIELDS`：`列名:类型:标签`，逗号分隔；类型可选 `string`（参与搜索）、`text`、`int`、`bool`；`enabled`、`id`、`created_at`、`updated_at` 为保留列，无需声明。
+- 生成内容：`internal/admin/model/{name}.go`、`internal/admin/handler/{name}_handler.go` 与对应的 `{name}_handler_test.go`（覆盖创建、列表、更新零值、启停、删除）、前端 `api/system/{kebab}.ts`、`views/system/{kebab}/index.vue` 和 `modules/form.vue`。
+- 自动注册：在 `module.go`、`migrate.go`、`router/routes/modules/system.ts` 的 `// gen:*` 锚点前插入条目，请不要删除这些锚点。
+- 之后自动执行 `make swagger web-types`，刷新文档与前端类型。目标文件已存在时整体中止，不会覆盖手写代码。
+
+模板位于 `cmd/gen/templates/`。生成后按需补充校验、`UniqueFields`、关联表等业务逻辑，再执行 `make check`。
+
+---
+
 ## 架构说明
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                  模块装配阶段（module.go）               │
 │  1. 模块自行装配依赖（显式创建对象）                       │
-│  2. 显式创建 []crud.Module（handler 构造）                │
+│  2. NewCRUDModules 创建 []crud.Module（handler 构造）     │
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -583,5 +638,6 @@ var _ crud.Module = (*AdminUserHandler)(nil)
 2. **优先使用 CRUDHandler** - 用配置式 hook 代替重复的 CRUD 方法体
 3. **使用 CRUDPerms** - 标准 CRUD 操作一行搞定
 4. **复杂业务保持显式** - 超出 CRUD 的接口放在具体 handler 内
-5. **批量操作避免循环 I/O** - 批量删除用 `DeleteBatchInTx`，批量写入用 `CreateInBatches`
-6. **模块显式装配** - 在模块入口维护 modules 列表，依赖清晰可控
+5. **批量操作避免循环 I/O** - 批量删除在 `BeforeDelete(tx, ids)` 中按 `ids` 统一清理，批量写入用 `CreateInBatches`
+6. **模块显式装配** - 在 `NewCRUDModules` 维护 modules 列表，依赖清晰可控
+7. **缓存失效放在提交之后** - 使用 `AfterCreateCommit`、`AfterUpdateCommit`、`AfterDeleteCommit`，不要在事务内失效缓存

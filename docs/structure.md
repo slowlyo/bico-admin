@@ -67,8 +67,7 @@ bico-admin/
 │   │   │   └── user_status.go   # 用户状态检查中间件
 │   │   ├── model/          # 模块专属模型
 │   │   │   ├── admin_user.go   # 后台用户模型
-│   │   │   ├── admin_role.go   # 后台角色模型
-│   │   │   └── menu.go         # 菜单模型
+│   │   │   └── admin_role.go   # 后台角色模型
 │   │   ├── router.go       # 路由注册（接收模块显式提供的 CRUD modules）
 │   │   └── module.go       # 模块入口：模块内 DI 装配 + 注册路由
 │   │
@@ -84,7 +83,7 @@ bico-admin/
 │   │   ├── module.go        # 模块入口：注册任务到 ctx.Scheduler
 │   │   └── task/            # 任务实现
 │   │       ├── clean.go     # 清理任务
-│   │       └── sync.go      # 同步任务
+│   │       └── sync.go      # 同步任务（示例，默认不注册）
 │   │
 │   └── migrate/             # 数据库迁移
 │       └── migrate.go       # 统一管理所有模型的 AutoMigrate
@@ -250,7 +249,7 @@ type AdminUser struct {
 - **基础模型** (core/model): BaseModel
   - 所有业务模型的基础，提供公共字段
   
-- **模块模型** (module/model): AdminUser, AdminRole, Menu
+- **模块模型** (module/model): AdminUser, AdminRole
   - 模块专属，仅在模块内使用
 
 ## 命令行工具

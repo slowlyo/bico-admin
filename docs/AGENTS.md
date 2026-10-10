@@ -25,16 +25,15 @@
 │   ├── scheduler/  # 定时调度器（robfig/cron）
 │   └── upload/     # 文件上传（支持多种驱动）
 │
-├── shared/         # 共享层（跨模块复用）
-│   ├── model/      # 基础模型（BaseModel）
+├── pkg/            # 工具包（无状态，跨模块复用）
+│   ├── crud/       # 声明式 CRUD 框架
 │   ├── response/   # 统一响应格式
 │   ├── jwt/        # JWT令牌管理
 │   ├── password/   # 密码加密（bcrypt）
 │   ├── pagination/ # 分页工具
-│   └── logger/     # 日志工具
+│   └── excel/      # Excel 导入导出
 │
 ├── admin/          # 后台管理模块
-│   ├── consts/     # 常量定义（权限树）
 │   ├── model/      # 数据模型（AdminUser, AdminRole）
 │   ├── service/    # 业务逻辑
 │   ├── handler/    # HTTP处理器
@@ -103,34 +102,26 @@ func (m *Module) Register(ctx *app.AppContext) error {
 
 #### 后端权限定义
 
-**位置**: `internal/admin/consts/permissions.go`
+**位置**: 基础权限在 `internal/admin/handler/permissions.go`，各模块权限由 `crud.NewCRUDPerms` 生成。
 
 ```go
-// 权限命名规范: 模块:资源:操作
+// 权限命名规范: 命名空间:资源:操作
 const (
-    PermDashboardMenu      = "dashboard:menu"          // 菜单权限
-    PermSystemManage       = "system:manage"           // 模块权限
-    PermAdminUserList      = "system:admin_user:list"  // 操作权限
-    PermAdminUserCreate    = "system:admin_user:create"
-    PermAdminUserEdit      = "system:admin_user:edit"
-    PermAdminUserDelete    = "system:admin_user:delete"
+    PermDashboardMenu = "dashboard:menu" // 菜单权限
+    PermSystemManage  = "system:manage"  // 模块权限
 )
 
-// 权限树结构
-var AllPermissions = []Permission{
-    {
-        Key: PermSystemManage,
-        Label: "系统管理",
-        Children: []Permission{...},
-    },
-}
+// 自动生成 menu/list/create/edit/delete 五个权限，如 system:admin_user:list
+var userPerms = crud.NewCRUDPerms("system", "admin_user", "用户管理")
 ```
+
+权限树由 `crud` 包汇总，`GetAllPermissions()` 返回完整树，超级管理员角色自动拥有全部权限。
 
 #### 路由权限绑定
 
-**后端** (`internal/admin/router.go`):
+**后端**: 在 `ModuleConfig()` 的 `Routes` 中声明，路由注册时自动挂载 `RequirePermission`：
 ```go
-users.GET("", r.permMiddleware.RequirePermission(consts.PermUserList), r.userHandler.List)
+Routes: userPerms.Routes(), // 标准 CRUD 路由，各自绑定 list/create/edit/delete 权限
 ```
 
 **前端** (`web/apps/admin/src/router/routes/modules/`):
@@ -148,10 +139,10 @@ users.GET("", r.permMiddleware.RequirePermission(consts.PermUserList), r.userHan
 
 #### 权限验证流程
 
-1. 用户登录后，后端返回用户的权限列表
-2. 前端将权限存入 `initialState.currentUser.permissions`
-3. `access.ts` 将权限数组转为对象 `{permission: true}`
-4. 路由的 `access` 字段控制菜单显示
+1. 用户登录后，前端调用 `/auth/current-user` 获取权限列表
+2. 前端将权限列表写入 Vben 的 access store（`store/auth.ts`）
+3. 路由 `meta.authority` 与权限列表比对，决定菜单和路由是否可见（`accessMode: 'frontend'`）
+4. 按钮使用 `v-access:code="'system:admin_user:create'"` 控制显示
 5. 后端中间件 `RequirePermission` 验证接口访问权限
 
 ### 3. 认证流程
@@ -186,16 +177,13 @@ authorized := admin.Group("",
     r.userStatusMiddleware.Check(), // 2. 用户状态检查（是否禁用）
 )
 
-// 需要权限的路由
-users.GET("", 
-    r.permMiddleware.RequirePermission(consts.PermUserList), // 3. 权限验证
-    r.userHandler.List,
-)
+// 需要权限的 CRUD 路由由 crud.ModuleRouter 统一挂载：
+// jwtAuth -> userStatus -> RequirePermission(route.Permission) -> handler
 ```
 
 ### 4. 统一响应格式
 
-**位置**: `internal/shared/response/response.go`
+**位置**: `internal/pkg/response/response.go`
 
 ```go
 // 成功响应
@@ -226,7 +214,7 @@ users.GET("",
 
 ### 5. 数据模型规范
 
-**BaseModel** (`internal/shared/model/base.go`):
+**BaseModel** (`internal/core/model/base.go`):
 ```go
 type BaseModel struct {
     ID        uint      `gorm:"primarykey" json:"id"`
@@ -325,15 +313,17 @@ func (h *ArticleHandler) Delete(c *gin.Context) { /* 类似逻辑 */ }
 var _ crud.Module = (*ArticleHandler)(nil)
 ```
 
-然后在 `internal/admin/module.go` 中把新模块加入 `[]crud.Module` 列表（由模块显式装配）：
+然后在 `internal/admin/module.go` 的 `NewCRUDModules` 中把新模块加入列表（运行时路由与 Swagger 生成共用这份列表）：
 
 ```go
 return []crud.Module{
-    handler.NewAdminUserHandler(db),
-    handler.NewAdminRoleHandler(db),
-    NewArticleHandler(db),
+    handler.NewAdminUserHandler(db, cacheInvalidator),
+    handler.NewAdminRoleHandler(db, cacheInvalidator),
+    handler.NewArticleHandler(db),
 }
 ```
+
+> 现有的用户、角色模块使用 `crud.CRUDHandler` 泛型（通过 hook 声明差异逻辑），可参考 `admin_user_handler.go`；详见 [crud-pkg.md](./crud-pkg.md)。
 
 #### 2. 创建模型 (`internal/admin/model/article.go`)
 
@@ -353,11 +343,14 @@ type Article struct {
 #### 3. 数据库迁移 (`internal/migrate/migrate.go`)
 
 ```go
-func Migrate(db *gorm.DB) error {
-    return db.AutoMigrate(
+func AutoMigrate(db *gorm.DB, mode string) error {
+    if err := db.AutoMigrate(
         // ...
         &adminModel.Article{},
-    )
+    ); err != nil {
+        return err
+    }
+    // ...
 }
 ```
 
@@ -378,7 +371,7 @@ func Migrate(db *gorm.DB) error {
 
 #### 5. 前端页面 (`web/apps/admin/src/views/content/articles/index.vue`)
 
-页面用 Vue 单文件组件，放在 `web/apps/admin/src/views`。
+页面用 Vue 单文件组件，放在 `web/apps/admin/src/views`，接口放在 `web/apps/admin/src/api`。写法参考 [frontend-crud.md](./frontend-crud.md) 和 [frontend-services.md](./frontend-services.md)。
 
 ### 运行和测试
 
@@ -405,7 +398,7 @@ curl http://localhost:8080/admin-api/articles \
 
 ### 核心文件
 - `internal/core/app/context.go` - AppContext 构建 + 模块注册
-- `internal/admin/consts/permissions.go` - 权限定义
+- `internal/admin/handler/permissions.go` - 基础权限定义
 - `internal/admin/router.go` - 后台路由
 - `internal/migrate/migrate.go` - 数据库迁移
 
@@ -441,8 +434,8 @@ curl http://localhost:8080/admin-api/articles \
 1. 使用 TypeScript，充分利用类型系统
 2. 组件拆分合理，单个文件不超过 500 行
 3. 组件不应该太大：可复用的通用组件提取到 `src/components/`，仅页面内使用的组件提取到对应页面目录下的 `./components/`
-4. API 调用统一在 `services/` 目录
-5. 权限控制使用 `access` 对象
+4. API 调用统一在 `src/api/` 目录
+5. 权限控制使用路由 `meta.authority` 和 `v-access:code` 指令
 
 ### 命名规范
 
@@ -454,7 +447,7 @@ curl http://localhost:8080/admin-api/articles \
 - 常量: 大驼峰 `PermAdminUserList`
 
 **TypeScript**:
-- 文件名: 短横线 `admin-users.tsx` 或小驼峰 `adminUsers.tsx`
+- 文件名: 短横线 `admin-users`（页面目录）、`avatar-upload.vue`（组件）
 - 组件: 大驼峰 `AdminUserList`
 - 函数: 小驼峰 `getUserList`
 - 常量: 大写蛇形 `API_BASE_URL`
@@ -463,9 +456,9 @@ curl http://localhost:8080/admin-api/articles \
 
 ### 如何调试权限问题？
 
-1. 检查用户是否有该权限: 查看 `admin_roles` 表的 `permissions` 字段
-2. 检查前端路由配置: `routes.ts` 的 `access` 字段
-3. 检查后端路由: `router.go` 的 `RequirePermission` 参数
+1. 检查用户是否有该权限: 查看 `admin_role_permissions` 表中该角色的权限记录
+2. 检查前端路由配置: `router/routes/modules/*.ts` 的 `meta.authority`
+3. 检查后端路由: 模块 `ModuleConfig().Routes` 中的 `Permission`
 4. 查看浏览器 Network: `/auth/current-user` 接口返回的权限列表
 
 ### 如何添加新的中间件？

@@ -1,0 +1,79 @@
+<script lang="ts" setup>
+import type { [[.Pascal]] } from '#/api/system/[[.Kebab]]';
+
+import { z } from '#/adapter/form';
+import { [[.Camel]]Api } from '#/api/system/[[.Kebab]]';
+import { useCrudForm } from '#/hooks/use-crud-form';
+
+const emit = defineEmits<{ success: [] }>();
+
+// 把表单值整理成后端载荷。
+function toPayload(values: Record<string, any>) {
+  return {
+[[- range .Fields]]
+[[- if eq .Type "int"]]
+    [[.Name]]: Number(values.[[.Name]] ?? 0),
+[[- else if eq .Type "bool"]]
+    [[.Name]]: Boolean(values.[[.Name]]),
+[[- else]]
+    [[.Name]]: String(values.[[.Name]] || '').trim(),
+[[- end]]
+[[- end]]
+    enabled: Boolean(values.enabled),
+  };
+}
+
+const { Form, Modal } = useCrudForm<[[.Pascal]]>({
+  create: (values) => [[.Camel]]Api.create(toPayload(values)),
+  entityName: '[[.Title]]',
+  onSuccess: () => emit('success'),
+  schema: [
+[[- range $i, $f := .Fields]]
+    {
+[[- if eq $f.Type "text"]]
+      component: 'Textarea',
+      componentProps: { class: 'w-full', placeholder: '请输入[[$f.Label]]' },
+[[- else if eq $f.Type "int"]]
+      component: 'InputNumber',
+      componentProps: { class: 'w-full', placeholder: '请输入[[$f.Label]]' },
+[[- else if eq $f.Type "bool"]]
+      component: 'Switch',
+[[- else]]
+      component: 'Input',
+      componentProps: { class: 'w-full', placeholder: '请输入[[$f.Label]]' },
+[[- end]]
+      fieldName: '[[$f.Name]]',
+      label: '[[$f.Label]]',
+[[- if and (eq $i 0) (eq $f.Type "string")]]
+      rules: z.string().trim().min(1, '请输入[[$f.Label]]'),
+[[- end]]
+    },
+[[- end]]
+    {
+      component: 'Switch',
+      defaultValue: true,
+      fieldName: 'enabled',
+      label: '状态',
+    },
+  ],
+  toValues: (row) => ({
+[[- range .Fields]]
+[[- if eq .Type "int"]]
+    [[.Name]]: row?.[[.Name]] ?? 0,
+[[- else if eq .Type "bool"]]
+    [[.Name]]: row?.[[.Name]] ?? false,
+[[- else]]
+    [[.Name]]: row?.[[.Name]] ?? '',
+[[- end]]
+[[- end]]
+    enabled: row?.enabled ?? true,
+  }),
+  update: (row, values) => [[.Camel]]Api.update(row.id, toPayload(values)),
+});
+</script>
+
+<template>
+  <Modal>
+    <Form />
+  </Modal>
+</template>

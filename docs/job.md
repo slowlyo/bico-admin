@@ -7,12 +7,15 @@
 ## 🏗️ 架构设计
 
 ```
+internal/core/scheduler/
+└── scheduler.go      # 调度器封装（封装 cron 库）
+
 internal/job/
-├── scheduler.go      # 调度器封装（封装 cron 库）
+├── module.go         # 模块入口（把任务注册到 ctx.Scheduler）
 ├── register.go       # 任务注册器（注册所有定时任务）
 └── task/            # 任务实现目录
     ├── clean.go      # 清理任务（示例）
-    └── sync.go       # 同步任务（示例）
+    └── sync.go       # 同步任务（示例，默认不注册）
 ```
 
 ### 核心组件
@@ -119,7 +122,7 @@ func (t *ReportTask) Run() error {
 在 `internal/job/register.go` 中注册：
 
 ```go
-func RegisterJobs(scheduler *Scheduler, db *gorm.DB, cache cache.Cache, logger *zap.Logger) error {
+func RegisterJobs(scheduler *scheduler.Scheduler, db *gorm.DB, cache cache.Cache, logger *zap.Logger) error {
     // ... 现有任务 ...
     
     // 注册报表任务（每天早上 8 点执行）
@@ -176,11 +179,11 @@ func (t *MyTask) Run() error {
 - **功能**: 清理过期数据（如缓存、临时文件等）
 - **文件**: `internal/job/task/clean.go`
 
-### SyncTask（同步任务）
+### SyncTask（同步任务，默认禁用）
 
-- **执行时间**: 每小时执行一次
-- **Cron 表达式**: `0 0 * * * *`
-- **功能**: 同步数据、更新统计信息
+- **状态**: 仅作为示例，`internal/job/register.go` 中的注册代码默认被注释
+- **启用方式**: 取消注释后即按每小时执行（Cron 表达式 `0 0 * * * *`）
+- **功能**: 示例逻辑为统计用户数量，实际使用时替换为同步数据、更新统计信息
 - **文件**: `internal/job/task/sync.go`
 
 ## 🔧 高级用法

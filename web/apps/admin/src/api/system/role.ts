@@ -1,31 +1,21 @@
+import type { definitions, paths } from '#/api/generated/schema';
+
+import type { Defined, PageQuery } from '#/api/crud';
+
+import { createCrudApi } from '#/api/crud';
 import { requestClient } from '#/api/request';
 
-import type { PageResult } from './user';
+// 以下类型来自后端 Swagger（api/generated/schema.d.ts），后端改字段后执行 make web-types 同步。
+export type AdminRole = Defined<definitions['model.AdminRole']>;
 
-export interface AdminRole {
-  created_at: string;
-  description: string;
-  enabled: boolean;
-  id: number;
-  name: string;
-  permissions?: string[];
-  system: boolean;
-}
+export type AdminRoleQuery = NonNullable<
+  paths['/admin-roles']['get']['parameters']['query']
+> &
+  PageQuery;
 
-export interface AdminRoleQuery {
-  enabled?: boolean;
-  name?: string;
-  page: number;
-  pageSize: number;
-  sortField?: string;
-  sortOrder?: string;
-}
+export type AdminRoleCreatePayload = definitions['handler.createRoleReq'];
 
-export interface AdminRolePayload {
-  description: string;
-  enabled: boolean;
-  name: string;
-}
+export type AdminRoleUpdatePayload = definitions['handler.updateRoleReq'];
 
 export interface PermissionNode {
   children?: PermissionNode[];
@@ -33,34 +23,17 @@ export interface PermissionNode {
   label: string;
 }
 
-// 角色分页列表。系统保留标记和权限码由列表后处理填上。
-export function listAdminRolesApi(params: AdminRoleQuery) {
-  return requestClient.get<PageResult<AdminRole>>('/admin-roles', { params });
-}
+// 角色走标准 CRUD 接口。系统保留标记和权限码由列表后处理填上；权限不在创建表单里配。
+export const adminRoleApi = createCrudApi<
+  AdminRole,
+  AdminRoleQuery,
+  AdminRoleCreatePayload,
+  AdminRoleUpdatePayload
+>('/admin-roles');
 
 // 下拉只用启用角色，不分页。
 export function listAllAdminRolesApi() {
   return requestClient.get<AdminRole[]>('/admin-roles/all');
-}
-
-// 新建角色。权限不在这个表单里配。
-export function createAdminRoleApi(data: AdminRolePayload) {
-  return requestClient.post('/admin-roles', data);
-}
-
-// 更新角色名称、描述和启用状态。
-export function updateAdminRoleApi(id: number, data: AdminRolePayload) {
-  return requestClient.put(`/admin-roles/${id}`, data);
-}
-
-// 删除角色。系统保留角色由页面先拦住。
-export function deleteAdminRoleApi(id: number) {
-  return requestClient.delete(`/admin-roles/${id}`);
-}
-
-// 批量删除。调用方需要先去掉系统保留角色。
-export function deleteAdminRolesApi(ids: number[]) {
-  return requestClient.delete('/admin-roles/batch', { data: { ids } });
 }
 
 // 完整权限树，配置抽屉和保存时补父节点都用它。

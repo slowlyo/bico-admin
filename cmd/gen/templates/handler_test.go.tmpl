@@ -1,0 +1,96 @@
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"bico-admin/internal/admin/model"
+
+	"github.com/gin-gonic/gin"
+	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
+)
+
+// Test[[.Pascal]]CRUD 验证[[.Title]]的创建、列表、更新、启停和删除主流程。
+func Test[[.Pascal]]CRUD(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("创建测试数据库失败: %v", err)
+	}
+	if err := db.AutoMigrate(&model.[[.Pascal]]{}); err != nil {
+		t.Fatalf("迁移测试表失败: %v", err)
+	}
+	h := New[[.Pascal]]Handler(db)
+
+	// 创建：enabled 未传时默认启用。
+	resp := do[[.Pascal]]Request(t, http.MethodPost, "", `{[[range $i, $f := .Fields]][[if $i]], [[end]]"[[$f.Name]]": [[$f.SampleJSON]][[end]]}`, h.Create)
+	if resp["code"].(float64) != 0 {
+		t.Fatalf("创建应成功，实际: %v", resp)
+	}
+	var created model.[[.Pascal]]
+	if err := db.First(&created, 1).Error; err != nil || !created.Enabled {
+		t.Fatalf("创建后记录缺失或未默认启用: %v, err=%v", created.Enabled, err)
+	}
+
+	// 列表：能查到刚创建的记录。
+	resp = do[[.Pascal]]Request(t, http.MethodGet, "", "", h.List)
+	data := resp["data"].(map[string]interface{})
+	if data["total"].(float64) != 1 {
+		t.Fatalf("列表总数应为 1，实际: %v", data["total"])
+	}
+
+	// 更新：使用零值也必须写入数据库。
+	resp = do[[.Pascal]]Request(t, http.MethodPut, "1", `{"[[.First.Name]]": [[.First.UpdatedJSON]]}`, h.Update)
+	if resp["code"].(float64) != 0 {
+		t.Fatalf("更新应成功，实际: %v", resp)
+	}
+	var updated model.[[.Pascal]]
+	if err := db.First(&updated, 1).Error; err != nil || updated.[[.First.GoName]] != [[.First.UpdatedGo]] {
+		t.Fatalf("更新未写入数据库: %v, err=%v", updated.[[.First.GoName]], err)
+	}
+
+	// 启停：禁用后 enabled 为 false。
+	resp = do[[.Pascal]]Request(t, http.MethodPut, "1", `{"enabled": false}`, h.UpdateEnabled)
+	if resp["code"].(float64) != 0 {
+		t.Fatalf("禁用应成功，实际: %v", resp)
+	}
+	if err := db.First(&updated, 1).Error; err != nil || updated.Enabled {
+		t.Fatalf("禁用未生效: %v, err=%v", updated.Enabled, err)
+	}
+
+	// 删除：删除后记录不存在。
+	resp = do[[.Pascal]]Request(t, http.MethodDelete, "1", "", h.Delete)
+	if resp["code"].(float64) != 0 {
+		t.Fatalf("删除应成功，实际: %v", resp)
+	}
+	var count int64
+	db.Model(&model.[[.Pascal]]{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("删除后记录应为空，实际: %d", count)
+	}
+}
+
+// do[[.Pascal]]Request 通过 HTTP 入口调用处理器并返回响应体；id 非空时作为路径参数。
+func do[[.Pascal]]Request(t *testing.T, method, id, body string, handler gin.HandlerFunc) map[string]interface{} {
+	t.Helper()
+
+	req := httptest.NewRequest(method, "/[[.Kebab]]", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	if id != "" {
+		c.Params = gin.Params{{Key: "id", Value: id}}
+	}
+	handler(c)
+
+	var resp map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("响应不是合法 JSON: %v", err)
+	}
+	return resp
+}

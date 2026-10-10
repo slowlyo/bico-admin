@@ -3,8 +3,6 @@ package handler
 import (
 	"bico-admin/internal/pkg/crud"
 	excelpkg "bico-admin/internal/pkg/excel"
-	"bico-admin/internal/pkg/response"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -55,7 +53,7 @@ var demoExcelRows = []demoExcelRow{
 func (h *DemoExcelHandler) DownloadTemplate(c *gin.Context) {
 	f, err := excelpkg.BuildHeaderTemplate(DemoExcelHeaders)
 	if err != nil {
-		h.Error(c, err.Error())
+		h.Fail(c, err)
 		return
 	}
 
@@ -66,7 +64,7 @@ func (h *DemoExcelHandler) DownloadTemplate(c *gin.Context) {
 
 	filename := "导入模板_示例.xlsx"
 	if err := excelpkg.WriteAsAttachment(c, f, filename); err != nil {
-		response.ErrorWithStatus(c, http.StatusInternalServerError, 500, err.Error())
+		h.Fail(c, err)
 		return
 	}
 }
@@ -92,6 +90,7 @@ func (h *DemoExcelHandler) Import(c *gin.Context) {
 			h.Error(c, "不支持的文件类型，请上传 .xlsx/.xlsm/.xltx/.xltm/.csv")
 			return
 		}
+		// 解析失败几乎都是文件内容问题（空文件、格式损坏等），提示面向用户。
 		h.Error(c, err.Error())
 		return
 	}
@@ -122,7 +121,7 @@ func (h *DemoExcelHandler) Import(c *gin.Context) {
 func (h *DemoExcelHandler) Export(c *gin.Context) {
 	f, err := excelpkg.BuildHeaderTemplate(DemoExcelHeaders)
 	if err != nil {
-		h.Error(c, err.Error())
+		h.Fail(c, err)
 		return
 	}
 
@@ -131,7 +130,7 @@ func (h *DemoExcelHandler) Export(c *gin.Context) {
 
 	filename := "导出_示例_" + time.Now().Format("20060102_150405") + ".xlsx"
 	if err := excelpkg.WriteAsAttachment(c, f, filename); err != nil {
-		response.ErrorWithStatus(c, http.StatusInternalServerError, 500, err.Error())
+		h.Fail(c, err)
 		return
 	}
 }

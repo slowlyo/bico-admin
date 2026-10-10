@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"bico-admin/internal/core/config"
+	"bico-admin/internal/pkg/crud"
 	"bico-admin/internal/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,7 @@ import (
 
 // DashboardHandler 工作台处理器，负责汇总服务器运行状态与基础监控数据。
 type DashboardHandler struct {
+	crud.BaseHandler
 	cfg       *config.Config
 	db        *gorm.DB
 	startedAt time.Time
@@ -98,8 +100,8 @@ func NewDashboardHandler(cfg *config.Config, db *gorm.DB) *DashboardHandler {
 func (h *DashboardHandler) GetOverview(c *gin.Context) {
 	overview, err := h.buildOverview()
 	if err != nil {
-		// 概览数据依赖数据库连接池状态，读取失败时返回统一业务错误。
-		response.ErrorWithCode(c, 500, err.Error())
+		// 概览数据依赖数据库连接池状态，读取失败属于系统错误，只记录日志。
+		h.Fail(c, err)
 		return
 	}
 	response.SuccessWithData(c, overview)

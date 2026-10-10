@@ -274,6 +274,8 @@ definitions:
                     format: uint
                     type: integer
                 type: array
+            username:
+                type: string
         type: object
     handler.uploadResponse:
         properties:
@@ -285,6 +287,8 @@ definitions:
             enabled:
                 type: boolean
             name:
+                type: string
+            role_ids:
                 type: string
             username:
                 type: string
@@ -375,6 +379,8 @@ definitions:
             avatar:
                 type: string
             name:
+                type: string
+            username:
                 type: string
         type: object
     swagger.PageResponse:
@@ -639,6 +645,24 @@ paths:
             summary: 获取全部启用角色
             tags:
                 - 角色管理
+    /admin-roles/batch:
+        delete:
+            description: 需要权限：system:admin_role:delete
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/swagger.Response'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/model.AdminRole'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: DeleteBatch
+            tags:
+                - 角色管理
     /admin-roles/permissions:
         get:
             description: 获取后台所有菜单和按钮权限
@@ -700,6 +724,11 @@ paths:
                   name: enabled
                   required: false
                   type: boolean
+                - description: RoleIDs
+                  in: query
+                  name: role_ids
+                  required: false
+                  type: string
             responses:
                 "200":
                     description: OK
@@ -806,6 +835,24 @@ paths:
             security:
                 - BearerAuth: []
             summary: 更新用户管理
+            tags:
+                - 用户管理
+    /admin-users/batch:
+        delete:
+            description: 需要权限：system:admin_user:delete
+            responses:
+                "200":
+                    description: OK
+                    schema:
+                        allOf:
+                            - $ref: '#/definitions/swagger.Response'
+                            - properties:
+                                data:
+                                    $ref: '#/definitions/model.AdminUser'
+                              type: object
+            security:
+                - BearerAuth: []
+            summary: DeleteBatch
             tags:
                 - 用户管理
     /app-config:
@@ -944,7 +991,7 @@ paths:
         put:
             consumes:
                 - application/json
-            description: 更新当前登录用户的名称和头像
+            description: 更新当前登录用户的用户名、名称和头像
             parameters:
                 - description: 个人资料
                   in: body
@@ -1009,7 +1056,7 @@ paths:
                 - 工作台
     /demo/excel/export:
         get:
-            description: 导出示例 Excel 文件
+            description: 导出示例 Excel 文件，传 ids 时只导出勾选行
             produces:
                 - application/octet-stream
             responses:

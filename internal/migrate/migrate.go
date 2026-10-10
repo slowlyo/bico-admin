@@ -19,6 +19,7 @@ func AutoMigrate(db *gorm.DB, mode string) error {
 		&adminModel.AdminRole{},
 		&adminModel.AdminRolePermission{},
 		&adminModel.AdminUserRole{},
+		// gen:models
 	); err != nil {
 		return err
 	}

@@ -18,13 +18,14 @@ import (
 )
 
 var (
-	ErrUserNotFound       = errors.New("用户不存在")
-	ErrInvalidCredentials = errors.New("用户名或密码错误")
-	ErrUserDisabled       = errors.New("用户已被禁用")
-	ErrOldPasswordWrong   = errors.New("原密码错误")
-	ErrLoginLocked        = errors.New("登录失败次数过多，请15分钟后再试")
-	ErrUsernameRequired   = errors.New("用户名不能为空")
-	ErrUsernameExists     = errors.New("用户名已存在")
+	ErrUserNotFound       = crud.NewBizError("用户不存在")
+	ErrInvalidCredentials = crud.NewBizError("用户名或密码错误")
+	ErrUserDisabled       = crud.NewBizError("用户已被禁用")
+	ErrOldPasswordWrong   = crud.NewBizError("原密码错误")
+	ErrLoginLocked        = crud.NewBizError("登录失败次数过多，请15分钟后再试")
+	// 用户名相关错误会经由 CRUD 框架返回给前端，使用 BizError 标记为可展示的业务错误。
+	ErrUsernameRequired = crud.NewBizError("用户名不能为空")
+	ErrUsernameExists   = crud.NewBizError("用户名已存在")
 )
 
 const (
@@ -93,6 +94,29 @@ type AuthCacheInvalidator interface {
 	InvalidateUserTokenVersionCache(userID uint)
 	InvalidateUsersAuthCache(userIDs []uint)
 }
+
+// NoopAuthCacheInvalidator 不做任何事的缓存失效器。
+//
+// 说明：供未接入缓存的场景（例如测试）使用，业务代码因此无需到处判断失效器是否为 nil。
+type NoopAuthCacheInvalidator struct{}
+
+// InvalidateUserPermissionCache 空实现。
+func (NoopAuthCacheInvalidator) InvalidateUserPermissionCache(uint) {}
+
+// InvalidateRoleUsersPermissionCache 空实现。
+func (NoopAuthCacheInvalidator) InvalidateRoleUsersPermissionCache(uint) {}
+
+// InvalidateRolesUsersPermissionCache 空实现。
+func (NoopAuthCacheInvalidator) InvalidateRolesUsersPermissionCache([]uint) {}
+
+// InvalidateUserStatusCache 空实现。
+func (NoopAuthCacheInvalidator) InvalidateUserStatusCache(uint) {}
+
+// InvalidateUserTokenVersionCache 空实现。
+func (NoopAuthCacheInvalidator) InvalidateUserTokenVersionCache(uint) {}
+
+// InvalidateUsersAuthCache 空实现。
+func (NoopAuthCacheInvalidator) InvalidateUsersAuthCache([]uint) {}
 
 // AuthService 认证服务
 type AuthService struct {

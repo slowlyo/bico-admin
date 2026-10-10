@@ -1,16 +1,12 @@
 <script lang="ts" setup>
-import type { AdminRole } from '#/api/system/role';
+import type { AdminRole, AdminRoleQuery } from '#/api/system/role';
 
 import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 
-import { Button, Popconfirm, Tag, Tooltip, message } from 'antdv-next';
+import { Button, Popconfirm, Tag, Tooltip } from 'antdv-next';
 
-import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  deleteAdminRoleApi,
-  deleteAdminRolesApi,
-  listAdminRolesApi,
-} from '#/api/system/role';
+import { adminRoleApi } from '#/api/system/role';
+import { useCrudGrid } from '#/hooks/use-crud-grid';
 
 import RoleForm from './modules/form.vue';
 import RolePermission from './modules/permission.vue';
@@ -25,7 +21,16 @@ const [PermissionDrawer, permissionDrawerApi] = useVbenDrawer({
   destroyOnClose: true,
 });
 
-const [Grid, gridApi] = useVbenVxeGrid({
+// 系统保留角色不可删，批量删除也据此跳过。
+const canDelete = (row: AdminRole) => !row.system;
+
+const { Grid, gridApi, remove, removeSelected } = useCrudGrid<
+  AdminRole,
+  AdminRoleQuery
+>({
+  api: adminRoleApi,
+  canDelete,
+  entityName: '角色',
   formOptions: {
     schema: [
       {
@@ -50,7 +55,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
   gridOptions: {
     checkboxConfig: {
-      checkMethod: ({ row }: { row: AdminRole }) => !row.system,
+      checkMethod: ({ row }: { row: AdminRole }) => canDelete(row),
       highlight: true,
     },
     columns: [
@@ -68,43 +73,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
         width: 220,
       },
     ],
-    height: 'auto',
-    proxyConfig: {
-      ajax: {
-        query: async (
-          {
-            page,
-            sort,
-          }: {
-            page: { currentPage: number; pageSize: number };
-            sort?: { field?: string; order?: string };
-          },
-          formValues: Record<string, any>,
-        ) => {
-          const result = await listAdminRolesApi({
-            enabled:
-              formValues.enabled === 'true'
-                ? true
-                : formValues.enabled === 'false'
-                  ? false
-                  : undefined,
-            name: formValues.name || undefined,
-            page: page.currentPage,
-            pageSize: page.pageSize,
-            sortField: sort?.field || undefined,
-            sortOrder:
-              sort?.order === 'asc'
-                ? 'ascend'
-                : sort?.order === 'desc'
-                  ? 'descend'
-                  : undefined,
-          });
-          return { items: result.list ?? [], total: result.total ?? 0 };
-        },
-      },
-    },
-    rowConfig: { keyField: 'id' },
-    toolbarConfig: { custom: true, refresh: true, search: true, zoom: true },
   },
 });
 
@@ -127,30 +95,6 @@ function openPermissions(row: Record<string, any>) {
     return;
   }
   permissionDrawerApi.setData(row).open();
-}
-
-// 系统保留角色不可删。
-async function removeRole(row: Record<string, any>) {
-  if (row.system) {
-    return;
-  }
-  await deleteAdminRoleApi(row.id);
-  message.success('删除成功');
-  await gridApi.query();
-}
-
-// 批量删除跳过系统角色，避免一次请求被保留角色拒绝。
-async function removeSelected() {
-  const rows = ((gridApi.grid?.getCheckboxRecords?.() ?? []) as AdminRole[]).filter(
-    (row) => !row.system,
-  );
-  if (rows.length === 0) {
-    message.warning('请选择角色');
-    return;
-  }
-  await deleteAdminRolesApi(rows.map((row) => row.id));
-  message.success('删除成功');
-  await gridApi.query();
 }
 </script>
 
@@ -238,7 +182,7 @@ async function removeSelected() {
             删除
           </Button>
         </Tooltip>
-        <Popconfirm v-else title="确认删除该角色？" @confirm="removeRole(row)">
+        <Popconfirm v-else title="确认删除该角色？" @confirm="remove(row)">
           <Button
             v-access:code="'system:admin_role:delete'"
             danger

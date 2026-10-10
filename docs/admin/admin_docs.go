@@ -428,7 +428,7 @@ const docTemplateadmin = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "更新当前登录用户的名称和头像",
+                "description": "更新当前登录用户的用户名、名称和头像",
                 "consumes": [
                     "application/json"
                 ],
@@ -548,7 +548,7 @@ const docTemplateadmin = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "导出示例 Excel 文件",
+                "description": "导出示例 Excel 文件，传 ids 时只导出勾选行",
                 "produces": [
                     "application/octet-stream"
                 ],
@@ -1053,6 +1053,9 @@ const docTemplateadmin = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }

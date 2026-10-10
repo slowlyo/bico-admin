@@ -1,0 +1,128 @@
+<script lang="ts" setup>
+import type { [[.Pascal]], [[.Pascal]]Query } from '#/api/system/[[.Kebab]]';
+
+import { Page, useVbenModal } from '@vben/common-ui';
+
+import { Button, Popconfirm, Tag } from 'antdv-next';
+
+import { [[.Camel]]Api } from '#/api/system/[[.Kebab]]';
+import { useCrudGrid } from '#/hooks/use-crud-grid';
+
+import [[.Pascal]]Form from './modules/form.vue';
+
+const [FormModal, formModalApi] = useVbenModal({
+  connectedComponent: [[.Pascal]]Form,
+  destroyOnClose: true,
+});
+
+const { Grid, gridApi, remove, removeSelected } = useCrudGrid<
+  [[.Pascal]],
+  [[.Pascal]]Query
+>({
+  api: [[.Camel]]Api,
+  entityName: '[[.Title]]',
+  formOptions: {
+    schema: [
+[[- range .SearchFields]]
+      {
+        component: 'Input',
+        fieldName: '[[.Name]]',
+        label: '[[.Label]]',
+      },
+[[- end]]
+      {
+        component: 'Select',
+        componentProps: {
+          allowClear: true,
+          options: [
+            { label: '启用', value: 'true' },
+            { label: '禁用', value: 'false' },
+          ],
+        },
+        fieldName: 'enabled',
+        label: '状态',
+      },
+    ],
+    showCollapseButton: false,
+  },
+  gridOptions: {
+    columns: [
+      { type: 'checkbox', width: 48 },
+      { field: 'id', title: 'ID', width: 80 },
+[[- range .Fields]]
+      { field: '[[.Name]]', minWidth: 140, [[if ne .Type "text"]]sortable: true, [[end]]title: '[[.Label]]' },
+[[- end]]
+      { field: 'enabled', slots: { default: 'enabled' }, title: '状态', width: 100 },
+      { field: 'created_at', sortable: true, title: '创建时间', width: 180 },
+      {
+        field: 'action',
+        fixed: 'right',
+        slots: { default: 'action' },
+        title: '操作',
+        width: 140,
+      },
+    ],
+  },
+});
+
+// 新建不带行数据，表单据此走创建分支。
+function openCreate() {
+  formModalApi.setData({}).open();
+}
+
+// 编辑把当前行交给弹窗回填。
+function openEdit(row: Record<string, any>) {
+  formModalApi.setData(row).open();
+}
+</script>
+
+<template>
+  <Page auto-content-height>
+    <FormModal @success="gridApi.query()" />
+    <Grid>
+      <template #toolbar-tools>
+        <Button
+          v-access:code="'system:[[.Name]]:create'"
+          type="primary"
+          @click="openCreate"
+        >
+          新建
+        </Button>
+        <Popconfirm title="确认删除选中[[.Title]]？" @confirm="removeSelected">
+          <Button
+            v-access:code="'system:[[.Name]]:delete'"
+            class="ml-2"
+            danger
+          >
+            批量删除
+          </Button>
+        </Popconfirm>
+      </template>
+      <template #enabled="{ row }">
+        <Tag :color="row.enabled ? 'green' : 'red'">
+          {{ row.enabled ? '启用' : '禁用' }}
+        </Tag>
+      </template>
+      <template #action="{ row }">
+        <Button
+          v-access:code="'system:[[.Name]]:edit'"
+          size="small"
+          type="link"
+          @click="openEdit(row)"
+        >
+          编辑
+        </Button>
+        <Popconfirm title="确认删除该[[.Title]]？" @confirm="remove(row)">
+          <Button
+            v-access:code="'system:[[.Name]]:delete'"
+            danger
+            size="small"
+            type="link"
+          >
+            删除
+          </Button>
+        </Popconfirm>
+      </template>
+    </Grid>
+  </Page>
+</template>

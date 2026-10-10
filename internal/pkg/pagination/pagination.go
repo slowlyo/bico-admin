@@ -1,13 +1,11 @@
 package pagination
 
 import (
-	"regexp"
+	"slices"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
-
-var sortFieldPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$`)
 
 const (
 	DefaultPage     = 1
@@ -65,11 +63,13 @@ func FromContext(c *gin.Context) *Pagination {
 	return p
 }
 
-// GetOrderBy 获取排序子句
-func (p *Pagination) GetOrderBy() string {
-	sortField := sanitizeSortField(p.SortField)
-	// 排序字段不合法时直接忽略，避免拼接 SQL 片段。
-	if sortField == "" {
+// GetOrderBy 获取排序子句。
+//
+// 说明：只有出现在 sortable 白名单中的字段才允许排序，避免客户端按敏感列（如密码哈希）
+// 排序来推断其内容。字段不在白名单内时返回空串，由调用方回退默认排序。
+func (p *Pagination) GetOrderBy(sortable []string) string {
+	// 白名单为空或字段未命中时忽略客户端排序，字段名不会被拼进 SQL。
+	if !slices.Contains(sortable, p.SortField) {
 		return ""
 	}
 
@@ -79,16 +79,7 @@ func (p *Pagination) GetOrderBy() string {
 		order = "ASC"
 	}
 
-	return sortField + " " + order
-}
-
-// sanitizeSortField 校验排序字段，仅允许字母数字下划线和单层表名前缀。
-func sanitizeSortField(field string) string {
-	// 非法字段直接丢弃，交给默认排序兜底。
-	if !sortFieldPattern.MatchString(field) {
-		return ""
-	}
-	return field
+	return p.SortField + " " + order
 }
 
 // Response 分页响应

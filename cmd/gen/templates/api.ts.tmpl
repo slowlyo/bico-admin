@@ -1,0 +1,24 @@
+import type { Defined, PageQuery } from '#/api/crud';
+import type { definitions, paths } from '#/api/generated/schema';
+
+import { createCrudApi } from '#/api/crud';
+
+// 以下类型来自后端 Swagger，先执行 make swagger web-types 再使用。
+export type [[.Pascal]] = Defined<definitions['model.[[.Pascal]]']>;
+
+export type [[.Pascal]]Query = NonNullable<
+  paths['[[.Group]]']['get']['parameters']['query']
+> &
+  PageQuery;
+
+export type [[.Pascal]]CreatePayload = definitions['handler.create[[.Pascal]]Req'];
+
+export type [[.Pascal]]UpdatePayload = definitions['handler.update[[.Pascal]]Req'];
+
+// [[.Title]]走标准 CRUD 接口。
+export const [[.Camel]]Api = createCrudApi<
+  [[.Pascal]],
+  [[.Pascal]]Query,
+  [[.Pascal]]CreatePayload,
+  [[.Pascal]]UpdatePayload
+>('[[.Group]]');

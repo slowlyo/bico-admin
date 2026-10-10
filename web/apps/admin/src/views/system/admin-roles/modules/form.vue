@@ -1,16 +1,25 @@
 <script lang="ts" setup>
 import type { AdminRole } from '#/api/system/role';
 
-import { useVbenModal } from '@vben/common-ui';
-
-import { message } from 'antdv-next';
-
-import { useVbenForm, z } from '#/adapter/form';
-import { createAdminRoleApi, updateAdminRoleApi } from '#/api/system/role';
+import { z } from '#/adapter/form';
+import { adminRoleApi } from '#/api/system/role';
+import { useCrudForm } from '#/hooks/use-crud-form';
 
 const emit = defineEmits<{ success: [] }>();
 
-const [Form, formApi] = useVbenForm({
+// 把表单值整理成后端载荷，名称和描述去除首尾空格。
+function toPayload(values: Record<string, any>) {
+  return {
+    description: String(values.description || '').trim(),
+    enabled: Boolean(values.enabled),
+    name: String(values.name || '').trim(),
+  };
+}
+
+const { Form, Modal } = useCrudForm<AdminRole>({
+  create: (values) => adminRoleApi.create(toPayload(values)),
+  entityName: '角色',
+  onSuccess: () => emit('success'),
   schema: [
     {
       component: 'Input',
@@ -32,50 +41,12 @@ const [Form, formApi] = useVbenForm({
       label: '状态',
     },
   ],
-  showDefaultActions: false,
-});
-
-const [Modal, modalApi] = useVbenModal({
-  async onConfirm() {
-    const { valid } = await formApi.validate();
-    if (!valid) {
-      return;
-    }
-    const values = await formApi.getValues();
-    const payload = {
-      description: String(values.description || '').trim(),
-      enabled: Boolean(values.enabled),
-      name: String(values.name || '').trim(),
-    };
-    const data = modalApi.getData<AdminRole>();
-    modalApi.lock();
-    try {
-      if (data?.id) {
-        await updateAdminRoleApi(data.id, payload);
-        message.success('更新成功');
-      } else {
-        await createAdminRoleApi(payload);
-        message.success('创建成功');
-      }
-      emit('success');
-      modalApi.close();
-    } finally {
-      modalApi.unlock();
-    }
-  },
-  async onOpenChange(isOpen) {
-    if (!isOpen) {
-      return;
-    }
-    const data = modalApi.getData<AdminRole>();
-    modalApi.setState({ title: data?.id ? '编辑角色' : '新建角色' });
-    await formApi.resetForm();
-    await formApi.setValues({
-      description: data?.description ?? '',
-      enabled: data?.enabled ?? true,
-      name: data?.name ?? '',
-    });
-  },
+  toValues: (row) => ({
+    description: row?.description ?? '',
+    enabled: row?.enabled ?? true,
+    name: row?.name ?? '',
+  }),
+  update: (row, values) => adminRoleApi.update(row.id, toPayload(values)),
 });
 </script>
 

@@ -55,7 +55,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 	resp, err := h.authService.Login(loginReq)
 	if err != nil {
-		h.Error(c, err.Error())
+		h.Fail(c, err)
 		return
 	}
 
@@ -131,7 +131,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 
 	user, err := h.authService.UpdateProfile(userID, &req)
 	if err != nil {
-		h.Error(c, err.Error())
+		h.Fail(c, err)
 		return
 	}
 
@@ -161,7 +161,7 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 
 	err := h.authService.ChangePassword(userID, &req)
 	if err != nil {
-		h.Error(c, err.Error())
+		h.Fail(c, err)
 		return
 	}
 
@@ -192,7 +192,7 @@ func (h *AuthHandler) UploadAvatar(c *gin.Context) {
 
 	url, err := h.uploader.Upload(file, "avatars")
 	if err != nil {
-		h.Error(c, err.Error())
+		h.Fail(c, uploadBizError(err))
 		return
 	}
 

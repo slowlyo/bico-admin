@@ -1,4 +1,4 @@
-.PHONY: help serve air dev tidy install migrate build web build-web package package-win clean swagger
+.PHONY: help serve air dev tidy install migrate build web build-web package package-win clean swagger web-types check gen
 
 export GOROOT :=
 
@@ -15,6 +15,9 @@ help:
 	@echo "  make install     - 安装前端依赖"
 	@echo "  make migrate   - 执行数据库迁移"
 	@echo "  make swagger   - 生成 Swagger 文档"
+	@echo "  make web-types - 由 Swagger 生成前端类型（先 make swagger）"
+	@echo "  make check     - 后端 build/vet/test 与前端类型检查"
+	@echo "  make gen       - 生成 CRUD 模块，见 docs/crud-pkg.md"
 	@echo "  make tidy      - 整理后端依赖"
 	@echo "  make clean     - 清理构建产物"
 
@@ -87,6 +90,27 @@ swagger:
 	@swag init -g doc.go -d docs/api,internal/api -o docs/api --instanceName api
 	@go run ./cmd/swagger-enhance
 	@echo "✅ Swagger 文档生成完成"
+
+# 由 docs/admin/admin_swagger.json 生成前端类型，后端改了请求/响应结构后需要重新执行。
+web-types:
+	@cd web && pnpm exec openapi-typescript ../docs/admin/admin_swagger.json --output apps/admin/src/api/generated/schema.d.ts
+
+# 改完代码后的统一验证入口：任一步失败即退出。
+check:
+	@test -z "$$(gofmt -l internal cmd)" || (echo "以下文件未格式化，请执行 gofmt -w:" && gofmt -l internal cmd && exit 1)
+	@go build ./...
+	@go vet ./...
+	@go test ./...
+	@cd web/apps/admin && pnpm run typecheck
+	@echo "✅ 检查通过"
+
+# 生成标准 CRUD 模块并刷新文档和前端类型。
+# 用法: make gen NAME=article TITLE=文章 FIELDS="title:string:标题,content:text:内容"
+gen:
+	@test -n "$(NAME)" -a -n "$(TITLE)" -a -n "$(FIELDS)" || (echo "用法: make gen NAME=article TITLE=文章 FIELDS=\"title:string:标题,sort:int:排序\"" && exit 1)
+	@go run ./cmd/gen -name "$(NAME)" -title "$(TITLE)" -fields "$(FIELDS)"
+	@$(MAKE) swagger
+	@$(MAKE) web-types
 
 build:
 	@echo "🔨 编译后端..."
