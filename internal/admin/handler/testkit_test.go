@@ -72,6 +72,11 @@ func newAdminTestDB(t *testing.T) *gorm.DB {
 
 // callHandler 通过 HTTP 入口调用处理器方法并返回响应体；id 非空时作为路径参数。
 func callHandler(t *testing.T, method, id, body string, handler gin.HandlerFunc) map[string]interface{} {
+	return callHandlerAs(t, method, id, body, 0, handler)
+}
+
+// callHandlerAs 在 Gin 上下文中注入 operatorID 后调用处理器（0 表示不注入登录用户）。
+func callHandlerAs(t *testing.T, method, id, body string, operatorID uint, handler gin.HandlerFunc) map[string]interface{} {
 	t.Helper()
 
 	gin.SetMode(gin.TestMode)
@@ -80,6 +85,9 @@ func callHandler(t *testing.T, method, id, body string, handler gin.HandlerFunc)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
+	if operatorID != 0 {
+		c.Set("user_id", operatorID)
+	}
 	if id != "" {
 		c.Params = gin.Params{{Key: "id", Value: id}}
 	}
