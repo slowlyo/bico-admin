@@ -188,7 +188,7 @@ func (h *CRUDHandler[T, L, C, U]) Create(c *gin.Context) {
 		successMsg = "创建成功"
 	}
 
-	if err := h.DB.Transaction(func(tx *gorm.DB) error {
+	if err := h.DB.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
 		// 创建前 hook 适合做跨字段校验或补充审计字段。
 		if h.BeforeCreate != nil {
 			if err := h.BeforeCreate(tx, item, &req); err != nil {
@@ -284,7 +284,7 @@ func (h *CRUDHandler[T, L, C, U]) deleteByIDs(c *gin.Context, ids []uint) {
 		successMsg = "删除成功"
 	}
 
-	if err := h.DB.Transaction(func(tx *gorm.DB) error {
+	if err := h.DB.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
 		// 删除前 hook 适合做业务保护（例如禁止删除内置记录）和关联表清理，整体处理避免逐条 I/O。
 		if h.BeforeDelete != nil {
 			if err := h.BeforeDelete(tx, ids); err != nil {
@@ -373,7 +373,7 @@ func (h *CRUDHandler[T, L, C, U]) updateWithRequest(
 ) {
 	var updated T
 	var updates map[string]interface{}
-	if err := h.DB.Transaction(func(tx *gorm.DB) error {
+	if err := h.DB.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
 		q := tx
 		// 允许业务自定义更新前的查询（例如 preload/锁）。
 		if h.BuildUpdateQuery != nil {

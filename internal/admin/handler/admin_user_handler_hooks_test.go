@@ -11,11 +11,13 @@ import (
 func TestUserCreateSyncsRolesAndReloads(t *testing.T) {
 	db := newAdminTestDB(t)
 	h := NewAdminUserHandler(db, &recordingInvalidator{})
+	super := seedRole(t, db, "超级管理员", model.SuperAdminRoleCode)
+	operator := seedUser(t, db, "operator", super)
 	r1 := seedRole(t, db, "角色一", "r1")
 	r2 := seedRole(t, db, "角色二", "r2")
 
-	resp := callHandler(t, http.MethodPost, "", `{"username":"bob","password":"password123","role_ids":[`+
-		itoa(r1.ID)+`,`+itoa(r2.ID)+`]}`, h.Create)
+	resp := callHandlerAs(t, http.MethodPost, "", `{"username":"bob","password":"password123","role_ids":[`+
+		itoa(r1.ID)+`,`+itoa(r2.ID)+`]}`, operator.ID, h.Create)
 	expectOK(t, resp)
 	data := resp["data"].(map[string]interface{})
 	if roles, _ := data["roles"].([]interface{}); len(roles) != 2 {
@@ -26,7 +28,7 @@ func TestUserCreateSyncsRolesAndReloads(t *testing.T) {
 	}
 
 	// 非法角色 ID：返回业务错误，用户记录随事务回滚。
-	resp = callHandler(t, http.MethodPost, "", `{"username":"carl","password":"password123","role_ids":[9999]}`, h.Create)
+	resp = callHandlerAs(t, http.MethodPost, "", `{"username":"carl","password":"password123","role_ids":[9999]}`, operator.ID, h.Create)
 	expectBizError(t, resp, "存在无效角色 ID")
 	if n := countRows(t, db, &model.AdminUser{}, "username = ?", "carl"); n != 0 {
 		t.Fatalf("角色非法时不应创建用户，实际 %d", n)
@@ -38,9 +40,11 @@ func TestUserPasswordUpdateBumpsTokenVersion(t *testing.T) {
 	db := newAdminTestDB(t)
 	inv := &recordingInvalidator{}
 	h := NewAdminUserHandler(db, inv)
+	super := seedRole(t, db, "超级管理员", model.SuperAdminRoleCode)
+	operator := seedUser(t, db, "operator", super)
 	user := seedUser(t, db, "alice")
 
-	expectOK(t, callHandler(t, http.MethodPut, itoa(user.ID), `{"password":"newpassword1"}`, h.Update))
+	expectOK(t, callHandlerAs(t, http.MethodPut, itoa(user.ID), `{"password":"newpassword1"}`, operator.ID, h.Update))
 
 	var got model.AdminUser
 	if err := db.First(&got, user.ID).Error; err != nil {
@@ -54,7 +58,7 @@ func TestUserPasswordUpdateBumpsTokenVersion(t *testing.T) {
 	}
 
 	// 不改密码的更新不应影响 token 版本缓存。
-	expectOK(t, callHandler(t, http.MethodPut, itoa(user.ID), `{"name":"Alice"}`, h.Update))
+	expectOK(t, callHandlerAs(t, http.MethodPut, itoa(user.ID), `{"name":"Alice"}`, operator.ID, h.Update))
 	if len(inv.userToken) != 1 {
 		t.Fatalf("未改密码不应再次失效 token 缓存，实际 %v", inv.userToken)
 	}
@@ -69,7 +73,7 @@ func TestUserLastSuperAdminProtected(t *testing.T) {
 	first := seedUser(t, db, "root1", super)
 
 	const msg = "必须保留至少一个启用的超级管理员"
-	expectBizError(t, callHandler(t, http.MethodPut, itoa(first.ID), `{"enabled":false}`, h.UpdateEnabled), msg)
+	expectBizError(t, callHandlerAs(t, http.MethodPut, itoa(first.ID), `{"enabled":false}`, first.ID, h.UpdateEnabled), msg)
 	expectBizError(t, callHandler(t, http.MethodDelete, itoa(first.ID), "", h.Delete), msg)
 	if n := countRows(t, db, &model.AdminUser{}, "id = ? AND enabled = ?", first.ID, true); n != 1 {
 		t.Fatal("被拒绝的操作不应改变用户")
@@ -77,7 +81,7 @@ func TestUserLastSuperAdminProtected(t *testing.T) {
 
 	// 有第二个启用的超级管理员后，禁用第一个应成功，并失效状态缓存。
 	seedUser(t, db, "root2", super)
-	expectOK(t, callHandler(t, http.MethodPut, itoa(first.ID), `{"enabled":false}`, h.UpdateEnabled))
+	expectOK(t, callHandlerAs(t, http.MethodPut, itoa(first.ID), `{"enabled":false}`, first.ID, h.UpdateEnabled))
 	if len(inv.userStatus) != 1 || inv.userStatus[0] != first.ID {
 		t.Fatalf("禁用后应失效状态缓存，实际 %v", inv.userStatus)
 	}

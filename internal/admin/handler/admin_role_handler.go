@@ -291,8 +291,33 @@ func (h *AdminRoleHandler) GetAllPermissions(c *gin.Context) {
 // @Success 200 {object} adminResponse{data=[]adminRoleDocItem}
 // @Router /admin-roles/all [get]
 func (h *AdminRoleHandler) GetAll(c *gin.Context) {
+	operatorID, ok := mustOperatorUserID(c)
+	if !ok {
+		return
+	}
+
+	query := h.DB.Where("enabled = ?", true)
+	isSuper, err := service.IsUserSuperAdmin(h.DB, operatorID)
+	if err != nil {
+		h.Fail(c, err)
+		return
+	}
+	// 非超级管理员下拉只能看到自己已拥有的角色，避免前端过滤被绕过后仍展示可提权选项。
+	if !isSuper {
+		roleIDs, err := service.ListUserEnabledRoleIDs(h.DB, operatorID)
+		if err != nil {
+			h.Fail(c, err)
+			return
+		}
+		if len(roleIDs) == 0 {
+			h.Success(c, []model.AdminRole{})
+			return
+		}
+		query = query.Where("id IN ?", roleIDs)
+	}
+
 	var roles []model.AdminRole
-	if err := h.DB.Where("enabled = ?", true).Find(&roles).Error; err != nil {
+	if err := query.Find(&roles).Error; err != nil {
 		h.Fail(c, err)
 		return
 	}

@@ -1,13 +1,16 @@
 package handler
 
 import (
+	"context"
+	"strconv"
+	"strings"
+
 	"bico-admin/internal/admin/model"
 	"bico-admin/internal/admin/service"
 	"bico-admin/internal/pkg/crud"
 	"bico-admin/internal/pkg/password"
-	"strconv"
-	"strings"
 
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -159,6 +162,26 @@ func NewAdminUserHandler(db *gorm.DB, cacheInvalidator service.AuthCacheInvalida
 	return h
 }
 
+// Create 创建用户并在请求上下文中注入操作者，供角色绑定授权校验使用。
+func (h *AdminUserHandler) Create(c *gin.Context) {
+	operatorID, ok := mustOperatorUserID(c)
+	if !ok {
+		return
+	}
+	c.Request = c.Request.WithContext(withOperatorUserID(c.Request.Context(), operatorID))
+	h.CRUDHandler.Create(c)
+}
+
+// Update 更新用户并在请求上下文中注入操作者，供角色绑定授权校验使用。
+func (h *AdminUserHandler) Update(c *gin.Context) {
+	operatorID, ok := mustOperatorUserID(c)
+	if !ok {
+		return
+	}
+	c.Request = c.Request.WithContext(withOperatorUserID(c.Request.Context(), operatorID))
+	h.CRUDHandler.Update(c)
+}
+
 // parseUserRoleIDs 解析用户列表角色筛选参数，忽略非法片段以保持筛选接口容错。
 func parseUserRoleIDs(value string) []uint {
 	if value == "" {
@@ -227,6 +250,18 @@ type (
 )
 
 func (h *AdminUserHandler) syncRoles(tx *gorm.DB, user *model.AdminUser, roleIDs []uint) error {
+	var ctx context.Context
+	if tx.Statement != nil {
+		ctx = tx.Statement.Context
+	}
+	operatorID := operatorUserIDFromContext(ctx)
+	if operatorID == 0 {
+		// 角色绑定必须能追溯到当前登录用户，缺失时拒绝写入，避免绕过授权校验。
+		return crud.NewBizError("未授权")
+	}
+	if err := service.AssertCanAssignRoles(tx, operatorID, roleIDs); err != nil {
+		return err
+	}
 	if err := h.ensureRoleChangeKeepsSuperAdmin(tx, user.ID, roleIDs); err != nil {
 		return err
 	}

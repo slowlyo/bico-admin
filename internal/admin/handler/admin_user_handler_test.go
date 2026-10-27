@@ -35,11 +35,22 @@ func TestAdminUserUsernameUpdate(t *testing.T) {
 		// 测试数据缺失时无法区分自身与重复用户名。
 		t.Fatalf("创建测试用户失败: %v", err)
 	}
+	super := model.AdminRole{Name: "超级管理员", Code: model.SuperAdminRoleCode, Enabled: true}
+	if err := database.Create(&super).Error; err != nil {
+		t.Fatalf("创建超级管理员角色失败: %v", err)
+	}
+	operator := model.AdminUser{Username: "operator", Password: "unused", Enabled: true}
+	if err := database.Create(&operator).Error; err != nil {
+		t.Fatalf("创建操作者失败: %v", err)
+	}
+	if err := database.Create(&model.AdminUserRole{UserID: operator.ID, RoleID: super.ID}).Error; err != nil {
+		t.Fatalf("绑定超级管理员角色失败: %v", err)
+	}
 
 	handler := NewAdminUserHandler(database, nil)
 
 	// 未被占用的用户名应允许更新，并统一去除首尾空格。
-	resp := updateUser(t, handler, "1", `{"username":"  renamed-user  "}`)
+	resp := updateUser(t, handler, operator.ID, "1", `{"username":"  renamed-user  "}`)
 	if resp["code"].(float64) != 0 {
 		t.Fatalf("未占用的用户名应允许更新，实际: %v", resp)
 	}
@@ -49,14 +60,14 @@ func TestAdminUserUsernameUpdate(t *testing.T) {
 	}
 
 	// 被其他用户占用的用户名必须被拒绝。
-	resp = updateUser(t, handler, "1", `{"username":"existing-user"}`)
+	resp = updateUser(t, handler, operator.ID, "1", `{"username":"existing-user"}`)
 	if resp["code"].(float64) != 400 || resp["msg"] != "用户名已存在" {
 		t.Fatalf("期望用户名已存在错误，实际: %v", resp)
 	}
 }
 
 // updateUser 通过 HTTP 入口执行用户更新并返回响应体。
-func updateUser(t *testing.T, handler *AdminUserHandler, id string, body string) map[string]interface{} {
+func updateUser(t *testing.T, handler *AdminUserHandler, operatorID uint, id string, body string) map[string]interface{} {
 	t.Helper()
 
 	req := httptest.NewRequest(http.MethodPut, "/admin-users/"+id, strings.NewReader(body))
@@ -64,6 +75,7 @@ func updateUser(t *testing.T, handler *AdminUserHandler, id string, body string)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
+	c.Set("user_id", operatorID)
 	c.Params = gin.Params{{Key: "id", Value: id}}
 	handler.Update(c)
 
