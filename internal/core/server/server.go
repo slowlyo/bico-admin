@@ -23,8 +23,49 @@ import (
 	"gorm.io/gorm"
 )
 
-// hashedAsset 匹配前端构建产物里的内容哈希，例如 umi.8f3a1c2d.js。
-var hashedAsset = regexp.MustCompile(`\.[a-f0-9]{8,}\.`)
+// umiHashedAsset 匹配 umi/webpack 点分十六进制哈希，例如 umi.8f3a1c2d.js。
+var umiHashedAsset = regexp.MustCompile(`\.[a-f0-9]{8,}\.`)
+
+// isHashedStaticAsset 判断路径是否为带内容哈希的前端构建产物（Vite/Vben 或 umi）。
+func isHashedStaticAsset(filePath string) bool {
+	if umiHashedAsset.MatchString(filePath) {
+		return true
+	}
+	base := filePath
+	if i := strings.LastIndex(base, "/"); i >= 0 {
+		base = base[i+1:]
+	}
+	dot := strings.LastIndex(base, ".")
+	if dot <= 0 {
+		return false
+	}
+	stem := base[:dot]
+	// 从右向左找 `-`，首个后缀长度 ≥8 且为哈希字符集的段视为 Vite 内容哈希（哈希内可含 `-`）。
+	for i := len(stem) - 1; i >= 0; i-- {
+		if stem[i] != '-' {
+			continue
+		}
+		hash := stem[i+1:]
+		if len(hash) < 8 {
+			continue
+		}
+		if isContentHashSegment(hash) {
+			return true
+		}
+	}
+	return false
+}
+
+// isContentHashSegment 判断字符串是否为构建工具生成的内容哈希段。
+func isContentHashSegment(s string) bool {
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '-' {
+			continue
+		}
+		return false
+	}
+	return true
+}
 
 // NewServer 创建 Gin 服务器
 func NewServer(cfg *config.ServerConfig, rateLimiter *middleware.RateLimiter, zapLogger *zap.Logger) *gin.Engine {
@@ -228,7 +269,7 @@ func serveEmbedStatic(engine *gin.Engine, configManager *config.ConfigManager, e
 		}
 
 		// 带内容哈希的文件可以长期缓存；favicon 这类无哈希文件仍每次校验。
-		if hashedAsset.MatchString(filePath) {
+		if isHashedStaticAsset(filePath) {
 			c.Header("Cache-Control", "public, max-age=31536000, immutable")
 		} else {
 			c.Header("Cache-Control", "no-cache")
