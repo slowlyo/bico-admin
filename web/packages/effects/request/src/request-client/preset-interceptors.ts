@@ -6,6 +6,18 @@ import { isFunction } from '@vben/utils';
 
 import axios from 'axios';
 
+/** 判断响应是否表示未登录或令牌失效（HTTP 401 或业务码 401）。 */
+export function isUnauthorizedResponse(error: any): boolean {
+  const response = error?.response ?? error;
+  const httpStatus = response?.status;
+  if (httpStatus === 401) {
+    return true;
+  }
+  const payload = response?.data ?? error?.data;
+  const bizCode = payload?.code;
+  return bizCode === 401 || bizCode === '401';
+}
+
 export const defaultResponseInterceptor = ({
   codeField = 'code',
   dataField = 'data',
@@ -59,9 +71,8 @@ export const authenticateResponseInterceptor = ({
 }): ResponseInterceptorConfig => {
   return {
     rejected: async (error) => {
-      const { config, response } = error;
-      // 如果不是 401 错误，直接抛出异常
-      if (response?.status !== 401) {
+      const { config } = error;
+      if (!isUnauthorizedResponse(error)) {
         throw error;
       }
       // 判断是否启用了 refreshToken 功能
