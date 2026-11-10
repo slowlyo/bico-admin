@@ -8,6 +8,8 @@ import { startProgress, stopProgress } from '@vben/utils';
 import { accessRoutes, coreRouteNames } from '#/router/routes';
 import { useAuthStore } from '#/store';
 
+import { clearPersistedAccessTokens } from '#/utils/clear-persisted-access-token';
+
 import { generateAccess } from './access';
 
 /**
@@ -90,9 +92,26 @@ function setupAccessGuard(router: Router) {
       return true;
     }
 
-    // 生成路由表
-    // 当前登录用户拥有的角色标识列表
-    const userInfo = userStore.userInfo || (await authStore.fetchUserInfo());
+    let userInfo = userStore.userInfo;
+    if (!userInfo) {
+      try {
+        userInfo = await authStore.fetchUserInfo();
+      } catch {
+        clearPersistedAccessTokens();
+        accessStore.setIsAccessChecked(false);
+        if (to.fullPath === LOGIN_PATH) {
+          return true;
+        }
+        return {
+          path: LOGIN_PATH,
+          query:
+            to.fullPath === preferences.app.defaultHomePath
+              ? {}
+              : { redirect: encodeURIComponent(to.fullPath) },
+          replace: true,
+        };
+      }
+    }
     const userRoles = userInfo.roles ?? [];
 
     // 生成菜单和路由

@@ -9,6 +9,7 @@ import {
   authenticateResponseInterceptor,
   defaultResponseInterceptor,
   errorMessageResponseInterceptor,
+  isUnauthorizedResponse,
   RequestClient,
 } from '@vben/request';
 import { useAccessStore } from '@vben/stores';
@@ -16,6 +17,7 @@ import { useAccessStore } from '@vben/stores';
 import { message } from 'antdv-next';
 
 import { useAuthStore } from '#/store';
+import { clearPersistedAccessTokens } from '#/utils/clear-persisted-access-token';
 
 import { refreshTokenApi } from './core';
 
@@ -34,7 +36,11 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
     console.warn('Access token or refresh token is invalid or expired. ');
     const accessStore = useAccessStore();
     const authStore = useAuthStore();
-    accessStore.setAccessToken(null);
+    clearPersistedAccessTokens();
+    if (!accessStore.isAccessChecked) {
+      // 首次路由守卫尚未完成时，仅清令牌，由守卫跳转登录页。
+      return;
+    }
     if (
       preferences.app.loginExpiredMode === 'modal' &&
       accessStore.isAccessChecked
@@ -94,8 +100,9 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   // 通用的错误处理,如果没有进入上面的错误处理逻辑，就会进入这里
   client.addResponseInterceptor(
     errorMessageResponseInterceptor((msg: string, error) => {
-      // 这里可以根据业务进行定制,你可以拿到 error 内的信息进行定制化处理，根据不同的 code 做不同的提示，而不是直接使用 message.error 提示 msg
-      // 当前mock接口返回的错误字段是 error 或者 message
+      if (isUnauthorizedResponse(error)) {
+        return;
+      }
       const responseData = error?.response?.data ?? error?.data ?? {};
       // 后台业务错误放在 msg，HTTP 状态经常仍是 200。
       const errorMessage =
